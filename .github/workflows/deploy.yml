@@ -8,6 +8,13 @@ on:
 env:
   APP_NAME: ${{ github.event.repository.name }}
   APP_PATH: /home/apps/${{ github.event.repository.name }}
+  API_VERSION: v1
+  API_PREFIX: api
+  HOST: 0.0.0.0
+  PORT: 3001
+  NODE_ENV: development
+  THROTTLE_TTL: 60
+  THROTTLE_LIMIT: 10
 
 jobs:
   deploy:
@@ -62,6 +69,18 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             cd "${{ env.APP_PATH }}/app"
+            echo "
+            DATABASE_URL=${secrets.DATABASE_URL}
+            JWT_SECRET=${secrets.JWT_SECRET}
+            JWT_EXPIRES_IN=${secrets.JWT_EXPIRES_IN}
+            HOST=${env.HOST}
+            PORT=${env.PORT}
+            NODE_ENV=${env.NODE_ENV}
+            API_VERSION=${env.API_VERSION}
+            API_PREFIX=${env.API_PREFIX}
+            THROTTLE_TTL=${env.THROTTLE_TTL}
+            THROTTLE_LIMIT=${env.THROTTLE_LIMIT}
+            " > .env
             docker compose down || true
             docker compose build --no-cache
             docker compose up -d
