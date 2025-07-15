@@ -1,0 +1,11 @@
+services:
+  nestjs:
+    build: .
+    ports:
+      - "3001:3001"
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
