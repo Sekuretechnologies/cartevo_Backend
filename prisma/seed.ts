@@ -28,19 +28,19 @@ async function main() {
   console.log("✅ Created default roles: owner, admin, user");
 
   // Create sample company
-  const hashedClientKey = await bcrypt.hash("demo_client_key_123", 12);
+  const hashedclient_key = await bcrypt.hash("demo_client_key_123", 12);
 
   const company = await prisma.company.upsert({
-    where: { clientId: "demo_client_001" },
+    where: { client_id: "demo_client_001" },
     update: {},
     create: {
       name: "Demo Company Corp",
       country: "Cameroon",
       email: "demo@company.com",
-      clientId: "demo_client_001",
-      clientKey: hashedClientKey,
-      cardPrice: 5.0, // $5 per card
-      cardFundRate: 1.02, // 2% fee on funding
+      client_id: "demo_client_001",
+      client_key: hashedclient_key,
+      card_price: 5.0, // $5 per card
+      card_fund_rate: 1.02, // 2% fee on funding
     },
   });
 
@@ -53,30 +53,30 @@ async function main() {
     where: { email: "owner@demo.com" },
     update: {},
     create: {
-      fullName: "Demo Owner",
+      full_name: "Demo Owner",
       email: "owner@demo.com",
       password: hashedPassword,
-      companyId: company.id,
+      company_id: company.id,
       status: "ACTIVE",
     },
   });
 
-  console.log(`✅ Created user: ${user.fullName}`);
+  console.log(`✅ Created user: ${user.full_name}`);
 
   // Assign owner role to user
   await prisma.userCompanyRole.upsert({
     where: {
-      userId_companyId_roleId: {
-        userId: user.id,
-        companyId: company.id,
-        roleId: ownerRole.id,
+      user_id_company_id_role_id: {
+        user_id: user.id,
+        company_id: company.id,
+        role_id: ownerRole.id,
       },
     },
     update: {},
     create: {
-      userId: user.id,
-      companyId: company.id,
-      roleId: ownerRole.id,
+      user_id: user.id,
+      company_id: company.id,
+      role_id: ownerRole.id,
     },
   });
 
@@ -89,8 +89,8 @@ async function main() {
       active: true,
       currency: "XAF",
       country: "Cameroon",
-      countryIsoCode: "CM",
-      companyId: company.id,
+      country_iso_code: "CM",
+      company_id: company.id,
     },
   });
 
@@ -100,72 +100,75 @@ async function main() {
       active: true,
       currency: "USD",
       country: "USA",
-      countryIsoCode: "USA",
-      companyId: company.id,
+      country_iso_code: "USA",
+      company_id: company.id,
     },
   });
 
   console.log(
     `✅ Created wallets: XAF (${xafWallet.balance}) and USD ($${usdWallet.balance})`
   );
-
-  // Create sample customers
-  const customer1 = await prisma.customer.upsert({
+  // Create sample customers with more fields
+  const customerA = await prisma.customer.upsert({
     where: {
-      companyId_email: {
-        companyId: company.id,
-        email: "john.doe@example.com",
+      company_id_email: {
+        company_id: company.id,
+        email: "alice.brown@example.com",
       },
     },
     update: {},
     create: {
-      companyId: company.id,
-      firstName: "John",
-      lastName: "Doe",
-      country: "Nigeria",
-      email: "john.doe@example.com",
-      street: "123 Main Street",
-      city: "Lagos",
-      state: "Lagos State",
-      postalCode: "100001",
-      phoneCountryCode: "+234",
-      phoneNumber: "8012345678",
-      identificationNumber: "12345678901",
-      type: "NIN",
-      number: "ID001",
-      date_of_birth: new Date("1990-01-15"),
+      company_id: company.id,
+      first_name: "Alice",
+      last_name: "Brown",
+      country: "Ghana",
+      email: "alice.brown@example.com",
+      street: "789 Pine Road",
+      city: "Accra",
+      state: "Greater Accra",
+      postal_code: "00233",
+      country_iso_code: "GH",
+      country_phone_code: "+233",
+      phone_number: "241234567",
+      identification_number: "GH1234567",
+      id_document_type: "VOTER_ID",
+      id_document_front: "alice_voter_front.png",
+      id_document_back: "alice_voter_back.png",
+      date_of_birth: new Date("1992-03-10"),
     },
   });
 
-  const customer2 = await prisma.customer.upsert({
+  const customerB = await prisma.customer.upsert({
     where: {
-      companyId_email: {
-        companyId: company.id,
-        email: "jane.smith@example.com",
+      company_id_email: {
+        company_id: company.id,
+        email: "bob.martin@example.com",
       },
     },
     update: {},
     create: {
-      companyId: company.id,
-      firstName: "Jane",
-      lastName: "Smith",
-      country: "Nigeria",
-      email: "jane.smith@example.com",
-      street: "456 Oak Avenue",
-      city: "Abuja",
-      state: "FCT",
-      postalCode: "900001",
-      phoneCountryCode: "+234",
-      phoneNumber: "8087654321",
-      identificationNumber: "98765432109",
-      type: "PASSPORT",
-      number: "ID002",
-      date_of_birth: new Date("1985-05-20"),
+      company_id: company.id,
+      first_name: "Bob",
+      last_name: "Martin",
+      country: "Kenya",
+      email: "bob.martin@example.com",
+      street: "321 Cedar Lane",
+      city: "Nairobi",
+      state: "Nairobi County",
+      postal_code: "00100",
+      country_iso_code: "KE",
+      country_phone_code: "+254",
+      phone_number: "701234567",
+      identification_number: "KE7654321",
+      id_document_type: "NATIONAL_ID",
+      id_document_front: "bob_national_front.png",
+      id_document_back: "bob_national_back.png",
+      date_of_birth: new Date("1988-07-25"),
     },
   });
 
   console.log(
-    `✅ Created customers: ${customer1.firstName} ${customer1.lastName}, ${customer2.firstName} ${customer2.lastName}`
+    `✅ Created additional customers: ${customerA.first_name} ${customerA.last_name}, ${customerB.first_name} ${customerB.last_name}`
   );
 
   console.log("🎉 Database seeding completed!");

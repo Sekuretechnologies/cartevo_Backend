@@ -62,8 +62,8 @@ class CustomerModel {
       if (inputCustomer.state) {
         customerData.state = sanitizeTextInput(inputCustomer.state);
       }
-      if (inputCustomer.postalCode) {
-        customerData.postalCode = sanitizeTextInput(inputCustomer.postalCode);
+      if (inputCustomer.postal_code) {
+        customerData.postal_code = sanitizeTextInput(inputCustomer.postal_code);
       }
       const customer = await prisma.customer.create({ data: customerData });
       return fnOutput.success({ code: 201, output: customer });
@@ -97,9 +97,9 @@ class CustomerModel {
       if (customerData.state) {
         updatedCustomerData.state = sanitizeTextInput(customerData.state);
       }
-      if (customerData.postalCode) {
-        updatedCustomerData.postalCode = sanitizeTextInput(
-          customerData.postalCode
+      if (customerData.postal_code) {
+        updatedCustomerData.postal_code = sanitizeTextInput(
+          customerData.postal_code
         );
       }
       const updatedCustomer = await prisma.customer.update({

@@ -10,10 +10,12 @@ exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const throttler_1 = require("@nestjs/throttler");
-const prisma_module_1 = require("./prisma/prisma.module");
-const auth_module_1 = require("./auth/auth.module");
-const company_module_1 = require("./company/company.module");
-const user_module_1 = require("./user/user.module");
+const prisma_module_1 = require("./modules/prisma/prisma.module");
+const auth_module_1 = require("./modules/auth/auth.module");
+const company_module_1 = require("./modules/company/company.module");
+const customer_module_1 = require("./modules/customer/customer.module");
+const card_module_1 = require("./modules/card/card.module");
+const user_module_1 = require("./modules/user/user.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -30,6 +32,8 @@ exports.AppModule = AppModule = __decorate([
             prisma_module_1.PrismaModule,
             auth_module_1.AuthModule,
             company_module_1.CompanyModule,
+            customer_module_1.CustomerModule,
+            card_module_1.CardModule,
             user_module_1.UserModule,
         ],
     })

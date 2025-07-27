@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const testing_1 = require("@nestjs/testing");
 const request = require("supertest");
 const app_module_1 = require("../src/app.module");
-const prisma_service_1 = require("../src/prisma/prisma.service");
+const prisma_service_1 = require("../src/modules/prisma/prisma.service");
 describe('Virtual Card API (e2e)', () => {
     let app;
     let prisma;

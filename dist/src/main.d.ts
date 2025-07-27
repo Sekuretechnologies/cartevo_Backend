@@ -1,1 +1,1 @@
-export {};
+import "module-alias/register";
