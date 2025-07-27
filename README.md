@@ -5,12 +5,14 @@ A comprehensive Virtual Card Issuance Platform built with NestJS, Prisma, and Po
 ## 🚀 Enhanced Features
 
 ### 🏢 **Complete Company Onboarding**
+
 - Full company registration with owner user creation
 - Automatic role assignment and client credential generation
 - Multi-currency wallet setup (XAF, USD) with configurable starting balances
 - Company-specific card pricing and fund rate configuration
 
 ### 👥 **Comprehensive Customer Management**
+
 - Detailed customer profiles with full KYC information
 - Address verification with street, city, state, postal code
 - Multiple identification types (NIN, Passport, Voter's Card, Driver's License)
@@ -18,24 +20,28 @@ A comprehensive Virtual Card Issuance Platform built with NestJS, Prisma, and Po
 - Phone number with country code validation
 
 ### 💳 **Advanced Card Operations**
+
 - **Card Creation with Pricing**: Each card creation costs the company a configurable fee
 - **Fund Rate System**: Card funding applies a configurable rate (e.g., 2% fee)
 - **Automatic Card Number Generation**: 16-digit card numbers with proper masking
 - **Comprehensive Lifecycle**: Create, fund, freeze, unfreeze, terminate with balance return
 
 ### 📊 **Sophisticated Transaction Tracking**
+
 - Complete before/after balance tracking for both cards and wallets
 - Transaction types: CREATE, FUND, WITHDRAW, FREEZE, TERMINATE
 - Reference ID generation for audit trails
 - Real-time balance updates across all operations
 
 ### 🔐 **Security & Authentication**
+
 - Bearer token-based authentication with JWT
 - Role-based access control (owner, admin, user)
 - Password complexity validation
 - Client credential management
 
 ### 💰 **Financial Management**
+
 - Multi-currency wallet support
 - Real-time balance tracking
 - Transaction cost calculation
@@ -137,6 +143,7 @@ Content-Type: application/json
 ```
 
 Response:
+
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -156,20 +163,25 @@ Authorization: Bearer <your-access-token>
 ## 📚 API Endpoints
 
 ### Company Registration
+
 - `POST /api/v1/company/register` - Register new company with owner user
 
 ### Authentication
+
 - `POST /api/v1/auth/token` - Generate access token
 
 ### Company Management
+
 - `GET /api/v1/company/wallets` - Get company wallets
 
 ### Customers
+
 - `POST /api/v1/customers` - Register new customer
 - `GET /api/v1/customers` - List all customers
 - `GET /api/v1/customers/:id` - Get customer details
 
 ### Cards
+
 - `POST /api/v1/cards` - Create virtual card
 - `GET /api/v1/cards` - List all cards
 - `GET /api/v1/cards/:id` - Get card details
@@ -179,6 +191,7 @@ Authorization: Bearer <your-access-token>
 - `POST /api/v1/cards/:id/terminate` - Terminate card
 
 ### Transactions
+
 - `GET /api/v1/cards/:cardId/transactions` - List card transactions
 - `GET /api/v1/transactions` - List all company transactions
 
@@ -274,6 +287,7 @@ npm run test:api
 ### Test Coverage
 
 The API includes comprehensive test coverage for:
+
 - Authentication service and strategies
 - All CRUD operations
 - Error handling and validation
@@ -333,10 +347,6 @@ PORT=3000
 4. Push to the branch
 5. Create a Pull Request
 
-## 📝 License
-
-This project is licensed under the MIT License.
-
 ## 📞 Support
 
 For support and questions, please open an issue in the repository or contact the development team.
@@ -344,12 +354,14 @@ For support and questions, please open an issue in the repository or contact the
 ---
 
 **Demo Credentials for Testing:**
+
 - **Company Client ID**: `demo_client_001`
 - **Company Client Key**: `demo_client_key_123`
 - **Demo User Email**: `owner@demo.com`
 - **Demo User Password**: `DemoPassword123!`
 
 **Demo Company Features:**
+
 - Multi-currency wallets: XAF (Cameroon) and USD (USA)
 - Role-based access control (owner, admin, user)
 - Pre-seeded customers for testing
@@ -361,23 +373,27 @@ Visit the API documentation at `/docs` for interactive testing and detailed endp
 The enhanced platform has been successfully tested with the following capabilities:
 
 ### **Company Registration**
+
 - ✅ Created "Test Company Ltd" in Nigeria
 - ✅ Generated client credentials automatically
 - ✅ Set card price: $5.00, fund rate: 1.02 (2% fee)
 - ✅ Auto-created XAF and USD wallets
 
 ### **Detailed Customer Management**
+
 - ✅ Created customer "Olumide Adebayo" with full KYC data
 - ✅ Nigerian address, NIN identification, phone validation
-- ✅ Complete profile with DOB and identification numbers
+- ✅ Complete profile with date_of_birth and identification numbers
 
 ### **Advanced Card Operations**
+
 - ✅ Card creation deducted $5 from company USD wallet
 - ✅ Funding $1,000 cost $1,020 (2% fee applied)
 - ✅ Real-time balance tracking: Wallet $50,000 → $48,975
 - ✅ Card balance: $0 → $1,000
 
 ### **Transaction Audit Trail**
+
 - ✅ Complete transaction history with before/after balances
 - ✅ Transaction types: CREATE ($5), FUND ($1,000)
 - ✅ Wallet and card balance tracking in every transaction
@@ -399,6 +415,7 @@ node test-api.js
 ```
 
 The test script will:
+
 - Register a new company with owner user (Test Company Ltd)
 - Authenticate with demo credentials
 - Check company wallets (XAF and USD currencies)

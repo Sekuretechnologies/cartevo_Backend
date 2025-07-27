@@ -165,7 +165,7 @@ async function testAPI() {
           identification_number: '55555555555',
           type: 'NIN',
           number: 'TEST001',
-          dob: '1992-03-10'
+          date_of_birth: '1992-03-10'
         });
 
         if (newCustomerResponse.statusCode === 201) {
