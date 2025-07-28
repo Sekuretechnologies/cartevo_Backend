@@ -100,7 +100,7 @@ async function main() {
       active: true,
       currency: "USD",
       country: "USA",
-      country_iso_code: "USA",
+      country_iso_code: "US",
       company_id: company.id,
     },
   });

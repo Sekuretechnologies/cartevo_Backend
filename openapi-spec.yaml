@@ -1,0 +1,1197 @@
+openapi: 3.0.0
+paths:
+  /api/v1/auth/token:
+    post:
+      operationId: AuthController_generateToken
+      summary: "Generate access token"
+      description: "Generate a Bearer token using business client credentials"
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthTokenRequestDto"
+      responses:
+        "200":
+          description: "Token generated successfully"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokenResponseDto"
+        "401":
+          description: "Invalid client credentials"
+      tags:
+        - Authentication
+  /api/v1/company/register:
+    post:
+      operationId: CompanyController_registerCompanyUser
+      summary: "Register new company and owner user"
+      description: 'Register a new company and its first user (assigned the "owner" role), generate client credentials, and create default wallets.'
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCompanyUserDto"
+      responses:
+        "201":
+          description: "Company and owner user created successfully"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateCompanyUserResponseDto"
+        "400":
+          description: "Validation error or registration failed"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+        "409":
+          description: "User or company email already exists"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseDto"
+      tags:
+        - Company
+  /api/v1/company/wallets:
+    get:
+      operationId: CompanyController_getCompanyWallets
+      summary: "Get company wallets"
+      description: "Get all active wallets for the authenticated company"
+      parameters: []
+      responses:
+        "200":
+          description: "Company wallets retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WalletResponseDto"
+      tags:
+        - Company
+      security:
+        - bearer: []
+  /api/v1/customers:
+    post:
+      operationId: CustomerController_create
+      summary: "Register new customer"
+      description: "Register a new customer under the business account"
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCustomerDto"
+      responses:
+        "201":
+          description: "Customer registered successfully"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerResponseDto"
+        "409":
+          description: "Customer with this email already exists"
+      tags:
+        - Customers
+      security:
+        - bearer: []
+    get:
+      operationId: CustomerController_findAll
+      summary: "List all customers"
+      description: "Retrieve all customers registered under the business"
+      parameters: []
+      responses:
+        "200":
+          description: "Customers retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CustomerResponseDto"
+      tags:
+        - Customers
+      security:
+        - bearer: []
+  "/api/v1/customers/{id}":
+    get:
+      operationId: CustomerController_findOne
+      summary: "Get customer details"
+      description: "Retrieve details of a specific customer"
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Customer details retrieved successfully"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerResponseDto"
+        "404":
+          description: "Customer not found"
+      tags:
+        - Customers
+      security:
+        - bearer: []
+  /api/v1/cards:
+    post:
+      operationId: CardController_create
+      summary: "Create virtual card"
+      description: "Issue a new virtual card for a registered customer. Card creation costs the company the card_price from their USD wallet."
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCardDto"
+      responses:
+        "201":
+          description: "Card created successfully"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateCardResponseDto"
+        "400":
+          description: "Insufficient wallet balance to create card"
+        "404":
+          description: "Customer not found"
+      tags:
+        - Cards
+      security:
+        - bearer: []
+    get:
+      operationId: CardController_findAll
+      summary: "List all cards"
+      description: "Retrieve all cards issued by the company"
+      parameters: []
+      responses:
+        "200":
+          description: "Cards retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CardResponseDto"
+      tags:
+        - Cards
+      security:
+        - bearer: []
+  "/api/v1/cards/{id}/fund":
+    post:
+      operationId: CardController_fundCard
+      summary: "Fund card"
+      description: "Add funds to a card from the company USD wallet. The actual cost is amount × card_fund_rate."
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FundCardDto"
+      responses:
+        "200":
+          description: "Card funded successfully"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponseDto"
+        "400":
+          description: "Insufficient wallet balance or card is frozen"
+        "404":
+          description: "Card not found"
+      tags:
+        - Cards
+      security:
+        - bearer: []
+  "/api/v1/cards/{id}/withdraw":
+    post:
+      operationId: CardController_withdrawFromCard
+      summary: "Withdraw funds"
+      description: "Withdraw funds from a card back to company USD wallet"
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WithdrawCardDto"
+      responses:
+        "200":
+          description: "Funds withdrawn successfully"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponseDto"
+        "400":
+          description: "Insufficient card balance or card is frozen"
+        "404":
+          description: "Card not found"
+      tags:
+        - Cards
+      security:
+        - bearer: []
+  "/api/v1/cards/{id}/freeze":
+    post:
+      operationId: CardController_freezeCard
+      summary: "Freeze card"
+      description: "Freeze a card to prevent transactions"
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Card frozen successfully"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponseDto"
+        "400":
+          description: "Card is already frozen"
+        "404":
+          description: "Card not found or terminated"
+      tags:
+        - Cards
+      security:
+        - bearer: []
+  "/api/v1/cards/{id}/unfreeze":
+    post:
+      operationId: CardController_unfreezeCard
+      summary: "Unfreeze card"
+      description: "Unfreeze a card to allow transactions"
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Card unfrozen successfully"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponseDto"
+        "400":
+          description: "Card is not frozen"
+        "404":
+          description: "Card not found or terminated"
+      tags:
+        - Cards
+      security:
+        - bearer: []
+  "/api/v1/cards/{id}":
+    get:
+      operationId: CardController_findOne
+      summary: "Get card details"
+      description: "Get detailed info for a single card"
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Card details retrieved successfully"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardResponseDto"
+        "404":
+          description: "Card not found"
+      tags:
+        - Cards
+      security:
+        - bearer: []
+  "/api/v1/cards/{id}/transactions":
+    get:
+      operationId: CardController_getCardTransactions
+      summary: "Get card transactions"
+      description: "Get all transactions for a specific card"
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Card transactions retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TransactionResponseDto"
+        "404":
+          description: "Card not found"
+      tags:
+        - Cards
+      security:
+        - bearer: []
+  /api/v1/users:
+    post:
+      operationId: UserController_createUser
+      summary: "Create user (Owner only)"
+      description: "Create a new user and send invitation email. Only company owners can create users."
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserDto"
+      responses:
+        "201":
+          description: "User invitation sent successfully"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateUserResponseDto"
+        "400":
+          description: "User with this email already exists in the company"
+        "403":
+          description: "Only owners can create users"
+      tags:
+        - "User Management"
+      security:
+        - bearer: []
+    get:
+      operationId: UserController_getCompanyUsers
+      summary: "Get company users"
+      description: "Get all users in the authenticated user's company."
+      parameters: []
+      responses:
+        "200":
+          description: "Users retrieved successfully"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserResponseDto"
+      tags:
+        - "User Management"
+      security:
+        - bearer: []
+  /api/v1/users/register:
+    post:
+      operationId: UserController_registerUser
+      summary: "Complete user registration"
+      description: "Complete user registration using invitation code and set password."
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterUserDto"
+      responses:
+        "200":
+          description: "User account activated successfully"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponseDto"
+        "400":
+          description: "Invalid invitation code or email"
+      tags:
+        - "User Management"
+  "/api/v1/users/{id}":
+    put:
+      operationId: UserController_updateUser
+      summary: "Update user (Owner only)"
+      description: "Update user details and role. Only company owners can update users."
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserDto"
+      responses:
+        "200":
+          description: "User updated successfully"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponseDto"
+        "403":
+          description: "Only owners can update users"
+        "404":
+          description: "User not found in your company"
+      tags:
+        - "User Management"
+      security:
+        - bearer: []
+    delete:
+      operationId: UserController_deleteUser
+      summary: "Delete user (Owner only)"
+      description: "Delete a user from the company. Only company owners can delete users."
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "User deleted successfully"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponseDto"
+        "400":
+          description: "Cannot delete the last owner of the company"
+        "403":
+          description: "Only owners can delete users"
+        "404":
+          description: "User not found in your company"
+      tags:
+        - "User Management"
+      security:
+        - bearer: []
+  /api/v1/auth/login:
+    post:
+      operationId: AuthController_login
+      summary: "User login"
+      description: "Authenticate user with email and password, then send OTP for verification."
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginDto"
+      responses:
+        "200":
+          description: "OTP sent to user email"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponseDto"
+        "401":
+          description: "Invalid credentials"
+      tags:
+        - Authentication
+  /api/v1/auth/verify-otp:
+    post:
+      operationId: AuthController_verifyOtp
+      summary: "Verify OTP"
+      description: "Verify OTP and complete login process."
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyOtpDto"
+      responses:
+        "200":
+          description: "Login successful"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginSuccessResponseDto"
+        "401":
+          description: "Invalid or expired OTP"
+      tags:
+        - Authentication
+info:
+  title: "CARTEVO API"
+  description: "Business Virtual Card Issuance API platform"
+  version: "1.0"
+  contact: {}
+tags: []
+servers: []
+components:
+  securitySchemes:
+    bearer:
+      scheme: bearer
+      bearerFormat: JWT
+      type: http
+  schemas:
+    AuthTokenRequestDto:
+      type: object
+      properties:
+        client_id:
+          type: string
+          description: "Business client ID"
+          example: client_12345
+        client_key:
+          type: string
+          description: "Business client key"
+          example: key_abcdef123456
+      required:
+        - client_id
+        - client_key
+    AuthTokenResponseDto:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: "JWT access token"
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        token_type:
+          type: string
+          description: "Token type"
+          example: Bearer
+        expires_in:
+          type: number
+          description: "Token expiration time in seconds"
+          example: 86400
+      required:
+        - access_token
+        - token_type
+        - expires_in
+    CreateCompanyUserDto:
+      type: object
+      properties:
+        full_name_user:
+          type: string
+          description: "User full name"
+          example: "John Doe"
+          minLength: 2
+          maxLength: 255
+        email_user:
+          type: string
+          description: "User email address"
+          example: john.doe@example.com
+        password_user:
+          type: string
+          description: "User password - Must contain at least 8 characters, one uppercase, one lowercase, one digit, and one special character"
+          example: SecurePass123!
+          minLength: 8
+          maxLength: 32
+        name_company:
+          type: string
+          description: "Company name"
+          example: "Acme Corporation"
+          minLength: 2
+          maxLength: 255
+        country_company:
+          type: string
+          description: "Company country"
+          example: Cameroon
+          minLength: 2
+          maxLength: 255
+        email_company:
+          type: string
+          description: "Company email address"
+          example: company@acme.com
+      required:
+        - full_name_user
+        - email_user
+        - password_user
+        - name_company
+        - country_company
+        - email_company
+    UserResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        full_name:
+          type: string
+        email:
+          type: string
+        company_id:
+          type: string
+        status:
+          type: string
+        step:
+          type: number
+        role:
+          type: string
+        created_at:
+          format: date-time
+          type: string
+        updated_at:
+          format: date-time
+          type: string
+      required:
+        - id
+        - full_name
+        - email
+        - company_id
+        - status
+        - step
+        - role
+        - created_at
+        - updated_at
+    CompanyResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        country:
+          type: string
+        email:
+          type: string
+        client_id:
+          type: string
+        client_key:
+          type: string
+        card_price:
+          type: number
+        card_fund_rate:
+          type: number
+        created_at:
+          format: date-time
+          type: string
+        updated_at:
+          format: date-time
+          type: string
+      required:
+        - id
+        - name
+        - country
+        - email
+        - client_id
+        - client_key
+        - card_price
+        - card_fund_rate
+        - created_at
+        - updated_at
+    WalletResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        balance:
+          type: number
+        active:
+          type: boolean
+        currency:
+          type: string
+        country:
+          type: string
+        country_iso_code:
+          type: string
+        company_id:
+          type: string
+        created_at:
+          format: date-time
+          type: string
+        updated_at:
+          format: date-time
+          type: string
+      required:
+        - id
+        - balance
+        - active
+        - currency
+        - country
+        - country_iso_code
+        - company_id
+        - created_at
+        - updated_at
+    CreateCompanyUserResponseDto:
+      type: object
+      properties:
+        status:
+          type: boolean
+        message:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserResponseDto"
+        company:
+          $ref: "#/components/schemas/CompanyResponseDto"
+        wallets:
+          type: array
+          items:
+            $ref: "#/components/schemas/WalletResponseDto"
+      required:
+        - status
+        - message
+        - user
+        - company
+        - wallets
+    ErrorResponseDto:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        error:
+          type: string
+      required:
+        - success
+        - message
+        - error
+    CreateCustomerDto:
+      type: object
+      properties:
+        first_name:
+          type: string
+          description: "Customer first name"
+          example: John
+          minLength: 3
+          maxLength: 255
+        last_name:
+          type: string
+          description: "Customer last name"
+          example: Doe
+          minLength: 3
+          maxLength: 255
+        country:
+          type: string
+          description: "Customer country"
+          example: Nigeria
+          minLength: 2
+          maxLength: 255
+        email:
+          type: string
+          description: "Customer email address"
+          example: john.doe@example.com
+        street:
+          type: string
+          description: "Street address"
+          example: "123 Main Street"
+          minLength: 2
+          maxLength: 255
+        city:
+          type: string
+          description: City
+          example: Lagos
+          minLength: 2
+          maxLength: 255
+        state:
+          type: string
+          description: "State or province"
+          example: "Lagos State"
+          minLength: 2
+          maxLength: 255
+        postal_code:
+          type: string
+          description: "Postal code"
+          example: "100001"
+          minLength: 3
+          maxLength: 255
+        country_iso_code:
+          type: string
+          description: "Phone country code"
+          example: "+234"
+          minLength: 1
+          maxLength: 255
+        phone_number:
+          type: string
+          description: "Phone number"
+          example: "8012345678"
+          minLength: 3
+          maxLength: 255
+        identification_number:
+          type: string
+          description: "Identification number"
+          example: "12345678901"
+          minLength: 1
+          maxLength: 255
+        id_document_type:
+          type: string
+          description: "Type of identification"
+          example: NIN
+          enum:
+            - NIN
+            - PASSPORT
+            - VOTERS_CARD
+            - DRIVERS_LICENSE
+        image:
+          type: string
+          description: "URL or path to identification document image"
+          example: "https://example.com/images/id.jpg"
+        photo:
+          type: string
+          description: "URL or path to customer photo"
+          example: "https://example.com/images/photo.jpg"
+        number:
+          type: string
+          description: "Additional identification number"
+          example: ABC123456
+          minLength: 3
+          maxLength: 255
+        date_of_birth:
+          type: string
+          description: "Date of birth (YYYY-MM-DD)"
+          example: "1990-01-15"
+      required:
+        - first_name
+        - last_name
+        - country
+        - email
+        - street
+        - city
+        - state
+        - postal_code
+        - country_iso_code
+        - phone_number
+        - identification_number
+        - id_document_type
+        - number
+        - date_of_birth
+    CustomerResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        country:
+          type: string
+        email:
+          type: string
+        street:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        postal_code:
+          type: string
+        phone_country_code:
+          type: string
+        phone_number:
+          type: string
+        identification_number:
+          type: string
+        type:
+          type: string
+        image:
+          type: string
+        photo:
+          type: string
+        number:
+          type: string
+        date_of_birth:
+          format: date-time
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          format: date-time
+          type: string
+        updated_at:
+          format: date-time
+          type: string
+      required:
+        - id
+        - first_name
+        - last_name
+        - country
+        - email
+        - street
+        - city
+        - state
+        - postal_code
+        - phone_country_code
+        - phone_number
+        - identification_number
+        - type
+        - image
+        - photo
+        - number
+        - date_of_birth
+        - is_active
+        - created_at
+        - updated_at
+    CreateCardDto:
+      type: object
+      properties:
+        customer_id:
+          type: string
+          description: "Customer ID to issue the card for"
+          example: cust_12345
+        amount:
+          type: number
+        name_on_card:
+          type: string
+        brand:
+          type: string
+      required:
+        - customer_id
+        - amount
+        - name_on_card
+        - brand
+    CardResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        customer_id:
+          type: string
+        status:
+          type: string
+        balance:
+          type: number
+        number:
+          type: string
+        created_at:
+          format: date-time
+          type: string
+        customer:
+          type: object
+      required:
+        - id
+        - customer_id
+        - status
+        - balance
+        - number
+        - created_at
+        - customer
+    CreateCardResponseDto:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        card:
+          $ref: "#/components/schemas/CardResponseDto"
+      required:
+        - status
+        - message
+        - card
+    FundCardDto:
+      type: object
+      properties:
+        amount:
+          type: number
+          description: "Amount to add to the card"
+          example: 100.5
+      required:
+        - amount
+    SuccessResponseDto:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+          example: "Operation completed successfully"
+        data:
+          type: object
+      required:
+        - success
+        - status
+        - message
+        - data
+    WithdrawCardDto:
+      type: object
+      properties:
+        amount:
+          type: number
+          description: "Amount to withdraw from the card"
+          example: 50.25
+      required:
+        - amount
+    TransactionResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+        category:
+          type: string
+        type:
+          type: string
+        id_card:
+          type: string
+        card_balance_before:
+          type: number
+        card_balance_after:
+          type: number
+        wallet_balance_before:
+          type: number
+        wallet_balance_after:
+          type: number
+        amount:
+          type: number
+        currency:
+          type: string
+        status:
+          type: string
+        created_at:
+          format: date-time
+          type: string
+      required:
+        - id
+        - category
+        - type
+        - id_card
+        - card_balance_before
+        - card_balance_after
+        - wallet_balance_before
+        - wallet_balance_after
+        - amount
+        - currency
+        - status
+        - created_at
+    CreateUserDto:
+      type: object
+      properties:
+        email:
+          type: string
+          description: "User email address"
+          example: user@company.com
+        role:
+          type: string
+          description: "User role within the company"
+          example: admin
+          enum:
+            - admin
+            - user
+      required:
+        - email
+        - role
+    CreateUserResponseDto:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserResponseDto"
+        invitation_code:
+          type: string
+      required:
+        - success
+        - message
+        - user
+        - invitation_code
+    RegisterUserDto:
+      type: object
+      properties:
+        email:
+          type: string
+          description: "User email address"
+          example: user@company.com
+        invitation_code:
+          type: string
+          description: "Invitation code received via email"
+          example: INV_1234567890
+        full_name:
+          type: string
+          description: "User full name"
+          example: "John Doe"
+        password:
+          type: string
+          description: "User password - Must contain at least 8 characters, one uppercase, one lowercase, one digit, and one special character"
+          example: SecurePass123!
+          minLength: 8
+          maxLength: 32
+      required:
+        - email
+        - invitation_code
+        - full_name
+        - password
+    UpdateUserDto:
+      type: object
+      properties:
+        full_name:
+          type: string
+          description: "User full name"
+          example: "John Doe"
+        role:
+          type: string
+          description: "User role within the company"
+          example: admin
+          enum:
+            - admin
+            - user
+    LoginDto:
+      type: object
+      properties:
+        email:
+          type: string
+          description: "User email address"
+          example: user@company.com
+        password:
+          type: string
+          description: "User password"
+          example: SecurePass123!
+      required:
+        - email
+        - password
+    AuthResponseDto:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        requires_otp:
+          type: boolean
+      required:
+        - success
+        - message
+        - requires_otp
+    VerifyOtpDto:
+      type: object
+      properties:
+        email:
+          type: string
+          description: "User email address"
+          example: user@company.com
+        otp:
+          type: string
+          description: "One-time password received via email"
+          example: "123456"
+      required:
+        - email
+        - otp
+    LoginSuccessResponseDto:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        access_token:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserResponseDto"
+        company:
+          type: object
+      required:
+        - success
+        - message
+        - access_token
+        - user
+        - company

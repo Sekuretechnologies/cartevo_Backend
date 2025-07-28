@@ -4,7 +4,9 @@ import { ValidationPipe } from "@nestjs/common";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import { ConfigService } from "@nestjs/config";
 import { AppModule } from "./app.module";
-
+import { writeFileSync } from "fs";
+import * as YAML from "yamljs";
+``;
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
@@ -43,6 +45,14 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup("docs", app, document);
+
+  // writeFileSync("./openapi-spec.json", JSON.stringify(document, null, 2), {
+  //   encoding: "utf8",
+  // });
+  // writeFileSync("openapi-spec.yaml", YAML.stringify(document, 12));
+
+  // 4. (Optional) serve Swagger UI at `/api-docs`
+  SwaggerModule.setup("api-docs", app, document);
 
   // await app.listen(port);
   // await app.listen(3000, "0.0.0.0"); // <-- Listen on 0.0.0.0:3000
