@@ -12,7 +12,7 @@ env:
   API_PREFIX: api
   HOST: 0.0.0.0
   PORT: 3001
-  NODE_ENV: development
+  NODE_ENV: production
   THROTTLE_TTL: 60
   THROTTLE_LIMIT: 10
 
@@ -48,7 +48,7 @@ jobs:
           source: "."
           target: "${{ env.APP_PATH }}/app"
           strip_components: 0
-          
+
       - name: Mettre à jour le docker-compose avec le nom de l'application
         uses: appleboy/ssh-action@v1.0.3
         with:
