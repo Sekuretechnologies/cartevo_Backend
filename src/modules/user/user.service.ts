@@ -298,7 +298,16 @@ export class UserService {
         user.company.business_proof_of_address;
       // && user.company.memart;
 
-      if (!hasUserDocuments || !hasCompanyDocuments) {
+      // if (!hasUserDocuments || !hasCompanyDocuments) {
+      //   redirectTo = "waiting";
+      //   redirectMessage =
+      //     "Your account is under review. Please wait for KYC/KYB completion.";
+      // }
+
+      if (
+        user.kyc_status !== "APPROVED" &&
+        user.company.kyb_status !== "APPROVED"
+      ) {
         redirectTo = "waiting";
         redirectMessage =
           "Your account is under review. Please wait for KYC/KYB completion.";

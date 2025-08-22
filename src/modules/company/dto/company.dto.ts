@@ -322,12 +322,12 @@ export class BusinessInfoDto {
   })
   proof_of_address: any;
 
-  @ApiProperty({
-    description: "MEMART document file",
-    type: "string",
-    format: "binary",
-  })
-  memart: any;
+  // @ApiProperty({
+  //   description: "MEMART document file",
+  //   type: "string",
+  //   format: "binary",
+  // })
+  // memart: any;
 }
 
 // Legacy DTO for backward compatibility

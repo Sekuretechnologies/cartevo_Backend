@@ -358,7 +358,7 @@ export class CompanyService {
       let shareHoldingDocumentUrl = null;
       let incorporationCertificateUrl = null;
       let businessProofOfAddressUrl = null;
-      let memartUrl = null;
+      // let memartUrl = null;
 
       if (files?.share_holding_document?.[0]) {
         const file = files.share_holding_document[0];
@@ -392,15 +392,15 @@ export class CompanyService {
         );
       }
 
-      if (files?.memart?.[0]) {
-        const file = files.memart[0];
-        memartUrl = await this.firebaseService.uploadFile(
-          file.buffer,
-          `memart_${Date.now()}.${file.originalname.split(".").pop()}`,
-          `companies/${businessInfoDto.business_name}/documents`,
-          file.mimetype
-        );
-      }
+      // if (files?.memart?.[0]) {
+      //   const file = files.memart[0];
+      //   memartUrl = await this.firebaseService.uploadFile(
+      //     file.buffer,
+      //     `memart_${Date.now()}.${file.originalname.split(".").pop()}`,
+      //     `companies/${businessInfoDto.business_name}/documents`,
+      //     file.mimetype
+      //   );
+      // }
 
       // Generate client credentials
       const clientId = this.generateClientId();
@@ -423,7 +423,7 @@ export class CompanyService {
           share_holding_document: shareHoldingDocumentUrl,
           incorporation_certificate: incorporationCertificateUrl,
           business_proof_of_address: businessProofOfAddressUrl,
-          memart: memartUrl,
+          // memart: memartUrl,
           email: `${businessInfoDto.business_name
             .toLowerCase()
             .replace(/\s+/g, "")}@company.com`, // Generate company email

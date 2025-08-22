@@ -89,7 +89,7 @@ export class CompanyController {
       { name: "share_holding_document", maxCount: 1 },
       { name: "incorporation_certificate", maxCount: 1 },
       { name: "proof_of_address", maxCount: 1 },
-      { name: "memart", maxCount: 1 },
+      // { name: "memart", maxCount: 1 },
     ])
   )
   @ApiConsumes("multipart/form-data")
