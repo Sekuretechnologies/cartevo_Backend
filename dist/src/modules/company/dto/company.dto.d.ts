@@ -1,3 +1,41 @@
+export declare class PersonalInfoDto {
+    company_name: string;
+    first_name: string;
+    last_name: string;
+    role: string;
+    phone_number: string;
+    gender: string;
+    nationality: string;
+    id_document_type: string;
+    id_number: string;
+    id_document_front: any;
+    id_document_back: any;
+    country_of_residence: string;
+    state: string;
+    city: string;
+    street: string;
+    postal_code: string;
+    proof_of_address: any;
+    email: string;
+    password: string;
+    confirm_password: string;
+}
+export declare class BusinessInfoDto {
+    company_id: string;
+    business_name: string;
+    business_phone_number: string;
+    business_address: string;
+    business_type: string;
+    country_of_operation: string;
+    tax_id_number: string;
+    business_website?: string;
+    business_description: string;
+    source_of_funds: string;
+    share_holding_document: any;
+    incorporation_certificate: any;
+    proof_of_address: any;
+    memart: any;
+}
 export declare class CreateCompanyUserDto {
     full_name_user: string;
     email_user: string;
@@ -49,4 +87,53 @@ export declare class ErrorResponseDto {
     success: boolean;
     message: string;
     error?: string;
+}
+export declare class PersonalInfoResponseDto {
+    success: boolean;
+    message: string;
+    company_id: string;
+    company_name: string;
+    user_id: string;
+    user_name: string;
+    user_email: string;
+    next_step: number;
+}
+export declare class BusinessInfoResponseDto {
+    success: boolean;
+    message: string;
+    company_id: string;
+    company_name: string;
+    user_id: string;
+    user_name: string;
+    user_email: string;
+    next_step: string;
+}
+export declare class CheckExistingUserResponseDto {
+    success: boolean;
+    message: string;
+    user_exists: boolean;
+    company_id?: string;
+    company_name?: string;
+    company_step?: number;
+    action_required?: string;
+}
+export declare class UpdateKybStatusDto {
+    kyb_status: string;
+}
+export declare class UpdateKycStatusDto {
+    kyc_status: string;
+}
+export declare class UpdateKybStatusResponseDto {
+    success: boolean;
+    message: string;
+    company_id: string;
+    kyb_status: string;
+    updated_at: Date;
+}
+export declare class UpdateKycStatusResponseDto {
+    success: boolean;
+    message: string;
+    user_id: string;
+    kyc_status: string;
+    updated_at: Date;
 }

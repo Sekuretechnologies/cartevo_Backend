@@ -5,6 +5,7 @@ Welcome to the Virtual Card API Platform! This guide will help you understand ho
 ---
 
 ## Table of Contents
+
 - [Overview](#overview)
 - [Authentication](#authentication)
 - [Company Management](#company-management)
@@ -19,7 +20,9 @@ Welcome to the Virtual Card API Platform! This guide will help you understand ho
 ---
 
 ## Overview
+
 This API enables:
+
 - Company onboarding and management
 - Customer registration and KYC
 - Virtual card issuance, funding, freezing, and termination
@@ -31,9 +34,11 @@ The API is documented with OpenAPI (Swagger) and supports JWT authentication.
 ---
 
 ## Authentication
+
 All endpoints (except `/auth/token`) require a Bearer token.
 
 ### Obtain Access Token
+
 ```
 POST /api/v1/auth/token
 Content-Type: application/json
@@ -42,7 +47,9 @@ Content-Type: application/json
   "client_key": "<your-client-key>"
 }
 ```
+
 **Response:**
+
 ```
 {
   "access_token": "...",
@@ -52,6 +59,7 @@ Content-Type: application/json
 ```
 
 Include the token in the `Authorization` header for all subsequent requests:
+
 ```
 Authorization: Bearer <access_token>
 ```
@@ -59,6 +67,7 @@ Authorization: Bearer <access_token>
 ---
 
 ## Company Management
+
 - **Register Company & Owner:**
   - `POST /api/v1/company/register`
   - Registers a new company and its first user (owner role), generates credentials, and creates default wallets.
@@ -69,6 +78,7 @@ Authorization: Bearer <access_token>
 ---
 
 ## Customer Management
+
 - **Register Customer:**
   - `POST /api/v1/customers`
   - Registers a new customer under the business account.
@@ -80,6 +90,7 @@ Authorization: Bearer <access_token>
 ---
 
 ## Card Operations
+
 - **Create Card:**
   - `POST /api/v1/cards`
   - Issues a new virtual card for a customer. Card creation costs the company the configured card price from their USD wallet.
@@ -101,6 +112,7 @@ Authorization: Bearer <access_token>
 ---
 
 ## Transaction Tracking
+
 - **Get Card Transactions:**
   - `GET /api/v1/cards/{id}/transactions`
 - **Get All Company Transactions:**
@@ -111,7 +123,9 @@ Each transaction tracks before/after balances for both cards and wallets, and in
 ---
 
 ## Error Handling
+
 - All error responses follow a consistent structure:
+
 ```
 {
   "success": false,
@@ -119,11 +133,13 @@ Each transaction tracks before/after balances for both cards and wallets, and in
   "error": "Detailed error info"
 }
 ```
+
 - Common error codes: 400 (Bad Request), 401 (Unauthorized), 403 (Forbidden), 404 (Not Found), 409 (Conflict)
 
 ---
 
 ## OpenAPI/Swagger
+
 - The API is fully documented with OpenAPI (Swagger).
 - Access the live docs at: `http://localhost:3000/docs`
 - You can also use the `openapi-spec.yaml` or `openapi.json` file for client generation and integration.
@@ -131,7 +147,9 @@ Each transaction tracks before/after balances for both cards and wallets, and in
 ---
 
 ## Usage Examples
+
 ### Register a Company
+
 ```
 POST /api/v1/company/register
 {
@@ -145,6 +163,7 @@ POST /api/v1/company/register
 ```
 
 ### Register a Customer
+
 ```
 POST /api/v1/customers
 Authorization: Bearer <token>
@@ -158,6 +177,7 @@ Authorization: Bearer <token>
 ```
 
 ### Create a Card
+
 ```
 POST /api/v1/cards
 Authorization: Bearer <token>
@@ -170,6 +190,7 @@ Authorization: Bearer <token>
 ```
 
 ### Fund a Card
+
 ```
 POST /api/v1/cards/<card-id>/fund
 Authorization: Bearer <token>
@@ -181,6 +202,7 @@ Authorization: Bearer <token>
 ---
 
 ## FAQ
+
 **Q: How do I get my client credentials?**
 A: When you register a company, the API returns your `client_id` and `client_key`.
 

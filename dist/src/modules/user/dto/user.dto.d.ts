@@ -52,4 +52,15 @@ export declare class LoginSuccessResponseDto {
         name: string;
         country: string;
     };
+    redirect_to: string;
+}
+export declare class UpdateKycStatusDto {
+    kyc_status: string;
+}
+export declare class UpdateKycStatusResponseDto {
+    success: boolean;
+    message: string;
+    user_id: string;
+    kyc_status: string;
+    updated_at: Date;
 }

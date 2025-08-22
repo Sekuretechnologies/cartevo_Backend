@@ -1,10 +1,12 @@
 import { PrismaService } from "@/modules/prisma/prisma.service";
 import { JwtService } from "@nestjs/jwt";
-import { CreateUserDto, RegisterUserDto, LoginDto, VerifyOtpDto, UpdateUserDto, UserResponseDto, CreateUserResponseDto, AuthResponseDto, LoginSuccessResponseDto } from "./dto/user.dto";
+import { CreateUserDto, RegisterUserDto, LoginDto, VerifyOtpDto, UpdateUserDto, UserResponseDto, CreateUserResponseDto, AuthResponseDto, LoginSuccessResponseDto, UpdateKycStatusDto, UpdateKycStatusResponseDto } from "./dto/user.dto";
+import { EmailService } from "../../services/email.service";
 export declare class UserService {
     private prisma;
     private jwtService;
-    constructor(prisma: PrismaService, jwtService: JwtService);
+    private emailService;
+    constructor(prisma: PrismaService, jwtService: JwtService, emailService: EmailService);
     createUser(ownerUserId: string, createUserDto: CreateUserDto): Promise<CreateUserResponseDto>;
     registerUser(registerDto: RegisterUserDto): Promise<{
         success: boolean;
@@ -18,6 +20,7 @@ export declare class UserService {
         message: string;
     }>;
     getCompanyUsers(userId: string): Promise<UserResponseDto[]>;
+    updateKycStatus(userId: string, updateKycStatusDto: UpdateKycStatusDto): Promise<UpdateKycStatusResponseDto>;
     private generateInvitationCode;
     private generateOTP;
     private mapToResponseDto;

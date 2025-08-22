@@ -1,5 +1,5 @@
 import { UserService } from "./user.service";
-import { CreateUserDto, RegisterUserDto, LoginDto, VerifyOtpDto, UpdateUserDto, UserResponseDto, CreateUserResponseDto, AuthResponseDto, LoginSuccessResponseDto } from "./dto/user.dto";
+import { CreateUserDto, RegisterUserDto, LoginDto, VerifyOtpDto, UpdateUserDto, UserResponseDto, CreateUserResponseDto, AuthResponseDto, LoginSuccessResponseDto, UpdateKycStatusDto, UpdateKycStatusResponseDto } from "./dto/user.dto";
 import { CurrentUserData } from "@/modules/common/decorators/current-user.decorator";
 import { SuccessResponseDto } from "@/modules/common/dto/response.dto";
 export declare class UserController {
@@ -10,6 +10,7 @@ export declare class UserController {
     getCompanyUsers(currentUser: CurrentUserData): Promise<UserResponseDto[]>;
     updateUser(currentUser: CurrentUserData, userId: string, updateDto: UpdateUserDto): Promise<UserResponseDto>;
     deleteUser(currentUser: CurrentUserData, userId: string): Promise<SuccessResponseDto>;
+    updateKycStatus(userId: string, updateKycStatusDto: UpdateKycStatusDto): Promise<UpdateKycStatusResponseDto>;
 }
 export declare class AuthController {
     private readonly userService;

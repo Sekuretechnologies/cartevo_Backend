@@ -6,6 +6,7 @@ const config_1 = require("@nestjs/config");
 const common_1 = require("@nestjs/common");
 const bcrypt = require("bcrypt");
 const library_1 = require("@prisma/client/runtime/library");
+const client_1 = require("@prisma/client");
 const auth_service_1 = require("./auth.service");
 const prisma_service_1 = require("../prisma/prisma.service");
 describe("AuthService", () => {
@@ -66,6 +67,29 @@ describe("AuthService", () => {
                 is_active: true,
                 created_at: new Date(),
                 updated_at: new Date(),
+                step: 2,
+                kyb_status: client_1.KybStatus.NONE,
+                business_name: "Test Company Business",
+                business_phone_number: "+1234567890",
+                business_address: "123 Test Street",
+                business_registration_number: "REG123456",
+                business_type: "LLC",
+                business_description: "Test business description",
+                website: "https://testcompany.com",
+                industry: "Technology",
+                annual_revenue: "100000-500000",
+                number_of_employees: "10-50",
+                bank_name: "Test Bank",
+                bank_account_number: "1234567890",
+                bank_routing_number: "123456789",
+                memart: "Test Memart",
+                country_of_operation: "Test Country",
+                tax_id_number: "TAX123456",
+                business_website: "https://testcompany.com",
+                source_of_funds: "Business Revenue",
+                share_holding_document: "shareholding_doc.pdf",
+                incorporation_certificate: "incorporation_cert.pdf",
+                business_proof_of_address: "business_address_proof.pdf",
             };
             jest
                 .spyOn(prismaService.company, "findUnique")
@@ -105,6 +129,29 @@ describe("AuthService", () => {
                 is_active: true,
                 created_at: new Date(),
                 updated_at: new Date(),
+                step: 2,
+                kyb_status: client_1.KybStatus.NONE,
+                business_name: "Test Company Business",
+                business_phone_number: "+1234567890",
+                business_address: "123 Test Street",
+                business_registration_number: "REG123456",
+                business_type: "LLC",
+                business_description: "Test business description",
+                website: "https://testcompany.com",
+                industry: "Technology",
+                annual_revenue: "100000-500000",
+                number_of_employees: "10-50",
+                bank_name: "Test Bank",
+                bank_account_number: "1234567890",
+                bank_routing_number: "123456789",
+                memart: "Test Memart",
+                country_of_operation: "Test Country",
+                tax_id_number: "TAX123456",
+                business_website: "https://testcompany.com",
+                source_of_funds: "Business Revenue",
+                share_holding_document: "shareholding_doc.pdf",
+                incorporation_certificate: "incorporation_cert.pdf",
+                business_proof_of_address: "business_address_proof.pdf",
             };
             jest
                 .spyOn(prismaService.company, "findUnique")

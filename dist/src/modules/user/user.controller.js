@@ -48,6 +48,9 @@ let UserController = class UserController {
             message: result.message,
         };
     }
+    async updateKycStatus(userId, updateKycStatusDto) {
+        return this.userService.updateKycStatus(userId, updateKycStatusDto);
+    }
 };
 exports.UserController = UserController;
 __decorate([
@@ -174,6 +177,33 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
 ], UserController.prototype, "deleteUser", null);
+__decorate([
+    (0, common_1.Patch)(":userId/kyc-status"),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiOperation)({
+        summary: "Update user KYC status",
+        description: "Update the KYC (Know Your Customer) status for a user",
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: "KYC status updated successfully",
+        type: user_dto_1.UpdateKycStatusResponseDto,
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 400,
+        description: "Validation error",
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 404,
+        description: "User not found",
+    }),
+    __param(0, (0, common_1.Param)("userId")),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, user_dto_1.UpdateKycStatusDto]),
+    __metadata("design:returntype", Promise)
+], UserController.prototype, "updateKycStatus", null);
 exports.UserController = UserController = __decorate([
     (0, swagger_1.ApiTags)("User Management"),
     (0, common_1.Controller)("users"),

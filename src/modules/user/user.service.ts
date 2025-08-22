@@ -20,12 +20,24 @@ import {
   CreateUserResponseDto,
   AuthResponseDto,
   LoginSuccessResponseDto,
+  UpdateKycStatusDto,
+  UpdateKycStatusResponseDto,
 } from "./dto/user.dto";
-import { UserModel, RoleModel, UserCompanyRoleModel } from "@/models";
+import {
+  UserModel,
+  RoleModel,
+  UserCompanyRoleModel,
+  CompanyModel,
+} from "@/models";
+import { EmailService } from "../../services/email.service";
 
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService, private jwtService: JwtService) {}
+  constructor(
+    private prisma: PrismaService,
+    private jwtService: JwtService,
+    private emailService: EmailService
+  ) {}
 
   async createUser(
     ownerUserId: string,
@@ -35,6 +47,7 @@ export class UserService {
     const ownerUserResult = await UserModel.getOne(
       { id: ownerUserId },
       {
+        company: true,
         userCompanyRoles: {
           include: { role: true },
         },
@@ -119,8 +132,12 @@ export class UserService {
         throw new BadRequestException(userCompanyRoleResult.error.message);
       }
 
-      // TODO: Send invitation email here
-      // await this.sendInvitationEmail(createUserDto.email, invitationCode);
+      // Send invitation email
+      await this.emailService.sendInvitationEmail(
+        createUserDto.email,
+        invitationCode,
+        ownerUser.company?.name || "Your Company"
+      );
 
       return {
         success: true,
@@ -205,8 +222,8 @@ export class UserService {
       throw new BadRequestException(otpUpdateResult.error.message);
     }
 
-    // TODO: Send OTP email here
-    // await this.sendOtpEmail(user.email, otp);
+    // Send OTP email
+    await this.emailService.sendOtpEmail(user.email, otp, user.full_name);
 
     return {
       success: true,
@@ -257,9 +274,40 @@ export class UserService {
 
     const accessToken = this.jwtService.sign(payload);
 
+    // Determine redirect based on user and company completion status
+    let redirectTo = "dashboard";
+    let redirectMessage = "Login successful";
+
+    // Check if user needs to complete step 2
+    if (user.step === 1) {
+      redirectTo = "step2";
+      redirectMessage = "Please complete your company registration (Step 2)";
+    }
+    // Check if KYC (user documents) and KYB (company documents) are completed
+    else if (user.step === 2) {
+      // Check if user has completed KYC (personal documents)
+      const hasUserDocuments =
+        user.id_document_front &&
+        user.id_document_back &&
+        user.proof_of_address;
+
+      // Check if company has completed KYB (business documents)
+      const hasCompanyDocuments =
+        user.company.share_holding_document &&
+        user.company.incorporation_certificate &&
+        user.company.business_proof_of_address;
+      // && user.company.memart;
+
+      if (!hasUserDocuments || !hasCompanyDocuments) {
+        redirectTo = "waiting";
+        redirectMessage =
+          "Your account is under review. Please wait for KYC/KYB completion.";
+      }
+    }
+
     return {
       success: true,
-      message: "Login successful",
+      message: redirectMessage,
       access_token: accessToken,
       user: await this.mapToResponseDto(user),
       company: {
@@ -267,6 +315,7 @@ export class UserService {
         name: user.company.name,
         country: user.company.country,
       },
+      redirect_to: redirectTo,
     };
   }
 
@@ -473,6 +522,50 @@ export class UserService {
     return Promise.all(users.map((u: any) => this.mapToResponseDto(u)));
   }
 
+  async updateKycStatus(
+    userId: string,
+    updateKycStatusDto: UpdateKycStatusDto
+  ): Promise<UpdateKycStatusResponseDto> {
+    try {
+      // Find the user
+      const userResult = await UserModel.getOne({ id: userId });
+      if (userResult.error || !userResult.output) {
+        throw new NotFoundException("User not found");
+      }
+
+      // Update the KYC status
+      const updatedUserResult = await UserModel.update(userId, {
+        kyc_status: updateKycStatusDto.kyc_status as any,
+      });
+      if (updatedUserResult.error) {
+        throw new BadRequestException(updatedUserResult.error.message);
+      }
+
+      const updatedUser = updatedUserResult.output;
+
+      return {
+        success: true,
+        message: `KYC status updated to ${updateKycStatusDto.kyc_status} successfully`,
+        user_id: updatedUser.id,
+        kyc_status: updateKycStatusDto.kyc_status,
+        updated_at: updatedUser.updated_at,
+      };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+
+      throw new BadRequestException({
+        success: false,
+        message: "An error occurred while updating KYC status",
+        error: error.message,
+      });
+    }
+  }
+
   private generateInvitationCode(): string {
     return "INV_" + uuidv4().replace(/-/g, "").substring(0, 16);
   }
@@ -520,13 +613,4 @@ export class UserService {
       updated_at: user.updatedAt,
     };
   }
-
-  // TODO: Implement email sending service
-  // private async sendInvitationEmail(email: string, invitationCode: string): Promise<void> {
-  //   // Implementation for sending invitation emails
-  // }
-
-  // private async sendOtpEmail(email: string, otp: string): Promise<void> {
-  //   // Implementation for sending OTP emails
-  // }
 }

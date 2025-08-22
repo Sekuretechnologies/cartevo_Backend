@@ -12,6 +12,7 @@ const jwt_1 = require("@nestjs/jwt");
 const config_1 = require("@nestjs/config");
 const user_controller_1 = require("./user.controller");
 const user_service_1 = require("./user.service");
+const email_service_1 = require("../../services/email.service");
 let UserModule = class UserModule {
 };
 exports.UserModule = UserModule;
@@ -30,7 +31,7 @@ exports.UserModule = UserModule = __decorate([
             }),
         ],
         controllers: [user_controller_1.UserController, user_controller_1.AuthController],
-        providers: [user_service_1.UserService],
+        providers: [user_service_1.UserService, email_service_1.EmailService],
         exports: [user_service_1.UserService],
     })
 ], UserModule);

@@ -10,13 +10,15 @@ exports.CompanyModule = void 0;
 const common_1 = require("@nestjs/common");
 const company_controller_1 = require("./company.controller");
 const company_service_1 = require("./company.service");
+const email_service_1 = require("../../services/email.service");
+const firebase_service_1 = require("../../services/firebase.service");
 let CompanyModule = class CompanyModule {
 };
 exports.CompanyModule = CompanyModule;
 exports.CompanyModule = CompanyModule = __decorate([
     (0, common_1.Module)({
         controllers: [company_controller_1.CompanyController],
-        providers: [company_service_1.CompanyService],
+        providers: [company_service_1.CompanyService, email_service_1.EmailService, firebase_service_1.FirebaseService],
         exports: [company_service_1.CompanyService],
     })
 ], CompanyModule);

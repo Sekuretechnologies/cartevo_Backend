@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LoginSuccessResponseDto = exports.AuthResponseDto = exports.CreateUserResponseDto = exports.UserResponseDto = exports.UpdateUserDto = exports.VerifyOtpDto = exports.LoginDto = exports.RegisterUserDto = exports.CreateUserDto = void 0;
+exports.UpdateKycStatusResponseDto = exports.UpdateKycStatusDto = exports.LoginSuccessResponseDto = exports.AuthResponseDto = exports.CreateUserResponseDto = exports.UserResponseDto = exports.UpdateUserDto = exports.VerifyOtpDto = exports.LoginDto = exports.RegisterUserDto = exports.CreateUserDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 const class_validator_1 = require("class-validator");
 class CreateUserDto {
@@ -17,8 +17,8 @@ class CreateUserDto {
 exports.CreateUserDto = CreateUserDto;
 __decorate([
     (0, swagger_1.ApiProperty)({
-        description: 'User email address',
-        example: 'user@company.com',
+        description: "User email address",
+        example: "user@company.com",
     }),
     (0, class_validator_1.IsEmail)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -26,13 +26,13 @@ __decorate([
 ], CreateUserDto.prototype, "email", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({
-        description: 'User role within the company',
-        example: 'admin',
-        enum: ['admin', 'user'],
+        description: "User role within the company",
+        example: "admin",
+        enum: ["admin", "user"],
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.IsEnum)(['admin', 'user'], { message: 'Role must be either admin or user' }),
+    (0, class_validator_1.IsEnum)(["admin", "user"], { message: "Role must be either admin or user" }),
     __metadata("design:type", String)
 ], CreateUserDto.prototype, "role", void 0);
 class RegisterUserDto {
@@ -40,8 +40,8 @@ class RegisterUserDto {
 exports.RegisterUserDto = RegisterUserDto;
 __decorate([
     (0, swagger_1.ApiProperty)({
-        description: 'User email address',
-        example: 'user@company.com',
+        description: "User email address",
+        example: "user@company.com",
     }),
     (0, class_validator_1.IsEmail)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -49,8 +49,8 @@ __decorate([
 ], RegisterUserDto.prototype, "email", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({
-        description: 'Invitation code received via email',
-        example: 'INV_1234567890',
+        description: "Invitation code received via email",
+        example: "INV_1234567890",
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -58,8 +58,8 @@ __decorate([
 ], RegisterUserDto.prototype, "invitation_code", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({
-        description: 'User full name',
-        example: 'John Doe',
+        description: "User full name",
+        example: "John Doe",
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -69,8 +69,8 @@ __decorate([
 ], RegisterUserDto.prototype, "full_name", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({
-        description: 'User password - Must contain at least 8 characters, one uppercase, one lowercase, one digit, and one special character',
-        example: 'SecurePass123!',
+        description: "User password - Must contain at least 8 characters, one uppercase, one lowercase, one digit, and one special character",
+        example: "SecurePass123!",
         minLength: 8,
         maxLength: 32,
     }),
@@ -79,7 +79,7 @@ __decorate([
     (0, class_validator_1.MinLength)(8),
     (0, class_validator_1.MaxLength)(32),
     (0, class_validator_1.Matches)(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/, {
-        message: 'Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character',
+        message: "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character",
     }),
     __metadata("design:type", String)
 ], RegisterUserDto.prototype, "password", void 0);
@@ -88,8 +88,8 @@ class LoginDto {
 exports.LoginDto = LoginDto;
 __decorate([
     (0, swagger_1.ApiProperty)({
-        description: 'User email address',
-        example: 'user@company.com',
+        description: "User email address",
+        example: "user@company.com",
     }),
     (0, class_validator_1.IsEmail)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -97,8 +97,8 @@ __decorate([
 ], LoginDto.prototype, "email", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({
-        description: 'User password',
-        example: 'SecurePass123!',
+        description: "User password",
+        example: "SecurePass123!",
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -109,8 +109,8 @@ class VerifyOtpDto {
 exports.VerifyOtpDto = VerifyOtpDto;
 __decorate([
     (0, swagger_1.ApiProperty)({
-        description: 'User email address',
-        example: 'user@company.com',
+        description: "User email address",
+        example: "user@company.com",
     }),
     (0, class_validator_1.IsEmail)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -118,8 +118,8 @@ __decorate([
 ], VerifyOtpDto.prototype, "email", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({
-        description: 'One-time password received via email',
-        example: '123456',
+        description: "One-time password received via email",
+        example: "123456",
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
@@ -132,8 +132,8 @@ class UpdateUserDto {
 exports.UpdateUserDto = UpdateUserDto;
 __decorate([
     (0, swagger_1.ApiProperty)({
-        description: 'User full name',
-        example: 'John Doe',
+        description: "User full name",
+        example: "John Doe",
         required: false,
     }),
     (0, class_validator_1.IsString)(),
@@ -144,14 +144,14 @@ __decorate([
 ], UpdateUserDto.prototype, "full_name", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({
-        description: 'User role within the company',
-        example: 'admin',
-        enum: ['admin', 'user'],
+        description: "User role within the company",
+        example: "admin",
+        enum: ["admin", "user"],
         required: false,
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsEnum)(['admin', 'user'], { message: 'Role must be either admin or user' }),
+    (0, class_validator_1.IsEnum)(["admin", "user"], { message: "Role must be either admin or user" }),
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "role", void 0);
 class UserResponseDto {
@@ -250,4 +250,51 @@ __decorate([
     (0, swagger_1.ApiProperty)(),
     __metadata("design:type", Object)
 ], LoginSuccessResponseDto.prototype, "company", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Where to redirect the user after login",
+        example: "dashboard",
+        enum: ["dashboard", "step2", "waiting"],
+    }),
+    __metadata("design:type", String)
+], LoginSuccessResponseDto.prototype, "redirect_to", void 0);
+class UpdateKycStatusDto {
+}
+exports.UpdateKycStatusDto = UpdateKycStatusDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "KYC status",
+        example: "APPROVED",
+        enum: ["NONE", "PENDING", "APPROVED", "REJECTED"],
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.Matches)(/^(NONE|PENDING|APPROVED|REJECTED)$/, {
+        message: "KYC status must be one of: NONE, PENDING, APPROVED, REJECTED",
+    }),
+    __metadata("design:type", String)
+], UpdateKycStatusDto.prototype, "kyc_status", void 0);
+class UpdateKycStatusResponseDto {
+}
+exports.UpdateKycStatusResponseDto = UpdateKycStatusResponseDto;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Boolean)
+], UpdateKycStatusResponseDto.prototype, "success", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], UpdateKycStatusResponseDto.prototype, "message", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], UpdateKycStatusResponseDto.prototype, "user_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], UpdateKycStatusResponseDto.prototype, "kyc_status", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Date)
+], UpdateKycStatusResponseDto.prototype, "updated_at", void 0);
 //# sourceMappingURL=user.dto.js.map

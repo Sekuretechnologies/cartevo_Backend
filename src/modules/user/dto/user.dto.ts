@@ -1,46 +1,55 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsEmail, IsNotEmpty, IsEnum, IsOptional, MinLength, MaxLength, Matches } from 'class-validator';
+import { ApiProperty } from "@nestjs/swagger";
+import {
+  IsString,
+  IsEmail,
+  IsNotEmpty,
+  IsEnum,
+  IsOptional,
+  MinLength,
+  MaxLength,
+  Matches,
+} from "class-validator";
 
 export class CreateUserDto {
   @ApiProperty({
-    description: 'User email address',
-    example: 'user@company.com',
+    description: "User email address",
+    example: "user@company.com",
   })
   @IsEmail()
   @IsNotEmpty()
   email: string;
 
   @ApiProperty({
-    description: 'User role within the company',
-    example: 'admin',
-    enum: ['admin', 'user'],
+    description: "User role within the company",
+    example: "admin",
+    enum: ["admin", "user"],
   })
   @IsString()
   @IsNotEmpty()
-  @IsEnum(['admin', 'user'], { message: 'Role must be either admin or user' })
+  @IsEnum(["admin", "user"], { message: "Role must be either admin or user" })
   role: string;
 }
 
 export class RegisterUserDto {
   @ApiProperty({
-    description: 'User email address',
-    example: 'user@company.com',
+    description: "User email address",
+    example: "user@company.com",
   })
   @IsEmail()
   @IsNotEmpty()
   email: string;
 
   @ApiProperty({
-    description: 'Invitation code received via email',
-    example: 'INV_1234567890',
+    description: "Invitation code received via email",
+    example: "INV_1234567890",
   })
   @IsString()
   @IsNotEmpty()
   invitation_code: string;
 
   @ApiProperty({
-    description: 'User full name',
-    example: 'John Doe',
+    description: "User full name",
+    example: "John Doe",
   })
   @IsString()
   @IsNotEmpty()
@@ -49,8 +58,9 @@ export class RegisterUserDto {
   full_name: string;
 
   @ApiProperty({
-    description: 'User password - Must contain at least 8 characters, one uppercase, one lowercase, one digit, and one special character',
-    example: 'SecurePass123!',
+    description:
+      "User password - Must contain at least 8 characters, one uppercase, one lowercase, one digit, and one special character",
+    example: "SecurePass123!",
     minLength: 8,
     maxLength: 32,
   })
@@ -58,24 +68,28 @@ export class RegisterUserDto {
   @IsNotEmpty()
   @MinLength(8)
   @MaxLength(32)
-  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/, {
-    message: 'Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character',
-  })
+  @Matches(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
+    {
+      message:
+        "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character",
+    }
+  )
   password: string;
 }
 
 export class LoginDto {
   @ApiProperty({
-    description: 'User email address',
-    example: 'user@company.com',
+    description: "User email address",
+    example: "user@company.com",
   })
   @IsEmail()
   @IsNotEmpty()
   email: string;
 
   @ApiProperty({
-    description: 'User password',
-    example: 'SecurePass123!',
+    description: "User password",
+    example: "SecurePass123!",
   })
   @IsString()
   @IsNotEmpty()
@@ -84,16 +98,16 @@ export class LoginDto {
 
 export class VerifyOtpDto {
   @ApiProperty({
-    description: 'User email address',
-    example: 'user@company.com',
+    description: "User email address",
+    example: "user@company.com",
   })
   @IsEmail()
   @IsNotEmpty()
   email: string;
 
   @ApiProperty({
-    description: 'One-time password received via email',
-    example: '123456',
+    description: "One-time password received via email",
+    example: "123456",
   })
   @IsString()
   @IsNotEmpty()
@@ -104,8 +118,8 @@ export class VerifyOtpDto {
 
 export class UpdateUserDto {
   @ApiProperty({
-    description: 'User full name',
-    example: 'John Doe',
+    description: "User full name",
+    example: "John Doe",
     required: false,
   })
   @IsString()
@@ -115,14 +129,14 @@ export class UpdateUserDto {
   full_name?: string;
 
   @ApiProperty({
-    description: 'User role within the company',
-    example: 'admin',
-    enum: ['admin', 'user'],
+    description: "User role within the company",
+    example: "admin",
+    enum: ["admin", "user"],
     required: false,
   })
   @IsString()
   @IsOptional()
-  @IsEnum(['admin', 'user'], { message: 'Role must be either admin or user' })
+  @IsEnum(["admin", "user"], { message: "Role must be either admin or user" })
   role?: string;
 }
 
@@ -199,4 +213,44 @@ export class LoginSuccessResponseDto {
     name: string;
     country: string;
   };
+
+  @ApiProperty({
+    description: "Where to redirect the user after login",
+    example: "dashboard",
+    enum: ["dashboard", "step2", "waiting"],
+  })
+  redirect_to: string;
+}
+
+// KYC Status Update DTO
+export class UpdateKycStatusDto {
+  @ApiProperty({
+    description: "KYC status",
+    example: "APPROVED",
+    enum: ["NONE", "PENDING", "APPROVED", "REJECTED"],
+  })
+  @IsString()
+  @IsNotEmpty()
+  @Matches(/^(NONE|PENDING|APPROVED|REJECTED)$/, {
+    message: "KYC status must be one of: NONE, PENDING, APPROVED, REJECTED",
+  })
+  kyc_status: string;
+}
+
+// KYC Status Update Response DTO
+export class UpdateKycStatusResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty()
+  message: string;
+
+  @ApiProperty()
+  user_id: string;
+
+  @ApiProperty()
+  kyc_status: string;
+
+  @ApiProperty()
+  updated_at: Date;
 }

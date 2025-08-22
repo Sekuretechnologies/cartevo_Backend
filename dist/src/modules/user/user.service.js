@@ -17,13 +17,16 @@ const bcrypt = require("bcrypt");
 const uuid_1 = require("uuid");
 const client_1 = require("@prisma/client");
 const models_1 = require("../../models");
+const email_service_1 = require("../../services/email.service");
 let UserService = class UserService {
-    constructor(prisma, jwtService) {
+    constructor(prisma, jwtService, emailService) {
         this.prisma = prisma;
         this.jwtService = jwtService;
+        this.emailService = emailService;
     }
     async createUser(ownerUserId, createUserDto) {
         const ownerUserResult = await models_1.UserModel.getOne({ id: ownerUserId }, {
+            company: true,
             userCompanyRoles: {
                 include: { role: true },
             },
@@ -85,6 +88,7 @@ let UserService = class UserService {
             if (userCompanyRoleResult.error) {
                 throw new common_1.BadRequestException(userCompanyRoleResult.error.message);
             }
+            await this.emailService.sendInvitationEmail(createUserDto.email, invitationCode, ownerUser.company?.name || "Your Company");
             return {
                 success: true,
                 message: "User invitation sent successfully",
@@ -146,6 +150,7 @@ let UserService = class UserService {
         if (otpUpdateResult.error) {
             throw new common_1.BadRequestException(otpUpdateResult.error.message);
         }
+        await this.emailService.sendOtpEmail(user.email, otp, user.full_name);
         return {
             success: true,
             message: `OTP sent to ${user.email}. Please verify to complete login.`,
@@ -181,9 +186,28 @@ let UserService = class UserService {
             roles: user.userCompanyRoles.map((ucr) => ucr.role.name),
         };
         const accessToken = this.jwtService.sign(payload);
+        let redirectTo = "dashboard";
+        let redirectMessage = "Login successful";
+        if (user.step === 1) {
+            redirectTo = "step2";
+            redirectMessage = "Please complete your company registration (Step 2)";
+        }
+        else if (user.step === 2) {
+            const hasUserDocuments = user.id_document_front &&
+                user.id_document_back &&
+                user.proof_of_address;
+            const hasCompanyDocuments = user.company.share_holding_document &&
+                user.company.incorporation_certificate &&
+                user.company.business_proof_of_address;
+            if (!hasUserDocuments || !hasCompanyDocuments) {
+                redirectTo = "waiting";
+                redirectMessage =
+                    "Your account is under review. Please wait for KYC/KYB completion.";
+            }
+        }
         return {
             success: true,
-            message: "Login successful",
+            message: redirectMessage,
             access_token: accessToken,
             user: await this.mapToResponseDto(user),
             company: {
@@ -191,6 +215,7 @@ let UserService = class UserService {
                 name: user.company.name,
                 country: user.company.country,
             },
+            redirect_to: redirectTo,
         };
     }
     async updateUser(ownerUserId, userId, updateDto) {
@@ -335,6 +360,39 @@ let UserService = class UserService {
         const users = usersResult.output;
         return Promise.all(users.map((u) => this.mapToResponseDto(u)));
     }
+    async updateKycStatus(userId, updateKycStatusDto) {
+        try {
+            const userResult = await models_1.UserModel.getOne({ id: userId });
+            if (userResult.error || !userResult.output) {
+                throw new common_1.NotFoundException("User not found");
+            }
+            const updatedUserResult = await models_1.UserModel.update(userId, {
+                kyc_status: updateKycStatusDto.kyc_status,
+            });
+            if (updatedUserResult.error) {
+                throw new common_1.BadRequestException(updatedUserResult.error.message);
+            }
+            const updatedUser = updatedUserResult.output;
+            return {
+                success: true,
+                message: `KYC status updated to ${updateKycStatusDto.kyc_status} successfully`,
+                user_id: updatedUser.id,
+                kyc_status: updateKycStatusDto.kyc_status,
+                updated_at: updatedUser.updated_at,
+            };
+        }
+        catch (error) {
+            if (error instanceof common_1.NotFoundException ||
+                error instanceof common_1.BadRequestException) {
+                throw error;
+            }
+            throw new common_1.BadRequestException({
+                success: false,
+                message: "An error occurred while updating KYC status",
+                error: error.message,
+            });
+        }
+    }
     generateInvitationCode() {
         return "INV_" + (0, uuid_1.v4)().replace(/-/g, "").substring(0, 16);
     }
@@ -374,6 +432,8 @@ let UserService = class UserService {
 exports.UserService = UserService;
 exports.UserService = UserService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService, jwt_1.JwtService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        jwt_1.JwtService,
+        email_service_1.EmailService])
 ], UserService);
 //# sourceMappingURL=user.service.js.map

@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   UseGuards,
+  Patch,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -25,6 +26,8 @@ import {
   CreateUserResponseDto,
   AuthResponseDto,
   LoginSuccessResponseDto,
+  UpdateKycStatusDto,
+  UpdateKycStatusResponseDto,
 } from "./dto/user.dto";
 import { JwtAuthGuard } from "@/modules/auth/guards/jwt-auth.guard";
 import { OwnerGuard } from "@/modules/common/guards/owner.guard";
@@ -176,6 +179,33 @@ export class UserController {
       success: result.success,
       message: result.message,
     };
+  }
+
+  @Patch(":userId/kyc-status")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Update user KYC status",
+    description: "Update the KYC (Know Your Customer) status for a user",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "KYC status updated successfully",
+    type: UpdateKycStatusResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Validation error",
+  })
+  @ApiResponse({
+    status: 404,
+    description: "User not found",
+  })
+  async updateKycStatus(
+    @Param("userId") userId: string,
+    @Body() updateKycStatusDto: UpdateKycStatusDto
+  ): Promise<UpdateKycStatusResponseDto> {
+    return this.userService.updateKycStatus(userId, updateKycStatusDto);
   }
 }
 

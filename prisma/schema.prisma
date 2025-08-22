@@ -14,12 +14,30 @@ model Company {
   id           String   @id @default(uuid())
   name         String
   country      String
-  email        String   @unique
-  client_id     String   @unique @map("client_id")
-  client_key    String   @map("client_key")
+  email        String?   @unique
+  client_id     String?   @unique @map("client_id")
+  client_key    String?   @map("client_key")
   card_price    Decimal  @default(5.00) @map("card_price") @db.Decimal(10, 2)
   card_fund_rate Decimal  @default(1.02) @map("card_fund_rate") @db.Decimal(5, 4)
   is_active      Boolean  @default(true) @map("is_active")
+  step          Int      @default(1) // 1 = personal info completed, 2 = business info completed
+  kyb_status    KybStatus @default(NONE) @map("kyb_status") // KYB (Know Your Business) status
+  
+  // Business information fields (Step 2)
+  business_name         String?  @map("business_name")
+  business_phone_number String?  @map("business_phone_number")
+  business_address      String?  @map("business_address")
+  business_type         String?  @map("business_type")
+  country_of_operation  String?  @map("country_of_operation")
+  tax_id_number         String?  @map("tax_id_number")
+  business_website      String?  @map("business_website")
+  business_description  String?  @map("business_description")
+  source_of_funds       String?  @map("source_of_funds")
+  share_holding_document String? @map("share_holding_document")
+  incorporation_certificate String? @map("incorporation_certificate")
+  business_proof_of_address String? @map("business_proof_of_address")
+  memart                String?  @map("memart")
+  
   created_at     DateTime @default(now()) @map("created_at")
   updated_at     DateTime @updatedAt @map("updated_at")
 
@@ -40,18 +58,52 @@ enum UserStatus {
   INACTIVE
 }
 
+enum KycStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum KybStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id             String     @id @default(uuid())
   full_name       String?    @map("full_name")
+  first_name     String?    @map("first_name")
+  last_name      String?    @map("last_name")
   email          String     @unique
   address        String?
   password       String?
   company_id      String     @map("company_id")
   step           Int        @default(1)
   status         UserStatus @default(PENDING)
+  kyc_status     KycStatus  @default(NONE) @map("kyc_status") // KYC (Know Your Customer) status
   invitation_code String?    @unique @map("invitation_code")
   otp            String?
   otp_expires     DateTime?  @map("otp_expires")
+  
+  // Personal information fields (Step 1)
+  role_in_company    String?    @map("role_in_company")
+  phone_number       String?    @map("phone_number")
+  gender             String?
+  nationality        String?
+  id_document_type   String?    @map("id_document_type")
+  id_number          String?    @map("id_number")
+  id_document_front  String?    @map("id_document_front")
+  id_document_back   String?    @map("id_document_back")
+  country_of_residence String?  @map("country_of_residence")
+  state              String?
+  city               String?
+  street             String?
+  postal_code        String?    @map("postal_code")
+  proof_of_address   String?    @map("proof_of_address")
+  
   created_at      DateTime   @default(now()) @map("created_at")
   updated_at      DateTime   @updatedAt @map("updated_at")
 
