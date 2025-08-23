@@ -61,67 +61,67 @@ export class CompanyService {
       const clientKey = this.generateClientKey();
       const hashedClientKey = await bcrypt.hash(clientKey, 12);
       // Use database transaction for atomicity
-      // const result = await CompanyModel.operation(async (prisma) => {
-      // Step 6: Create company record
-      const companyResult = await CompanyModel.create({
-        name: createDto.name_company,
-        country: createDto.country_company,
-        email: createDto.email_company,
-        client_id: clientId,
-        client_key: hashedClientKey,
-      });
-      if (companyResult.error)
-        throw new BadRequestException(companyResult.error.message);
-      const company = companyResult.output;
-      // Step 7: Create user record associated with company
-      const userResult = await UserModel.create({
-        full_name: createDto.full_name_user,
-        email: createDto.email_user,
-        password: hashedPassword,
-        company_id: company.id,
-      });
-      if (userResult.error)
-        throw new BadRequestException(userResult.error.message);
-      const user = userResult.output;
-      // Step 8: Assign 'owner' role to user for this company
-      let ownerRoleResult = await RoleModel.getOne({ name: "owner" });
-      let ownerRole = ownerRoleResult.output;
-      if (!ownerRole) {
-        const roleCreateResult = await RoleModel.create({ name: "owner" });
-        if (roleCreateResult.error)
-          throw new BadRequestException(roleCreateResult.error.message);
-        ownerRole = roleCreateResult.output;
-      }
-      // Create user-company-role association
-      const ucrResult = await UserCompanyRoleModel.create({
-        user_id: user.id,
-        company_id: company.id,
-        role_id: ownerRole.id,
-      });
-      if (ucrResult.error)
-        throw new BadRequestException(ucrResult.error.message);
-      // Step 9: Create default wallets for the company
-      const walletsResult = await Promise.all([
-        WalletModel.create({
-          balance: 0,
-          active: true,
-          currency: "XAF",
-          country: "Cameroon",
-          country_iso_code: "CM",
+      const result = await CompanyModel.operation(async (prisma) => {
+        // Step 6: Create company record
+        const companyResult = await CompanyModel.create({
+          name: createDto.name_company,
+          country: createDto.country_company,
+          email: createDto.email_company,
+          client_id: clientId,
+          client_key: hashedClientKey,
+        });
+        if (companyResult.error)
+          throw new BadRequestException(companyResult.error.message);
+        const company = companyResult.output;
+        // Step 7: Create user record associated with company
+        const userResult = await UserModel.create({
+          full_name: createDto.full_name_user,
+          email: createDto.email_user,
+          password: hashedPassword,
           company_id: company.id,
-        }),
-        WalletModel.create({
-          balance: 2000,
-          active: true,
-          currency: "USD",
-          country: "USA",
-          country_iso_code: "USA",
+        });
+        if (userResult.error)
+          throw new BadRequestException(userResult.error.message);
+        const user = userResult.output;
+        // Step 8: Assign 'owner' role to user for this company
+        let ownerRoleResult = await RoleModel.getOne({ name: "owner" });
+        let ownerRole = ownerRoleResult.output;
+        if (!ownerRole) {
+          const roleCreateResult = await RoleModel.create({ name: "owner" });
+          if (roleCreateResult.error)
+            throw new BadRequestException(roleCreateResult.error.message);
+          ownerRole = roleCreateResult.output;
+        }
+        // Create user-company-role association
+        const ucrResult = await UserCompanyRoleModel.create({
+          user_id: user.id,
           company_id: company.id,
-        }),
-      ]);
-      const wallets = walletsResult.map((w) => w.output);
-      // return { company, user, wallets };
-      // });
+          role_id: ownerRole.id,
+        });
+        if (ucrResult.error)
+          throw new BadRequestException(ucrResult.error.message);
+        // Step 9: Create default wallets for the company
+        const walletsResult = await Promise.all([
+          WalletModel.create({
+            balance: 0,
+            active: true,
+            currency: "XAF",
+            country: "Cameroon",
+            country_iso_code: "CM",
+            company_id: company.id,
+          }),
+          WalletModel.create({
+            balance: 2000,
+            active: true,
+            currency: "USD",
+            country: "USA",
+            country_iso_code: "USA",
+            company_id: company.id,
+          }),
+        ]);
+        const wallets = walletsResult.map((w) => w.output);
+        return { company, user, wallets };
+      });
       // Step 10: Return success response
       return {
         status: true,
