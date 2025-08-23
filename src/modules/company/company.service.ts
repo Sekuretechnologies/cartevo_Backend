@@ -61,67 +61,67 @@ export class CompanyService {
       const clientKey = this.generateClientKey();
       const hashedClientKey = await bcrypt.hash(clientKey, 12);
       // Use database transaction for atomicity
-      const result = await CompanyModel.operation(async (prisma) => {
-        // Step 6: Create company record
-        const companyResult = await CompanyModel.create({
-          name: createDto.name_company,
-          country: createDto.country_company,
-          email: createDto.email_company,
-          client_id: clientId,
-          client_key: hashedClientKey,
-        });
-        if (companyResult.error)
-          throw new BadRequestException(companyResult.error.message);
-        const company = companyResult.output;
-        // Step 7: Create user record associated with company
-        const userResult = await UserModel.create({
-          full_name: createDto.full_name_user,
-          email: createDto.email_user,
-          password: hashedPassword,
-          company_id: company.id,
-        });
-        if (userResult.error)
-          throw new BadRequestException(userResult.error.message);
-        const user = userResult.output;
-        // Step 8: Assign 'owner' role to user for this company
-        let ownerRoleResult = await RoleModel.getOne({ name: "owner" });
-        let ownerRole = ownerRoleResult.output;
-        if (!ownerRole) {
-          const roleCreateResult = await RoleModel.create({ name: "owner" });
-          if (roleCreateResult.error)
-            throw new BadRequestException(roleCreateResult.error.message);
-          ownerRole = roleCreateResult.output;
-        }
-        // Create user-company-role association
-        const ucrResult = await UserCompanyRoleModel.create({
-          user_id: user.id,
-          company_id: company.id,
-          role_id: ownerRole.id,
-        });
-        if (ucrResult.error)
-          throw new BadRequestException(ucrResult.error.message);
-        // Step 9: Create default wallets for the company
-        const walletsResult = await Promise.all([
-          WalletModel.create({
-            balance: 0,
-            active: true,
-            currency: "XAF",
-            country: "Cameroon",
-            country_iso_code: "CM",
-            company_id: company.id,
-          }),
-          WalletModel.create({
-            balance: 2000,
-            active: true,
-            currency: "USD",
-            country: "USA",
-            country_iso_code: "USA",
-            company_id: company.id,
-          }),
-        ]);
-        const wallets = walletsResult.map((w) => w.output);
-        return { company, user, wallets };
+      // const result = await CompanyModel.operation(async (prisma) => {
+      // Step 6: Create company record
+      const companyResult = await CompanyModel.create({
+        name: createDto.name_company,
+        country: createDto.country_company,
+        email: createDto.email_company,
+        client_id: clientId,
+        client_key: hashedClientKey,
       });
+      if (companyResult.error)
+        throw new BadRequestException(companyResult.error.message);
+      const company = companyResult.output;
+      // Step 7: Create user record associated with company
+      const userResult = await UserModel.create({
+        full_name: createDto.full_name_user,
+        email: createDto.email_user,
+        password: hashedPassword,
+        company_id: company.id,
+      });
+      if (userResult.error)
+        throw new BadRequestException(userResult.error.message);
+      const user = userResult.output;
+      // Step 8: Assign 'owner' role to user for this company
+      let ownerRoleResult = await RoleModel.getOne({ name: "owner" });
+      let ownerRole = ownerRoleResult.output;
+      if (!ownerRole) {
+        const roleCreateResult = await RoleModel.create({ name: "owner" });
+        if (roleCreateResult.error)
+          throw new BadRequestException(roleCreateResult.error.message);
+        ownerRole = roleCreateResult.output;
+      }
+      // Create user-company-role association
+      const ucrResult = await UserCompanyRoleModel.create({
+        user_id: user.id,
+        company_id: company.id,
+        role_id: ownerRole.id,
+      });
+      if (ucrResult.error)
+        throw new BadRequestException(ucrResult.error.message);
+      // Step 9: Create default wallets for the company
+      const walletsResult = await Promise.all([
+        WalletModel.create({
+          balance: 0,
+          active: true,
+          currency: "XAF",
+          country: "Cameroon",
+          country_iso_code: "CM",
+          company_id: company.id,
+        }),
+        WalletModel.create({
+          balance: 2000,
+          active: true,
+          currency: "USD",
+          country: "USA",
+          country_iso_code: "USA",
+          company_id: company.id,
+        }),
+      ]);
+      const wallets = walletsResult.map((w) => w.output);
+      // return { company, user, wallets };
+      // });
       // Step 10: Return success response
       return {
         status: true,
@@ -236,78 +236,89 @@ export class CompanyService {
       }
 
       // Use database transaction for atomicity
-      const result = await CompanyModel.operation(async (prisma) => {
-        // Step 1: Create company with basic information
-        const companyResult = await CompanyModel.create({
-          name: personalInfoDto.company_name,
-          country: personalInfoDto.country_of_residence,
-          step: 1, // Step 1 completed
-        });
-        if (companyResult.error)
-          throw new BadRequestException(companyResult.error.message);
-        const company = companyResult.output;
-
-        // Step 2: Create user with personal information
-        const userResult = await UserModel.create({
-          first_name: personalInfoDto.first_name,
-          last_name: personalInfoDto.last_name,
-          full_name: `${personalInfoDto.first_name} ${personalInfoDto.last_name}`,
-          email: personalInfoDto.email,
-          password: hashedPassword,
-          company_id: company.id,
-          step: 1, // Step 1 completed
-          role_in_company: personalInfoDto.role,
-          phone_number: personalInfoDto.phone_number,
-          gender: personalInfoDto.gender,
-          nationality: personalInfoDto.nationality,
-          id_document_type: personalInfoDto.id_document_type,
-          id_number: personalInfoDto.id_number,
-          id_document_front: idDocumentFrontUrl,
-          id_document_back: idDocumentBackUrl,
-          country_of_residence: personalInfoDto.country_of_residence,
-          state: personalInfoDto.state,
-          city: personalInfoDto.city,
-          street: personalInfoDto.street,
-          postal_code: personalInfoDto.postal_code,
-          proof_of_address: proofOfAddressUrl,
-        });
-        if (userResult.error)
-          throw new BadRequestException(userResult.error.message);
-        const user = userResult.output;
-
-        // Step 3: Assign 'owner' role to user for this company
-        let ownerRoleResult = await RoleModel.getOne({ name: "owner" });
-        let ownerRole = ownerRoleResult.output;
-        if (!ownerRole) {
-          const roleCreateResult = await RoleModel.create({ name: "owner" });
-          if (roleCreateResult.error)
-            throw new BadRequestException(roleCreateResult.error.message);
-          ownerRole = roleCreateResult.output;
-        }
-
-        // Create user-company-role association
-        const ucrResult = await UserCompanyRoleModel.create({
-          user_id: user.id,
-          company_id: company.id,
-          role_id: ownerRole.id,
-        });
-        if (ucrResult.error)
-          throw new BadRequestException(ucrResult.error.message);
-
-        return { company, user };
+      // const result = await CompanyModel.operation(async (prisma) => {
+      // Step 1: Create company with basic information
+      const companyResult = await CompanyModel.create({
+        name: personalInfoDto.company_name,
+        country: personalInfoDto.country_of_residence,
+        step: 1, // Step 1 completed
       });
+      if (companyResult.error)
+        throw new BadRequestException(companyResult.error.message);
+      const company = companyResult.output;
+
+      // Step 2: Create user with personal information
+      const userResult = await UserModel.create({
+        first_name: personalInfoDto.first_name,
+        last_name: personalInfoDto.last_name,
+        full_name: `${personalInfoDto.first_name} ${personalInfoDto.last_name}`,
+        email: personalInfoDto.email,
+        password: hashedPassword,
+        company_id: company.id,
+        step: 1, // Step 1 completed
+        role_in_company: personalInfoDto.role,
+        phone_number: personalInfoDto.phone_number,
+        gender: personalInfoDto.gender,
+        nationality: personalInfoDto.nationality,
+        id_document_type: personalInfoDto.id_document_type,
+        id_number: personalInfoDto.id_number,
+        id_document_front: idDocumentFrontUrl,
+        id_document_back: idDocumentBackUrl,
+        country_of_residence: personalInfoDto.country_of_residence,
+        state: personalInfoDto.state,
+        city: personalInfoDto.city,
+        street: personalInfoDto.street,
+        postal_code: personalInfoDto.postal_code,
+        proof_of_address: proofOfAddressUrl,
+      });
+      if (userResult.error)
+        throw new BadRequestException(userResult.error.message);
+      const user = userResult.output;
+
+      // Step 3: Assign 'owner' role to user for this company
+      let ownerRoleResult = await RoleModel.getOne({ name: "owner" });
+      let ownerRole = ownerRoleResult.output;
+      if (!ownerRole) {
+        const roleCreateResult = await RoleModel.create({ name: "owner" });
+        if (roleCreateResult.error)
+          throw new BadRequestException(roleCreateResult.error.message);
+        ownerRole = roleCreateResult.output;
+      }
+
+      // Create user-company-role association
+      const ucrResult = await UserCompanyRoleModel.create({
+        user_id: user.id,
+        company_id: company.id,
+        role_id: ownerRole.id,
+      });
+      if (ucrResult.error)
+        throw new BadRequestException(ucrResult.error.message);
+
+      // return { company, user };
+      // });
 
       return {
         success: true,
         message:
           "Informations personnelles enregistrées avec succès. Veuillez procéder à l'étape 2.",
-        company_id: result.company.id,
-        company_name: result.company.name,
-        user_id: result.user.id,
-        user_name: result.user.full_name,
-        user_email: result.user.email,
+        company_id: company.id,
+        company_name: company.name,
+        user_id: user.id,
+        user_name: user.full_name,
+        user_email: user.email,
         next_step: 2,
       };
+      // return {
+      //   success: true,
+      //   message:
+      //     "Informations personnelles enregistrées avec succès. Veuillez procéder à l'étape 2.",
+      //   company_id: result.company.id,
+      //   company_name: result.company.name,
+      //   user_id: result.user.id,
+      //   user_name: result.user.full_name,
+      //   user_email: result.user.email,
+      //   next_step: 2,
+      // };
     } catch (error) {
       if (
         error instanceof ConflictException ||
@@ -407,79 +418,79 @@ export class CompanyService {
       const clientKey = this.generateClientKey();
       const hashedClientKey = await bcrypt.hash(clientKey, 12);
 
-      // Use database transaction for atomicity
-      const result = await CompanyModel.operation(async (prisma) => {
-        // Update company with business information
-        const updatedCompanyResult = await CompanyModel.update(company.id, {
-          business_name: businessInfoDto.business_name,
-          business_phone_number: businessInfoDto.business_phone_number,
-          business_address: businessInfoDto.business_address,
-          business_type: businessInfoDto.business_type,
-          country_of_operation: businessInfoDto.country_of_operation,
-          tax_id_number: businessInfoDto.tax_id_number,
-          business_website: businessInfoDto.business_website,
-          business_description: businessInfoDto.business_description,
-          source_of_funds: businessInfoDto.source_of_funds,
-          share_holding_document: shareHoldingDocumentUrl,
-          incorporation_certificate: incorporationCertificateUrl,
-          business_proof_of_address: businessProofOfAddressUrl,
-          // memart: memartUrl,
-          email: `${businessInfoDto.business_name
-            .toLowerCase()
-            .replace(/\s+/g, "")}@company.com`, // Generate company email
-          client_id: clientId,
-          client_key: hashedClientKey,
-          step: 2, // Step 2 completed
-        });
-        if (updatedCompanyResult.error)
-          throw new BadRequestException(updatedCompanyResult.error.message);
-        const updatedCompany = updatedCompanyResult.output;
-
-        // Get the user associated with this company
-        const userResult = await UserModel.getOne({ company_id: company.id });
-        if (userResult.error || !userResult.output) {
-          throw new BadRequestException("Utilisateur associé non trouvé");
-        }
-        const user = userResult.output;
-
-        // Update user step to 2
-        const updatedUserResult = await UserModel.update(user.id, { step: 2 });
-        if (updatedUserResult.error)
-          throw new BadRequestException(updatedUserResult.error.message);
-        const updatedUser = updatedUserResult.output;
-
-        // Create default wallets for the company
-        const walletsResult = await Promise.all([
-          WalletModel.create({
-            balance: 0,
-            active: true,
-            currency: "XAF",
-            country: "Cameroon",
-            country_iso_code: "CM",
-            company_id: updatedCompany.id,
-          }),
-          WalletModel.create({
-            balance: 2000,
-            active: true,
-            currency: "USD",
-            country: "USA",
-            country_iso_code: "USA",
-            company_id: updatedCompany.id,
-          }),
-        ]);
-
-        return { company: updatedCompany, user: updatedUser };
+      // // Use database transaction for atomicity
+      // const result = await CompanyModel.operation(async (prisma) => {
+      // Update company with business information
+      const updatedCompanyResult = await CompanyModel.update(company.id, {
+        business_name: businessInfoDto.business_name,
+        business_phone_number: businessInfoDto.business_phone_number,
+        business_address: businessInfoDto.business_address,
+        business_type: businessInfoDto.business_type,
+        country_of_operation: businessInfoDto.country_of_operation,
+        tax_id_number: businessInfoDto.tax_id_number,
+        business_website: businessInfoDto.business_website,
+        business_description: businessInfoDto.business_description,
+        source_of_funds: businessInfoDto.source_of_funds,
+        share_holding_document: shareHoldingDocumentUrl,
+        incorporation_certificate: incorporationCertificateUrl,
+        business_proof_of_address: businessProofOfAddressUrl,
+        // memart: memartUrl,
+        email: `${businessInfoDto.business_name
+          .toLowerCase()
+          .replace(/\s+/g, "")}@company.com`, // Generate company email
+        client_id: clientId,
+        client_key: hashedClientKey,
+        step: 2, // Step 2 completed
       });
+      if (updatedCompanyResult.error)
+        throw new BadRequestException(updatedCompanyResult.error.message);
+      const updatedCompany = updatedCompanyResult.output;
+
+      // Get the user associated with this company
+      const userResult = await UserModel.getOne({ company_id: company.id });
+      if (userResult.error || !userResult.output) {
+        throw new BadRequestException("Utilisateur associé non trouvé");
+      }
+      const user = userResult.output;
+
+      // Update user step to 2
+      const updatedUserResult = await UserModel.update(user.id, { step: 2 });
+      if (updatedUserResult.error)
+        throw new BadRequestException(updatedUserResult.error.message);
+      const updatedUser = updatedUserResult.output;
+
+      // Create default wallets for the company
+      const walletsResult = await Promise.all([
+        WalletModel.create({
+          balance: 0,
+          active: true,
+          currency: "XAF",
+          country: "Cameroon",
+          country_iso_code: "CM",
+          company_id: updatedCompany.id,
+        }),
+        WalletModel.create({
+          balance: 2000,
+          active: true,
+          currency: "USD",
+          country: "USA",
+          country_iso_code: "USA",
+          company_id: updatedCompany.id,
+        }),
+      ]);
+
+      //   return { company: updatedCompany, user: updatedUser };
+      // });
 
       return {
         success: true,
         message:
           "Informations de l'entreprise complétées avec succès. Vous pouvez maintenant vous connecter.",
-        company_id: result.company.id,
-        company_name: result.company.business_name || result.company.name,
-        user_id: result.user.id,
-        user_name: result.user.full_name,
-        user_email: result.user.email,
+        company_id: company.id,
+        company_name: company.business_name || company.name,
+        user_id: user.id,
+        user_name: user.full_name,
+        user_email: user.email,
         next_step: "login",
       };
     } catch (error) {
