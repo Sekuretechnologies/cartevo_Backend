@@ -34,6 +34,7 @@ const env = cleanEnv(process.env, {
   POSTMARK_PORT: str(),
   POSTMARK_USERNAME: str(),
   POSTMARK_PASSWORD: str(),
+  POSTMARK_API_TOKEN: str(),
   /** ------------------------*/
   // REDIS_URL: str(),
   /** ------------------------*/
