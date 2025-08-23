@@ -12,25 +12,14 @@ export class EmailService {
 
   private initializeTransporter() {
     try {
-      // this.transporter = nodemailer.createTransport({
-      //   host: this.configService.get("POSTMARK_HOST") || "smtp.postmarkapp.com",
-      //   port: parseInt(this.configService.get("POSTMARK_PORT") || "25"),
-      //   secure: false, // true for 465, false for other ports
-      //   auth: {
-      //     // user: this.configService.get("POSTMARK_USERNAME"),
-      //     // pass: this.configService.get("POSTMARK_PASSWORD"),
-      //   },
-      // });
       const apiKey = this.configService.get("POSTMARK_API_TOKEN");
-      // Use a specialized transport method for Postmark
       this.transporter = nodemailer.createTransport({
-        host: this.configService.get("POSTMARK_HOST") || "smtp.postmarkapp.com", // remains for compatibility
+        host: this.configService.get("POSTMARK_HOST") || "smtp.postmarkapp.com",
         port: parseInt(this.configService.get("POSTMARK_PORT") || "25"),
         secure: false, // true for 465, false for other ports
         auth: {
-          type: "OAuth2", // Pointing to use OAuth2 for API key
-          // user: "postmark-api", // This can be a placeholder
-          accessToken: apiKey, // Use the API token as the access token
+          user: apiKey, // this.configService.get("POSTMARK_USERNAME"),
+          pass: apiKey, // this.configService.get("POSTMARK_PASSWORD"),
         },
       });
     } catch (error) {
