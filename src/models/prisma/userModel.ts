@@ -3,7 +3,7 @@ import { FilterObject, IncludeObject } from "@/types";
 import { sanitizeTextInput, setMethodFilter } from "@/utils/shared/common";
 import fnOutput from "@/utils/shared/fnOutputHandler";
 import { Prisma, PrismaClient } from "@prisma/client";
-import bcrypt from "bcrypt";
+import * as bcrypt from "bcrypt";
 import { buildPrismaQuery } from "prisma/functions";
 
 const prisma = new PrismaClient();
