@@ -531,6 +531,17 @@ export class UserService {
     return Promise.all(users.map((u: any) => this.mapToResponseDto(u)));
   }
 
+  async getAllUsers(): Promise<{ users: any[] }> {
+    const targetUserResult = await UserModel.get();
+    if (targetUserResult.error) {
+      throw new NotFoundException(targetUserResult.error.message);
+    }
+    const users = targetUserResult.output || [];
+
+    return {
+      users,
+    };
+  }
   async getUserById(userId: string): Promise<{ user: any }> {
     const targetUserResult = await UserModel.getOne(
       {

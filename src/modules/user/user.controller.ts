@@ -181,7 +181,18 @@ export class UserController {
     };
   }
 
-  @Get(":id")
+  @Get("admin")
+  // @ApiBearerAuth()
+  // @UseGuards(JwtAuthGuard, OwnerGuard)
+  @ApiOperation({
+    summary: "Get all users",
+    description: "Get all users",
+  })
+  async getAllUsers(): Promise<{ users: any[] }> {
+    return this.userService.getAllUsers();
+  }
+
+  @Get("admin/:id")
   // @ApiBearerAuth()
   // @UseGuards(JwtAuthGuard, OwnerGuard)
   @ApiOperation({

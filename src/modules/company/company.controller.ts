@@ -171,7 +171,18 @@ export class CompanyController {
     return this.companyService.getCompanyBalance(business.businessId);
   }
 
-  @Get(":companyId")
+  @Get("admin")
+  // @ApiBearerAuth()
+  // @UseGuards(JwtAuthGuard, OwnerGuard)
+  @ApiOperation({
+    summary: "Get all companies",
+    description: "Get all companies",
+  })
+  async getAllCompanies(): Promise<{ companies: any[] }> {
+    return this.companyService.getAllCompanies();
+  }
+
+  @Get("admin/:companyId")
   // @ApiBearerAuth()
   // @UseGuards(JwtAuthGuard, OwnerGuard)
   @ApiOperation({

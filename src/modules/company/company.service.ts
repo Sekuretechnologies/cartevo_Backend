@@ -516,6 +516,15 @@ export class CompanyService {
     };
   }
 
+  async getAllCompanies(): Promise<{ companies: any[] }> {
+    const companyResult = await CompanyModel.get();
+    if (companyResult.error || !companyResult.output) {
+      throw new NotFoundException("Company not found");
+    }
+    const companies = companyResult.output || [];
+    return { companies };
+  }
+
   async getCompanyById(companyId: string): Promise<{ company: any }> {
     const companyResult = await CompanyModel.getOne({ id: companyId });
     if (companyResult.error || !companyResult.output) {
