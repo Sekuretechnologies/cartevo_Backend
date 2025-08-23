@@ -9,7 +9,7 @@ import { PrismaService } from "@/modules/prisma/prisma.service";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
-import { UserStatus } from "@prisma/client";
+import { Prisma, UserStatus } from "@prisma/client";
 import {
   CreateUserDto,
   RegisterUserDto,
@@ -253,16 +253,16 @@ export class UserService {
     if (userResult.error) {
       throw new UnauthorizedException(userResult.error.message);
     }
-    const user = userResult.output;
-    console.log("user.otpExpires :: ", user.otpExpires);
+    const user: any = userResult.output;
+    console.log("user.otpExpires :: ", user.otp_expires);
     console.log("new Date() :: ", new Date());
     console.log(
       "user.otpExpires < new Date() :: ",
-      user.otpExpires < new Date()
+      user.otp_expires < new Date()
     );
     console.log("user :: ", user);
 
-    if (!user || !user.otpExpires || user.otpExpires < new Date()) {
+    if (!user || !user.otp_expires || user.otp_expires < new Date()) {
       throw new UnauthorizedException("Invalid or expired OTP");
     }
 
@@ -276,12 +276,14 @@ export class UserService {
     const payload = {
       sub: user.id,
       email: user.email,
-      company_id: user.company_id,
-      roles: user.userCompanyRoles.map((ucr) => ucr.role.name),
+      company_id: user.company.id,
+      roles: user.userCompanyRoles?.map((ucr: any) => ucr.role.name),
     };
 
     const accessToken = this.jwtService.sign(payload);
 
+    console.log("payload :: ", payload);
+    console.log("accessToken :: ", accessToken);
     // Determine redirect based on user and company completion status
     let redirectTo = "dashboard";
     let redirectMessage = "Login successful";
