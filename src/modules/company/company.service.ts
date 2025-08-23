@@ -29,6 +29,7 @@ import RoleModel from "@/models/prisma/roleModel";
 import UserCompanyRoleModel from "@/models/prisma/userCompanyRoleModel";
 import { FirebaseService } from "../../services/firebase.service";
 import { EmailService } from "../../services/email.service";
+import { UserStatus } from "@prisma/client";
 
 @Injectable()
 export class CompanyService {
@@ -270,6 +271,7 @@ export class CompanyService {
         street: personalInfoDto.street,
         postal_code: personalInfoDto.postal_code,
         proof_of_address: proofOfAddressUrl,
+        status: UserStatus.ACTIVE,
       });
       if (userResult.error)
         throw new BadRequestException(userResult.error.message);
