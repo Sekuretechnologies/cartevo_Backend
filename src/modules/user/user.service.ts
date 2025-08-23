@@ -236,6 +236,7 @@ export class UserService {
     verifyOtpDto: VerifyOtpDto
   ): Promise<LoginSuccessResponseDto> {
     // Find user with valid OTP
+    console.log("verifyOtpDto :: ", verifyOtpDto);
     const userResult = await UserModel.getOne(
       {
         email: verifyOtpDto.email,
@@ -253,6 +254,13 @@ export class UserService {
       throw new UnauthorizedException(userResult.error.message);
     }
     const user = userResult.output;
+    console.log("user.otpExpires :: ", user.otpExpires);
+    console.log("new Date() :: ", new Date());
+    console.log(
+      "user.otpExpires < new Date() :: ",
+      user.otpExpires < new Date()
+    );
+    console.log("user :: ", user);
 
     if (!user || !user.otpExpires || user.otpExpires < new Date()) {
       throw new UnauthorizedException("Invalid or expired OTP");
