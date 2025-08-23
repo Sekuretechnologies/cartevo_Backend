@@ -278,7 +278,7 @@ export class BusinessInfoDto {
     required: false,
   })
   @IsOptional()
-  @IsUrl({}, { message: "Enter a valid URL for the website" })
+  // @IsUrl({}, { message: "Enter a valid URL for the website" })
   business_website?: string;
 
   @ApiProperty({
