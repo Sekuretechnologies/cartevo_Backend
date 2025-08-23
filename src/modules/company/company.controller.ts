@@ -171,9 +171,22 @@ export class CompanyController {
     return this.companyService.getCompanyBalance(business.businessId);
   }
 
+  @Get(":companyId")
+  // @ApiBearerAuth()
+  // @UseGuards(JwtAuthGuard, OwnerGuard)
+  @ApiOperation({
+    summary: "Get company by Id",
+    description: "Get company by Id",
+  })
+  async getCompanyById(
+    @Param("companyId") companyId: string
+  ): Promise<{ company: any }> {
+    return this.companyService.getCompanyById(companyId);
+  }
+
   @Patch(":companyId/kyb-status")
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  // @ApiBearerAuth()
+  // @UseGuards(JwtAuthGuard, OwnerGuard)
   @ApiOperation({
     summary: "Update company KYB status",
     description: "Update the KYB (Know Your Business) status for a company",

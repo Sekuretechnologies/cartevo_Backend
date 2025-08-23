@@ -181,9 +181,20 @@ export class UserController {
     };
   }
 
+  @Get(":id")
+  // @ApiBearerAuth()
+  // @UseGuards(JwtAuthGuard, OwnerGuard)
+  @ApiOperation({
+    summary: "Get user by Id",
+    description: "Get user by Id",
+  })
+  async getCompanyById(@Param("id") id: string): Promise<{ user: any }> {
+    return this.userService.getUserById(id);
+  }
+
   @Patch(":userId/kyc-status")
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  // @ApiBearerAuth()
+  //  @UseGuards(JwtAuthGuard, OwnerGuard)
   @ApiOperation({
     summary: "Update user KYC status",
     description: "Update the KYC (Know Your Customer) status for a user",

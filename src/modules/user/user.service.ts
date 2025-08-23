@@ -531,6 +531,31 @@ export class UserService {
     return Promise.all(users.map((u: any) => this.mapToResponseDto(u)));
   }
 
+  async getUserById(userId: string): Promise<{ user: any }> {
+    const targetUserResult = await UserModel.getOne(
+      {
+        id: userId,
+      },
+      {
+        userCompanyRoles: {
+          include: { role: true, company: true },
+        },
+      }
+    );
+    if (targetUserResult.error) {
+      throw new NotFoundException(targetUserResult.error.message);
+    }
+    const targetUser = targetUserResult.output;
+
+    if (!targetUser) {
+      throw new NotFoundException("User not found in your company");
+    }
+
+    return {
+      user: targetUser,
+    };
+  }
+
   async updateKycStatus(
     userId: string,
     updateKycStatusDto: UpdateKycStatusDto

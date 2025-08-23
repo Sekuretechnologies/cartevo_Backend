@@ -516,6 +516,17 @@ export class CompanyService {
     };
   }
 
+  async getCompanyById(companyId: string): Promise<{ company: any }> {
+    const companyResult = await CompanyModel.getOne({ id: companyId });
+    if (companyResult.error || !companyResult.output) {
+      throw new NotFoundException("Company not found");
+    }
+    const company = companyResult.output;
+    return {
+      company,
+    };
+  }
+
   async updateKybStatus(
     companyId: string,
     updateKybStatusDto: UpdateKybStatusDto
