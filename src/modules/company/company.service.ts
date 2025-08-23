@@ -197,8 +197,8 @@ export class CompanyService {
         }
       }
 
-      // Hash password
-      const hashedPassword = await bcrypt.hash(personalInfoDto.password, 12);
+      // // Hash password
+      // const hashedPassword = await bcrypt.hash(personalInfoDto.password, 12);
 
       // Upload files to Firebase if provided
       let idDocumentFrontUrl = null;
@@ -253,7 +253,7 @@ export class CompanyService {
         last_name: personalInfoDto.last_name,
         full_name: `${personalInfoDto.first_name} ${personalInfoDto.last_name}`,
         email: personalInfoDto.email,
-        password: hashedPassword,
+        password: personalInfoDto.password,
         company_id: company.id,
         step: 1, // Step 1 completed
         role_in_company: personalInfoDto.role,
