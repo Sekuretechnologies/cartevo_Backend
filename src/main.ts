@@ -37,7 +37,7 @@ async function bootstrap() {
 
   // Swagger documentation
   const config = new DocumentBuilder()
-    .setTitle("WAVLET API")
+    .setTitle("CARTEVO API")
     .setDescription("Business Virtual Card Issuance API platform")
     .setVersion("1.0")
     .addBearerAuth()

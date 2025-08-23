@@ -32,9 +32,7 @@
             "description": "Invalid client credentials"
           }
         },
-        "tags": [
-          "Authentication"
-        ]
+        "tags": ["Authentication"]
       }
     },
     "/api/v1/company/register": {
@@ -85,9 +83,7 @@
             }
           }
         },
-        "tags": [
-          "Company"
-        ]
+        "tags": ["Company"]
       }
     },
     "/api/v1/company/wallets": {
@@ -111,9 +107,7 @@
             }
           }
         },
-        "tags": [
-          "Company"
-        ],
+        "tags": ["Company"],
         "security": [
           {
             "bearer": []
@@ -152,9 +146,7 @@
             "description": "Customer with this email already exists"
           }
         },
-        "tags": [
-          "Customers"
-        ],
+        "tags": ["Customers"],
         "security": [
           {
             "bearer": []
@@ -181,9 +173,7 @@
             }
           }
         },
-        "tags": [
-          "Customers"
-        ],
+        "tags": ["Customers"],
         "security": [
           {
             "bearer": []
@@ -221,9 +211,7 @@
             "description": "Customer not found"
           }
         },
-        "tags": [
-          "Customers"
-        ],
+        "tags": ["Customers"],
         "security": [
           {
             "bearer": []
@@ -265,9 +253,7 @@
             "description": "Customer not found"
           }
         },
-        "tags": [
-          "Cards"
-        ],
+        "tags": ["Cards"],
         "security": [
           {
             "bearer": []
@@ -294,9 +280,7 @@
             }
           }
         },
-        "tags": [
-          "Cards"
-        ],
+        "tags": ["Cards"],
         "security": [
           {
             "bearer": []
@@ -347,9 +331,7 @@
             "description": "Card not found"
           }
         },
-        "tags": [
-          "Cards"
-        ],
+        "tags": ["Cards"],
         "security": [
           {
             "bearer": []
@@ -400,9 +382,7 @@
             "description": "Card not found"
           }
         },
-        "tags": [
-          "Cards"
-        ],
+        "tags": ["Cards"],
         "security": [
           {
             "bearer": []
@@ -443,9 +423,7 @@
             "description": "Card not found or terminated"
           }
         },
-        "tags": [
-          "Cards"
-        ],
+        "tags": ["Cards"],
         "security": [
           {
             "bearer": []
@@ -486,9 +464,7 @@
             "description": "Card not found or terminated"
           }
         },
-        "tags": [
-          "Cards"
-        ],
+        "tags": ["Cards"],
         "security": [
           {
             "bearer": []
@@ -526,9 +502,7 @@
             "description": "Card not found"
           }
         },
-        "tags": [
-          "Cards"
-        ],
+        "tags": ["Cards"],
         "security": [
           {
             "bearer": []
@@ -569,9 +543,7 @@
             "description": "Card not found"
           }
         },
-        "tags": [
-          "Cards"
-        ],
+        "tags": ["Cards"],
         "security": [
           {
             "bearer": []
@@ -613,9 +585,7 @@
             "description": "Only owners can create users"
           }
         },
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "security": [
           {
             "bearer": []
@@ -642,9 +612,7 @@
             }
           }
         },
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "security": [
           {
             "bearer": []
@@ -683,9 +651,7 @@
             "description": "Invalid invitation code or email"
           }
         },
-        "tags": [
-          "User Management"
-        ]
+        "tags": ["User Management"]
       }
     },
     "/api/v1/users/{id}": {
@@ -731,9 +697,7 @@
             "description": "User not found in your company"
           }
         },
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "security": [
           {
             "bearer": []
@@ -775,9 +739,7 @@
             "description": "User not found in your company"
           }
         },
-        "tags": [
-          "User Management"
-        ],
+        "tags": ["User Management"],
         "security": [
           {
             "bearer": []
@@ -816,9 +778,7 @@
             "description": "Invalid credentials"
           }
         },
-        "tags": [
-          "Authentication"
-        ]
+        "tags": ["Authentication"]
       }
     },
     "/api/v1/auth/verify-otp": {
@@ -852,14 +812,12 @@
             "description": "Invalid or expired OTP"
           }
         },
-        "tags": [
-          "Authentication"
-        ]
+        "tags": ["Authentication"]
       }
     }
   },
   "info": {
-    "title": "WAVLET API",
+    "title": "CARTEVO API",
     "description": "Business Virtual Card Issuance API platform",
     "version": "1.0",
     "contact": {}
@@ -889,10 +847,7 @@
             "example": "key_abcdef123456"
           }
         },
-        "required": [
-          "client_id",
-          "client_key"
-        ]
+        "required": ["client_id", "client_key"]
       },
       "AuthTokenResponseDto": {
         "type": "object",
@@ -913,11 +868,7 @@
             "example": 86400
           }
         },
-        "required": [
-          "access_token",
-          "token_type",
-          "expires_in"
-        ]
+        "required": ["access_token", "token_type", "expires_in"]
       },
       "CreateCompanyUserDto": {
         "type": "object",
@@ -1131,13 +1082,7 @@
             }
           }
         },
-        "required": [
-          "status",
-          "message",
-          "user",
-          "company",
-          "wallets"
-        ]
+        "required": ["status", "message", "user", "company", "wallets"]
       },
       "ErrorResponseDto": {
         "type": "object",
@@ -1152,11 +1097,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "success",
-          "message",
-          "error"
-        ]
+        "required": ["success", "message", "error"]
       },
       "CreateCustomerDto": {
         "type": "object",
@@ -1240,12 +1181,7 @@
             "type": "string",
             "description": "Type of identification",
             "example": "NIN",
-            "enum": [
-              "NIN",
-              "PASSPORT",
-              "VOTERS_CARD",
-              "DRIVERS_LICENSE"
-            ]
+            "enum": ["NIN", "PASSPORT", "VOTERS_CARD", "DRIVERS_LICENSE"]
           },
           "image": {
             "type": "string",
@@ -1395,12 +1331,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "customer_id",
-          "amount",
-          "name_on_card",
-          "brand"
-        ]
+        "required": ["customer_id", "amount", "name_on_card", "brand"]
       },
       "CardResponseDto": {
         "type": "object",
@@ -1451,11 +1382,7 @@
             "$ref": "#/components/schemas/CardResponseDto"
           }
         },
-        "required": [
-          "status",
-          "message",
-          "card"
-        ]
+        "required": ["status", "message", "card"]
       },
       "FundCardDto": {
         "type": "object",
@@ -1466,9 +1393,7 @@
             "example": 100.5
           }
         },
-        "required": [
-          "amount"
-        ]
+        "required": ["amount"]
       },
       "SuccessResponseDto": {
         "type": "object",
@@ -1489,12 +1414,7 @@
             "type": "object"
           }
         },
-        "required": [
-          "success",
-          "status",
-          "message",
-          "data"
-        ]
+        "required": ["success", "status", "message", "data"]
       },
       "WithdrawCardDto": {
         "type": "object",
@@ -1505,9 +1425,7 @@
             "example": 50.25
           }
         },
-        "required": [
-          "amount"
-        ]
+        "required": ["amount"]
       },
       "TransactionResponseDto": {
         "type": "object",
@@ -1577,16 +1495,10 @@
             "type": "string",
             "description": "User role within the company",
             "example": "admin",
-            "enum": [
-              "admin",
-              "user"
-            ]
+            "enum": ["admin", "user"]
           }
         },
-        "required": [
-          "email",
-          "role"
-        ]
+        "required": ["email", "role"]
       },
       "CreateUserResponseDto": {
         "type": "object",
@@ -1604,12 +1516,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "success",
-          "message",
-          "user",
-          "invitation_code"
-        ]
+        "required": ["success", "message", "user", "invitation_code"]
       },
       "RegisterUserDto": {
         "type": "object",
@@ -1637,12 +1544,7 @@
             "maxLength": 32
           }
         },
-        "required": [
-          "email",
-          "invitation_code",
-          "full_name",
-          "password"
-        ]
+        "required": ["email", "invitation_code", "full_name", "password"]
       },
       "UpdateUserDto": {
         "type": "object",
@@ -1656,10 +1558,7 @@
             "type": "string",
             "description": "User role within the company",
             "example": "admin",
-            "enum": [
-              "admin",
-              "user"
-            ]
+            "enum": ["admin", "user"]
           }
         }
       },
@@ -1677,10 +1576,7 @@
             "example": "SecurePass123!"
           }
         },
-        "required": [
-          "email",
-          "password"
-        ]
+        "required": ["email", "password"]
       },
       "AuthResponseDto": {
         "type": "object",
@@ -1695,11 +1591,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "success",
-          "message",
-          "requires_otp"
-        ]
+        "required": ["success", "message", "requires_otp"]
       },
       "VerifyOtpDto": {
         "type": "object",
@@ -1715,10 +1607,7 @@
             "example": "123456"
           }
         },
-        "required": [
-          "email",
-          "otp"
-        ]
+        "required": ["email", "otp"]
       },
       "LoginSuccessResponseDto": {
         "type": "object",
@@ -1739,13 +1628,7 @@
             "type": "object"
           }
         },
-        "required": [
-          "success",
-          "message",
-          "access_token",
-          "user",
-          "company"
-        ]
+        "required": ["success", "message", "access_token", "user", "company"]
       }
     }
   }

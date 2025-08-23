@@ -1,8 +1,8 @@
-# WAVLET API - Project Summary
+# CARTEVO API - Project Summary
 
 ## Overview
 
-**WAVLET API** is a comprehensive Virtual Card Issuance Platform built with NestJS, Prisma, and PostgreSQL. This enterprise-grade platform enables complete company onboarding, detailed customer management, and sophisticated virtual card operations with advanced pricing models, fund rates, and comprehensive transaction tracking.
+**CARTEVO API** is a comprehensive Virtual Card Issuance Platform built with NestJS, Prisma, and PostgreSQL. This enterprise-grade platform enables complete company onboarding, detailed customer management, and sophisticated virtual card operations with advanced pricing models, fund rates, and comprehensive transaction tracking.
 
 ## Technology Stack
 
