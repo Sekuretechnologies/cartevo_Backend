@@ -516,7 +516,7 @@ export class CompanyService {
 
   async getCompanyBalance(
     companyId: string
-  ): Promise<{ wallets: WalletResponseDto[] }> {
+  ): Promise<{ data: WalletResponseDto[] }> {
     const walletsResult = await WalletModel.get({
       company_id: companyId,
       active: true,
@@ -526,13 +526,13 @@ export class CompanyService {
     }
     const wallets = walletsResult.output;
     return {
-      wallets: wallets.map((wallet) => this.mapWalletToResponseDto(wallet)),
+      data: wallets.map((wallet) => this.mapWalletToResponseDto(wallet)),
     };
   }
 
   async getCompanyTransactions(
     companyId: string
-  ): Promise<{ transactions: TransactionResponseDto[] }> {
+  ): Promise<{ data: TransactionResponseDto[] }> {
     const transactionsResult = await TransactionModel.get({
       company_id: companyId,
     });
@@ -542,7 +542,7 @@ export class CompanyService {
     const transactions = transactionsResult.output;
 
     return {
-      transactions,
+      data: transactions,
     };
     //   return {
     //     transactions: transactions.map((transaction) => ({

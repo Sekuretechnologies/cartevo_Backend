@@ -168,7 +168,7 @@ export class CompanyController {
   })
   async getCompanyWallets(
     @CurrentBusiness() business: CurrentBusinessData
-  ): Promise<{ wallets: WalletResponseDto[] }> {
+  ): Promise<{ data: WalletResponseDto[] }> {
     return this.companyService.getCompanyBalance(business.businessId);
   }
 
@@ -186,7 +186,7 @@ export class CompanyController {
   })
   async getCompanyTransactions(
     @CurrentBusiness() business: CurrentBusinessData
-  ): Promise<{ transactions: TransactionResponseDto[] }> {
+  ): Promise<{ data: TransactionResponseDto[] }> {
     return this.companyService.getCompanyTransactions(business.businessId);
   }
 
