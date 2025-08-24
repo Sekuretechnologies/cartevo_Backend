@@ -146,17 +146,19 @@ export class CreateCustomerDto {
   @MaxLength(255)
   identification_number: string;
 
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(1)
-  @MaxLength(255)
-  id_document_front: string;
+  @ApiProperty({
+    description: "ID document front image",
+    type: "string",
+    format: "binary",
+  })
+  id_document_front: any;
 
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(1)
-  @MaxLength(255)
-  id_document_back?: string;
+  @ApiProperty({
+    description: "ID document front image",
+    type: "string",
+    format: "binary",
+  })
+  id_document_back: any;
 
   @ApiProperty({
     description: "Type of identification",

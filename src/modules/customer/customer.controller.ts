@@ -1,71 +1,137 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { CustomerService } from './customer.service';
-import { CreateCustomerDto, CustomerResponseDto } from './dto/customer.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CurrentBusiness, CurrentBusinessData } from '../common/decorators/current-business.decorator';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  UseInterceptors,
+  UploadedFiles,
+  Put,
+} from "@nestjs/common";
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiConsumes,
+} from "@nestjs/swagger";
+import { CustomerService } from "./customer.service";
+import { CreateCustomerDto, CustomerResponseDto } from "./dto/customer.dto";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import {
+  CurrentBusiness,
+  CurrentBusinessData,
+} from "../common/decorators/current-business.decorator";
+import { FileFieldsInterceptor } from "@nestjs/platform-express";
 
-@ApiTags('Customers')
+@ApiTags("Customers")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('customers')
+@Controller("customers")
 export class CustomerController {
   constructor(private readonly customerService: CustomerService) {}
 
   @Post()
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: "id_document_front", maxCount: 1 },
+      { name: "id_document_back", maxCount: 1 },
+    ])
+  )
+  @ApiConsumes("multipart/form-data")
   @ApiOperation({
-    summary: 'Register new customer',
-    description: 'Register a new customer under the business account',
+    summary: "Register new customer",
+    description: "Register a new customer under the business account",
   })
   @ApiResponse({
     status: 201,
-    description: 'Customer registered successfully',
+    description: "Customer registered successfully",
     type: CustomerResponseDto,
   })
   @ApiResponse({
     status: 409,
-    description: 'Customer with this email already exists',
+    description: "Customer with this email already exists",
   })
   async create(
     @CurrentBusiness() business: CurrentBusinessData,
     @Body() createCustomerDto: CreateCustomerDto,
+    @UploadedFiles()
+    files: {
+      id_document_front?: any[];
+      id_document_back?: any[];
+    }
   ): Promise<CustomerResponseDto> {
     return this.customerService.create(business.businessId, createCustomerDto);
   }
 
+  @Put()
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: "id_document_front", maxCount: 1 },
+      { name: "id_document_back", maxCount: 1 },
+    ])
+  )
+  @ApiConsumes("multipart/form-data")
+  @ApiOperation({
+    summary: "Update customer",
+    description: "Update a customer under the business account",
+  })
+  @ApiResponse({
+    status: 201,
+    description: "Customer updated successfully",
+    type: CustomerResponseDto,
+  })
+  async update(
+    @CurrentBusiness() business: CurrentBusinessData,
+    @Param("id") customerId: string,
+    @Body() createCustomerDto: CreateCustomerDto,
+    @UploadedFiles()
+    files: {
+      id_document_front?: any[];
+      id_document_back?: any[];
+    }
+  ): Promise<CustomerResponseDto> {
+    return this.customerService.update(
+      business.businessId,
+      customerId,
+      createCustomerDto
+    );
+  }
+
   @Get()
   @ApiOperation({
-    summary: 'List all customers',
-    description: 'Retrieve all customers registered under the business',
+    summary: "List all customers",
+    description: "Retrieve all customers registered under the business",
   })
   @ApiResponse({
     status: 200,
-    description: 'Customers retrieved successfully',
+    description: "Customers retrieved successfully",
     type: [CustomerResponseDto],
   })
   async findAll(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentBusiness() business: CurrentBusinessData
   ): Promise<CustomerResponseDto[]> {
     return this.customerService.findAllByCompany(business.businessId);
   }
 
-  @Get(':id')
+  @Get(":id")
   @ApiOperation({
-    summary: 'Get customer details',
-    description: 'Retrieve details of a specific customer',
+    summary: "Get customer details",
+    description: "Retrieve details of a specific customer",
   })
   @ApiResponse({
     status: 200,
-    description: 'Customer details retrieved successfully',
+    description: "Customer details retrieved successfully",
     type: CustomerResponseDto,
   })
   @ApiResponse({
     status: 404,
-    description: 'Customer not found',
+    description: "Customer not found",
   })
   async findOne(
     @CurrentBusiness() business: CurrentBusinessData,
-    @Param('id') id: string,
+    @Param("id") id: string
   ): Promise<CustomerResponseDto> {
     return this.customerService.findOne(business.businessId, id);
   }

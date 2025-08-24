@@ -11,18 +11,26 @@ import TransactionModel from "@/models/prisma/transactionModel";
 import WalletModel from "@/models/prisma/walletModel";
 import { CreateCustomerDto, CustomerResponseDto } from "./dto/customer.dto";
 import { IdentificationType } from "@prisma/client";
+import { v4 as uuidv4 } from "uuid";
+import { FirebaseService } from "@/services/firebase.service";
+import { EmailService } from "@/services/email.service";
 
 @Injectable()
 export class CustomerService {
-  constructor() {}
+  constructor(private firebaseService: FirebaseService) {}
 
   async create(
     companyId: string,
-    createCustomerDto: CreateCustomerDto
+    createCustomerDto: CreateCustomerDto,
+    files?: {
+      id_document_front?: any[];
+      id_document_back?: any[];
+    }
   ): Promise<CustomerResponseDto> {
     // Check if customer already exists for this company
     const existingCustomerResult = await CustomerModel.getOne({
-      companyId,
+      company_id: companyId,
+      identification_number: createCustomerDto.identification_number,
       email: createCustomerDto.email,
     });
     if (existingCustomerResult.output) {
@@ -33,7 +41,36 @@ export class CustomerService {
     if (!companyResult.output) {
       throw new NotFoundException("Company not found");
     }
+    const company = companyResult.output;
+
+    const customerId = uuidv4();
+
+    // Upload files to Firebase if provided
+    let idDocumentBackUrl = null;
+    let idDocumentFrontUrl = null;
+
+    if (files?.id_document_back?.[0]) {
+      const file = files.id_document_back[0];
+      idDocumentBackUrl = await this.firebaseService.uploadFile(
+        file.buffer,
+        `id_document_back_${Date.now()}.${file.originalname.split(".").pop()}`,
+        `companies/${companyId}/customers/${customerId}`,
+        file.mimetype
+      );
+    }
+
+    if (files?.id_document_front?.[0]) {
+      const file = files.id_document_front[0];
+      idDocumentFrontUrl = await this.firebaseService.uploadFile(
+        file.buffer,
+        `id_document_front_${Date.now()}.${file.originalname.split(".").pop()}`,
+        `companies/${companyId}/customers/${customerId}`,
+        file.mimetype
+      );
+    }
+
     const customerResult = await CustomerModel.create({
+      id: customerId,
       company_id: companyId,
       first_name: createCustomerDto.first_name,
       last_name: createCustomerDto.last_name,
@@ -48,8 +85,8 @@ export class CustomerService {
       phone_number: createCustomerDto.phone_number,
       identification_number: createCustomerDto.identification_number,
       id_document_type: createCustomerDto.id_document_type,
-      id_document_front: createCustomerDto.id_document_front,
-      id_document_back: createCustomerDto.id_document_back,
+      id_document_front: idDocumentFrontUrl,
+      id_document_back: idDocumentBackUrl,
       date_of_birth: new Date(createCustomerDto.date_of_birth),
     });
     if (customerResult.error) {
@@ -57,6 +94,86 @@ export class CustomerService {
     }
     const customer = customerResult.output;
     return this.mapToResponseDto(customer);
+  }
+
+  async update(
+    companyId: string,
+    customerId: string,
+    createCustomerDto: CreateCustomerDto,
+    files?: {
+      id_document_front?: any[];
+      id_document_back?: any[];
+    }
+  ): Promise<CustomerResponseDto> {
+    // Check if customer already exists for this company
+    const existingCustomerResult = await CustomerModel.getOne({
+      id: customerId,
+      company_id: companyId,
+    });
+    if (!existingCustomerResult.output) {
+      throw new NotFoundException("Customer not found");
+    }
+    const customer = existingCustomerResult.output;
+    // Verify company exists
+    const companyResult = await CompanyModel.getOne({ id: companyId });
+    if (!companyResult.output) {
+      throw new NotFoundException("Company not found");
+    }
+    const company = companyResult.output;
+
+    // Upload files to Firebase if provided
+    let idDocumentBackUrl = null;
+    let idDocumentFrontUrl = null;
+
+    if (files?.id_document_back?.[0]) {
+      const file = files.id_document_back[0];
+      idDocumentBackUrl = await this.firebaseService.uploadFile(
+        file.buffer,
+        `id_document_back_${Date.now()}.${file.originalname.split(".").pop()}`,
+        `companies/${companyId}/customers/${customerId}`,
+        file.mimetype
+      );
+    }
+
+    if (files?.id_document_front?.[0]) {
+      const file = files.id_document_front[0];
+      idDocumentFrontUrl = await this.firebaseService.uploadFile(
+        file.buffer,
+        `id_document_front_${Date.now()}.${file.originalname.split(".").pop()}`,
+        `companies/${companyId}/customers/${customerId}`,
+        file.mimetype
+      );
+    }
+
+    const updatedCustomerResult = await CustomerModel.update(
+      { id: customerId },
+      {
+        id: customerId,
+        company_id: companyId,
+        first_name: createCustomerDto.first_name,
+        last_name: createCustomerDto.last_name,
+        country: createCustomerDto.country,
+        email: createCustomerDto.email,
+        street: createCustomerDto.street,
+        city: createCustomerDto.city,
+        state: createCustomerDto.state,
+        postal_code: createCustomerDto.postal_code,
+        country_iso_code: createCustomerDto.country_iso_code,
+        country_phone_code: createCustomerDto.country_phone_code,
+        phone_number: createCustomerDto.phone_number,
+        identification_number: createCustomerDto.identification_number,
+        id_document_type: createCustomerDto.id_document_type,
+        id_document_front: idDocumentFrontUrl,
+        id_document_back: idDocumentBackUrl,
+        date_of_birth: new Date(createCustomerDto.date_of_birth),
+        updated_at: new Date(),
+      }
+    );
+    if (updatedCustomerResult.error) {
+      throw new ConflictException(updatedCustomerResult.error.message);
+    }
+    const updatedCustomer = updatedCustomerResult.output;
+    return this.mapToResponseDto(updatedCustomer);
   }
 
   async findAllByCompany(companyId: string): Promise<CustomerResponseDto[]> {
