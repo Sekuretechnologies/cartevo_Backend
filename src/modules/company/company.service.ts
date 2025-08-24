@@ -18,6 +18,7 @@ import {
   CheckExistingUserResponseDto,
   UpdateKybStatusDto,
   UpdateKybStatusResponseDto,
+  TransactionResponseDto,
 } from "./dto/company.dto";
 import CardModel from "@/models/prisma/cardModel";
 import CompanyModel from "@/models/prisma/companyModel";
@@ -527,6 +528,39 @@ export class CompanyService {
     return {
       wallets: wallets.map((wallet) => this.mapWalletToResponseDto(wallet)),
     };
+  }
+
+  async getCompanyTransactions(
+    companyId: string
+  ): Promise<{ transactions: TransactionResponseDto[] }> {
+    const transactionsResult = await TransactionModel.get({
+      company_id: companyId,
+    });
+    if (transactionsResult.error) {
+      throw new BadRequestException(transactionsResult.error.message);
+    }
+    const transactions = transactionsResult.output;
+
+    return {
+      transactions,
+    };
+    //   return {
+    //     transactions: transactions.map((transaction) => ({
+    //       id: transaction.id,
+    //       category: transaction.category,
+    //       type: transaction.type,
+    //       card_id: transaction.card_id,
+    //       card_balance_before: transaction.card_balance_before.toNumber(),
+    //       card_balance_after: transaction.card_balance_after.toNumber(),
+    //       wallet_balance_before: transaction.wallet_balance_before.toNumber(),
+    //       wallet_balance_after: transaction.wallet_balance_after.toNumber(),
+    //       amount: transaction.amount.toNumber(),
+    //       currency: transaction.currency,
+    //       status: transaction.status,
+    //       // reference: transaction.reference,
+    //       created_at: transaction.createdAt,
+    //     })),
+    //   };
   }
 
   async getAllCompanies(): Promise<{ companies: any[] }> {

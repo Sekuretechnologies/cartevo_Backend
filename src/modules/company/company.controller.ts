@@ -30,6 +30,7 @@ import {
   CheckExistingUserResponseDto,
   UpdateKybStatusDto,
   UpdateKybStatusResponseDto,
+  TransactionResponseDto,
 } from "./dto/company.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import {
@@ -169,6 +170,24 @@ export class CompanyController {
     @CurrentBusiness() business: CurrentBusinessData
   ): Promise<{ wallets: WalletResponseDto[] }> {
     return this.companyService.getCompanyBalance(business.businessId);
+  }
+
+  @Get("transactions")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Get company transactions",
+    description: "Get all active transactions for the authenticated company",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Company transactions retrieved successfully",
+    type: [TransactionResponseDto],
+  })
+  async getCompanyTransactions(
+    @CurrentBusiness() business: CurrentBusinessData
+  ): Promise<{ transactions: TransactionResponseDto[] }> {
+    return this.companyService.getCompanyTransactions(business.businessId);
   }
 
   @Get("admin")

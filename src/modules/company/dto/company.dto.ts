@@ -662,3 +662,57 @@ export class UpdateKycStatusResponseDto {
   @ApiProperty()
   updated_at: Date;
 }
+
+export class TransactionResponseDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  category: string;
+
+  @ApiProperty()
+  type: string;
+
+  @ApiProperty()
+  card_id: string;
+
+  @ApiProperty()
+  card_balance_before: number;
+
+  @ApiProperty()
+  card_balance_after: number;
+
+  @ApiProperty()
+  wallet_balance_before: number;
+
+  @ApiProperty()
+  wallet_balance_after: number;
+
+  @ApiProperty()
+  amount: number;
+
+  @ApiProperty()
+  currency?: string;
+
+  @ApiProperty()
+  status?: string;
+
+  @ApiProperty()
+  created_at: Date;
+
+  mcc?: string | null;
+  mid?: string | null;
+  merchant?: any;
+  wallet_id?: string | null;
+  customer_id: string;
+  company_id: string;
+  order_id?: string | null;
+  provider?: string | null;
+
+  description?: string | null;
+  reason?: string | null;
+
+  reference?: string | null;
+
+  updated_at?: Date | string;
+}
