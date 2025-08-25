@@ -191,7 +191,7 @@ export class CustomerService {
   async findOne(
     companyId: string,
     customerId: string
-  ): Promise<CustomerResponseDto> {
+  ): Promise<{ data: CustomerResponseDto }> {
     const customerResult = await CustomerModel.getOne({
       id: customerId,
       company_id: companyId,
@@ -201,13 +201,13 @@ export class CustomerService {
       throw new NotFoundException("Customer not found");
     }
     const customer = customerResult.output;
-    return this.mapToResponseDto(customer);
+    return { data: this.mapToResponseDto(customer) };
   }
 
   async findCustomerCards(
     companyId: string,
     customerId: string
-  ): Promise<any[]> {
+  ): Promise<{ data: any[] }> {
     const customerCardsResult = await CardModel.get({
       customer_id: customerId,
       company_id: companyId,
@@ -216,13 +216,13 @@ export class CustomerService {
       throw new NotFoundException("Customer cards not found");
     }
     const customerCards = customerCardsResult.output;
-    return customerCards;
+    return { data: customerCards };
   }
 
   async findCustomerTransactions(
     companyId: string,
     customerId: string
-  ): Promise<any[]> {
+  ): Promise<{ data: any[] }> {
     const customerTransactionsResult = await TransactionModel.get({
       customer_id: customerId,
       company_id: companyId,
@@ -234,7 +234,7 @@ export class CustomerService {
       throw new NotFoundException("Customer transactions not found");
     }
     const customerTransactions = customerTransactionsResult.output;
-    return customerTransactions;
+    return { data: customerTransactions };
   }
 
   private mapToResponseDto(customer: any): CustomerResponseDto {

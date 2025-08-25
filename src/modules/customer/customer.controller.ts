@@ -132,7 +132,7 @@ export class CustomerController {
   async findOne(
     @CurrentBusiness() business: CurrentBusinessData,
     @Param("id") id: string
-  ): Promise<CustomerResponseDto> {
+  ): Promise<{ data: CustomerResponseDto }> {
     return this.customerService.findOne(business.businessId, id);
   }
 
@@ -153,7 +153,7 @@ export class CustomerController {
   async findCustomerCards(
     @CurrentBusiness() business: CurrentBusinessData,
     @Param("id") id: string
-  ): Promise<any[]> {
+  ): Promise<{ data: any[] }> {
     return this.customerService.findCustomerCards(business.businessId, id);
   }
 
@@ -174,7 +174,7 @@ export class CustomerController {
   async findCustomerTransactions(
     @CurrentBusiness() business: CurrentBusinessData,
     @Param("id") id: string
-  ): Promise<any[]> {
+  ): Promise<{ data: any[] }> {
     return this.customerService.findCustomerTransactions(
       business.businessId,
       id
