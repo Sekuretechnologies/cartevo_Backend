@@ -179,9 +179,7 @@ export class CustomerService {
     return this.mapToResponseDto(updatedCustomer);
   }
 
-  async findAllByCompany(
-    companyId: string
-  ): Promise<{ data: CustomerResponseDto[] }> {
+  async findAllByCompany(companyId: string): Promise<{ data: any[] }> {
     const customersResult = await CustomerModel.get({
       company_id: companyId,
       is_active: true,
@@ -191,7 +189,7 @@ export class CustomerService {
     }
     const customers = customersResult.output;
     return {
-      data: customers.map((customer) => this.mapToResponseDto(customer)),
+      data: customers, // customers.map((customer) => this.mapToResponseDto(customer)),
     };
   }
 
