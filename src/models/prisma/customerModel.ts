@@ -72,6 +72,7 @@ class CustomerModel {
         customerData.postal_code = sanitizeTextInput(inputCustomer.postal_code);
       }
       if (inputCustomer.company_id) {
+        customerData.company_id = undefined;
         customerData.company = {
           connect: { id: inputCustomer.company_id },
         };
