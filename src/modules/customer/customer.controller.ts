@@ -103,7 +103,23 @@ export class CustomerController {
     );
   }
 
-  @Get()
+  // @Get()
+  // @ApiOperation({
+  //   summary: "List all customers",
+  //   description: "Retrieve all customers registered under the business",
+  // })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: "Customers retrieved successfully",
+  //   type: [CustomerResponseDto],
+  // })
+  // async findAll(
+  //   @CurrentBusiness() business: CurrentBusinessData
+  // ): Promise<{ data: any[] }> {
+  //   return this.customerService.findAllByCompany(business.businessId);
+  // }
+
+  @Get("")
   @ApiOperation({
     summary: "List all customers",
     description: "Retrieve all customers registered under the business",
@@ -113,10 +129,12 @@ export class CustomerController {
     description: "Customers retrieved successfully",
     type: [CustomerResponseDto],
   })
-  async findAll(
+  async findAllWithCardCount(
     @CurrentBusiness() business: CurrentBusinessData
   ): Promise<{ data: any[] }> {
-    return this.customerService.findAllByCompany(business.businessId);
+    return this.customerService.findAllCustomersWithCardCountByCompany(
+      business.businessId
+    );
   }
 
   @Get(":id")

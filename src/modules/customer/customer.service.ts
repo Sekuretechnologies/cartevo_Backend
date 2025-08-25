@@ -193,6 +193,22 @@ export class CustomerService {
     };
   }
 
+  async findAllCustomersWithCardCountByCompany(
+    companyId: string
+  ): Promise<{ data: any[] }> {
+    const customersResult = await CustomerModel.getCustomersWithCardCount({
+      company_id: companyId,
+      is_active: true,
+    });
+    if (customersResult.error) {
+      throw new NotFoundException(customersResult.error.message);
+    }
+    const customers = customersResult.output;
+    return {
+      data: customers, // customers.map((customer) => this.mapToResponseDto(customer)),
+    };
+  }
+
   async findOne(
     companyId: string,
     customerId: string

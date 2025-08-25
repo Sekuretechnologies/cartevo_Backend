@@ -50,6 +50,36 @@ class CustomerModel {
     }
   }
 
+  static async getCustomersWithCardCount(filters?: FilterObject) {
+    try {
+      const query = `
+      SELECT 
+          c.id AS id,
+          c.first_name AS first_name,
+          c.last_name AS last_name,
+          c.country_phone_code AS country_phone_code,
+          c.phone_number AS phone_number,
+          c.email AS email,
+          c.created_at AS created_at,
+          COUNT(card.id) AS number_of_cards
+      FROM 
+          "Customer" c
+      WHERE c.company_id = ${filters.company_id}
+      LEFT JOIN 
+          "Card" card ON c.id = card.customer_id
+      GROUP BY 
+          c.id;
+    `;
+      const result = await prisma.$queryRaw`${query}`;
+      return fnOutput.success({ output: result });
+    } catch (error: any) {
+      return fnOutput.error({
+        message: "Error fetching customers: " + error.message,
+        error: { message: "Error fetching customers: " + error.message },
+      });
+    }
+  }
+
   static async create(inputCustomer: Prisma.CustomerUncheckedCreateInput) {
     try {
       const customerData: any = { ...inputCustomer };
