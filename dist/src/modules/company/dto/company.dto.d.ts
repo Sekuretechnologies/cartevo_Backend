@@ -34,7 +34,6 @@ export declare class BusinessInfoDto {
     share_holding_document: any;
     incorporation_certificate: any;
     proof_of_address: any;
-    memart: any;
 }
 export declare class CreateCompanyUserDto {
     full_name_user: string;
@@ -136,4 +135,30 @@ export declare class UpdateKycStatusResponseDto {
     user_id: string;
     kyc_status: string;
     updated_at: Date;
+}
+export declare class TransactionResponseDto {
+    id: string;
+    category: string;
+    type: string;
+    card_id: string;
+    card_balance_before: number;
+    card_balance_after: number;
+    wallet_balance_before: number;
+    wallet_balance_after: number;
+    amount: number;
+    currency?: string;
+    status?: string;
+    created_at: Date;
+    mcc?: string | null;
+    mid?: string | null;
+    merchant?: any;
+    wallet_id?: string | null;
+    customer_id: string;
+    company_id: string;
+    order_id?: string | null;
+    provider?: string | null;
+    description?: string | null;
+    reason?: string | null;
+    reference?: string | null;
+    updated_at?: Date | string;
 }

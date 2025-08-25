@@ -162,18 +162,20 @@ __decorate([
     __metadata("design:type", String)
 ], CreateCustomerDto.prototype, "identification_number", void 0);
 __decorate([
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.MinLength)(1),
-    (0, class_validator_1.MaxLength)(255),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiProperty)({
+        description: "ID document front image",
+        type: "string",
+        format: "binary",
+    }),
+    __metadata("design:type", Object)
 ], CreateCustomerDto.prototype, "id_document_front", void 0);
 __decorate([
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.MinLength)(1),
-    (0, class_validator_1.MaxLength)(255),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiProperty)({
+        description: "ID document front image",
+        type: "string",
+        format: "binary",
+    }),
+    __metadata("design:type", Object)
 ], CreateCustomerDto.prototype, "id_document_back", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({

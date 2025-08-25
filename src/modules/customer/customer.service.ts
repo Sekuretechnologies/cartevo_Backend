@@ -204,6 +204,39 @@ export class CustomerService {
     return this.mapToResponseDto(customer);
   }
 
+  async findCustomerCards(
+    companyId: string,
+    customerId: string
+  ): Promise<any[]> {
+    const customerCardsResult = await CardModel.get({
+      customer_id: customerId,
+      company_id: companyId,
+    });
+    if (customerCardsResult.error || !customerCardsResult.output) {
+      throw new NotFoundException("Customer cards not found");
+    }
+    const customerCards = customerCardsResult.output;
+    return customerCards;
+  }
+
+  async findCustomerTransactions(
+    companyId: string,
+    customerId: string
+  ): Promise<any[]> {
+    const customerTransactionsResult = await TransactionModel.get({
+      customer_id: customerId,
+      company_id: companyId,
+    });
+    if (
+      customerTransactionsResult.error ||
+      !customerTransactionsResult.output
+    ) {
+      throw new NotFoundException("Customer transactions not found");
+    }
+    const customerTransactions = customerTransactionsResult.output;
+    return customerTransactions;
+  }
+
   private mapToResponseDto(customer: any): CustomerResponseDto {
     return {
       id: customer.id,

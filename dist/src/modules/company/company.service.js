@@ -14,11 +14,13 @@ const common_1 = require("@nestjs/common");
 const bcrypt = require("bcrypt");
 const companyModel_1 = require("../../models/prisma/companyModel");
 const userModel_1 = require("../../models/prisma/userModel");
+const transactionModel_1 = require("../../models/prisma/transactionModel");
 const walletModel_1 = require("../../models/prisma/walletModel");
 const roleModel_1 = require("../../models/prisma/roleModel");
 const userCompanyRoleModel_1 = require("../../models/prisma/userCompanyRoleModel");
 const firebase_service_1 = require("../../services/firebase.service");
 const email_service_1 = require("../../services/email.service");
+const client_1 = require("@prisma/client");
 let CompanyService = class CompanyService {
     constructor(firebaseService, emailService) {
         this.firebaseService = firebaseService;
@@ -147,7 +149,6 @@ let CompanyService = class CompanyService {
                     };
                 }
             }
-            const hashedPassword = await bcrypt.hash(personalInfoDto.password, 12);
             let idDocumentFrontUrl = null;
             let idDocumentBackUrl = null;
             let proofOfAddressUrl = null;
@@ -163,66 +164,64 @@ let CompanyService = class CompanyService {
                 const file = files.proof_of_address[0];
                 proofOfAddressUrl = await this.firebaseService.uploadFile(file.buffer, `proof_address_${Date.now()}.${file.originalname.split(".").pop()}`, `users/${personalInfoDto.email}/documents`, file.mimetype);
             }
-            const result = await companyModel_1.default.operation(async (prisma) => {
-                const companyResult = await companyModel_1.default.create({
-                    name: personalInfoDto.company_name,
-                    country: personalInfoDto.country_of_residence,
-                    step: 1,
-                });
-                if (companyResult.error)
-                    throw new common_1.BadRequestException(companyResult.error.message);
-                const company = companyResult.output;
-                const userResult = await userModel_1.default.create({
-                    first_name: personalInfoDto.first_name,
-                    last_name: personalInfoDto.last_name,
-                    full_name: `${personalInfoDto.first_name} ${personalInfoDto.last_name}`,
-                    email: personalInfoDto.email,
-                    password: hashedPassword,
-                    company_id: company.id,
-                    step: 1,
-                    role_in_company: personalInfoDto.role,
-                    phone_number: personalInfoDto.phone_number,
-                    gender: personalInfoDto.gender,
-                    nationality: personalInfoDto.nationality,
-                    id_document_type: personalInfoDto.id_document_type,
-                    id_number: personalInfoDto.id_number,
-                    id_document_front: idDocumentFrontUrl,
-                    id_document_back: idDocumentBackUrl,
-                    country_of_residence: personalInfoDto.country_of_residence,
-                    state: personalInfoDto.state,
-                    city: personalInfoDto.city,
-                    street: personalInfoDto.street,
-                    postal_code: personalInfoDto.postal_code,
-                    proof_of_address: proofOfAddressUrl,
-                });
-                if (userResult.error)
-                    throw new common_1.BadRequestException(userResult.error.message);
-                const user = userResult.output;
-                let ownerRoleResult = await roleModel_1.default.getOne({ name: "owner" });
-                let ownerRole = ownerRoleResult.output;
-                if (!ownerRole) {
-                    const roleCreateResult = await roleModel_1.default.create({ name: "owner" });
-                    if (roleCreateResult.error)
-                        throw new common_1.BadRequestException(roleCreateResult.error.message);
-                    ownerRole = roleCreateResult.output;
-                }
-                const ucrResult = await userCompanyRoleModel_1.default.create({
-                    user_id: user.id,
-                    company_id: company.id,
-                    role_id: ownerRole.id,
-                });
-                if (ucrResult.error)
-                    throw new common_1.BadRequestException(ucrResult.error.message);
-                return { company, user };
+            const companyResult = await companyModel_1.default.create({
+                name: personalInfoDto.company_name,
+                country: personalInfoDto.country_of_residence,
+                step: 1,
             });
+            if (companyResult.error)
+                throw new common_1.BadRequestException(companyResult.error.message);
+            const company = companyResult.output;
+            const userResult = await userModel_1.default.create({
+                first_name: personalInfoDto.first_name,
+                last_name: personalInfoDto.last_name,
+                full_name: `${personalInfoDto.first_name} ${personalInfoDto.last_name}`,
+                email: personalInfoDto.email,
+                password: personalInfoDto.password,
+                company_id: company.id,
+                step: 1,
+                role_in_company: personalInfoDto.role,
+                phone_number: personalInfoDto.phone_number,
+                gender: personalInfoDto.gender,
+                nationality: personalInfoDto.nationality,
+                id_document_type: personalInfoDto.id_document_type,
+                id_number: personalInfoDto.id_number,
+                id_document_front: idDocumentFrontUrl,
+                id_document_back: idDocumentBackUrl,
+                country_of_residence: personalInfoDto.country_of_residence,
+                state: personalInfoDto.state,
+                city: personalInfoDto.city,
+                street: personalInfoDto.street,
+                postal_code: personalInfoDto.postal_code,
+                proof_of_address: proofOfAddressUrl,
+                status: client_1.UserStatus.ACTIVE,
+            });
+            if (userResult.error)
+                throw new common_1.BadRequestException(userResult.error.message);
+            const user = userResult.output;
+            let ownerRoleResult = await roleModel_1.default.getOne({ name: "owner" });
+            let ownerRole = ownerRoleResult.output;
+            if (!ownerRole) {
+                const roleCreateResult = await roleModel_1.default.create({ name: "owner" });
+                if (roleCreateResult.error)
+                    throw new common_1.BadRequestException(roleCreateResult.error.message);
+                ownerRole = roleCreateResult.output;
+            }
+            const ucrResult = await userCompanyRoleModel_1.default.create({
+                user_id: user.id,
+                company_id: company.id,
+                role_id: ownerRole.id,
+            });
+            if (ucrResult.error)
+                throw new common_1.BadRequestException(ucrResult.error.message);
             return {
                 success: true,
                 message: "Informations personnelles enregistrées avec succès. Veuillez procéder à l'étape 2.",
-                company_id: result.company.id,
-                company_name: result.company.name,
-                user_id: result.user.id,
-                user_name: result.user.full_name,
-                user_email: result.user.email,
+                company_id: company.id,
+                company_name: company.name,
+                user_id: user.id,
+                user_name: user.full_name,
+                user_email: user.email,
                 next_step: 2,
             };
         }
@@ -253,7 +252,6 @@ let CompanyService = class CompanyService {
             let shareHoldingDocumentUrl = null;
             let incorporationCertificateUrl = null;
             let businessProofOfAddressUrl = null;
-            let memartUrl = null;
             if (files?.share_holding_document?.[0]) {
                 const file = files.share_holding_document[0];
                 shareHoldingDocumentUrl = await this.firebaseService.uploadFile(file.buffer, `shareholding_${Date.now()}.${file.originalname.split(".").pop()}`, `companies/${businessInfoDto.business_name}/documents`, file.mimetype);
@@ -268,75 +266,67 @@ let CompanyService = class CompanyService {
                     .split(".")
                     .pop()}`, `companies/${businessInfoDto.business_name}/documents`, file.mimetype);
             }
-            if (files?.memart?.[0]) {
-                const file = files.memart[0];
-                memartUrl = await this.firebaseService.uploadFile(file.buffer, `memart_${Date.now()}.${file.originalname.split(".").pop()}`, `companies/${businessInfoDto.business_name}/documents`, file.mimetype);
-            }
             const clientId = this.generateClientId();
             const clientKey = this.generateClientKey();
             const hashedClientKey = await bcrypt.hash(clientKey, 12);
-            const result = await companyModel_1.default.operation(async (prisma) => {
-                const updatedCompanyResult = await companyModel_1.default.update(company.id, {
-                    business_name: businessInfoDto.business_name,
-                    business_phone_number: businessInfoDto.business_phone_number,
-                    business_address: businessInfoDto.business_address,
-                    business_type: businessInfoDto.business_type,
-                    country_of_operation: businessInfoDto.country_of_operation,
-                    tax_id_number: businessInfoDto.tax_id_number,
-                    business_website: businessInfoDto.business_website,
-                    business_description: businessInfoDto.business_description,
-                    source_of_funds: businessInfoDto.source_of_funds,
-                    share_holding_document: shareHoldingDocumentUrl,
-                    incorporation_certificate: incorporationCertificateUrl,
-                    business_proof_of_address: businessProofOfAddressUrl,
-                    memart: memartUrl,
-                    email: `${businessInfoDto.business_name
-                        .toLowerCase()
-                        .replace(/\s+/g, "")}@company.com`,
-                    client_id: clientId,
-                    client_key: hashedClientKey,
-                    step: 2,
-                });
-                if (updatedCompanyResult.error)
-                    throw new common_1.BadRequestException(updatedCompanyResult.error.message);
-                const updatedCompany = updatedCompanyResult.output;
-                const userResult = await userModel_1.default.getOne({ company_id: company.id });
-                if (userResult.error || !userResult.output) {
-                    throw new common_1.BadRequestException("Utilisateur associé non trouvé");
-                }
-                const user = userResult.output;
-                const updatedUserResult = await userModel_1.default.update(user.id, { step: 2 });
-                if (updatedUserResult.error)
-                    throw new common_1.BadRequestException(updatedUserResult.error.message);
-                const updatedUser = updatedUserResult.output;
-                const walletsResult = await Promise.all([
-                    walletModel_1.default.create({
-                        balance: 0,
-                        active: true,
-                        currency: "XAF",
-                        country: "Cameroon",
-                        country_iso_code: "CM",
-                        company_id: updatedCompany.id,
-                    }),
-                    walletModel_1.default.create({
-                        balance: 2000,
-                        active: true,
-                        currency: "USD",
-                        country: "USA",
-                        country_iso_code: "USA",
-                        company_id: updatedCompany.id,
-                    }),
-                ]);
-                return { company: updatedCompany, user: updatedUser };
+            const updatedCompanyResult = await companyModel_1.default.update(company.id, {
+                business_name: businessInfoDto.business_name,
+                business_phone_number: businessInfoDto.business_phone_number,
+                business_address: businessInfoDto.business_address,
+                business_type: businessInfoDto.business_type,
+                country_of_operation: businessInfoDto.country_of_operation,
+                tax_id_number: businessInfoDto.tax_id_number,
+                business_website: businessInfoDto.business_website,
+                business_description: businessInfoDto.business_description,
+                source_of_funds: businessInfoDto.source_of_funds,
+                share_holding_document: shareHoldingDocumentUrl,
+                incorporation_certificate: incorporationCertificateUrl,
+                business_proof_of_address: businessProofOfAddressUrl,
+                email: `${businessInfoDto.business_name
+                    .toLowerCase()
+                    .replace(/\s+/g, "")}@company.com`,
+                client_id: clientId,
+                client_key: hashedClientKey,
+                step: 2,
             });
+            if (updatedCompanyResult.error)
+                throw new common_1.BadRequestException(updatedCompanyResult.error.message);
+            const updatedCompany = updatedCompanyResult.output;
+            const userResult = await userModel_1.default.getOne({ company_id: company.id });
+            if (userResult.error || !userResult.output) {
+                throw new common_1.BadRequestException("Utilisateur associé non trouvé");
+            }
+            const user = userResult.output;
+            const updatedUserResult = await userModel_1.default.update(user.id, { step: 2 });
+            if (updatedUserResult.error)
+                throw new common_1.BadRequestException(updatedUserResult.error.message);
+            const updatedUser = updatedUserResult.output;
+            const walletsResult = await Promise.all([
+                walletModel_1.default.create({
+                    balance: 0,
+                    active: true,
+                    currency: "XAF",
+                    country: "Cameroon",
+                    country_iso_code: "CM",
+                    company_id: updatedCompany.id,
+                }),
+                walletModel_1.default.create({
+                    balance: 0,
+                    active: true,
+                    currency: "USD",
+                    country: "USA",
+                    country_iso_code: "USA",
+                    company_id: updatedCompany.id,
+                }),
+            ]);
             return {
                 success: true,
                 message: "Informations de l'entreprise complétées avec succès. Vous pouvez maintenant vous connecter.",
-                company_id: result.company.id,
-                company_name: result.company.business_name || result.company.name,
-                user_id: result.user.id,
-                user_name: result.user.full_name,
-                user_email: result.user.email,
+                company_id: company.id,
+                company_name: company.business_name || company.name,
+                user_id: user.id,
+                user_name: user.full_name,
+                user_email: user.email,
                 next_step: "login",
             };
         }
@@ -363,7 +353,37 @@ let CompanyService = class CompanyService {
         }
         const wallets = walletsResult.output;
         return {
-            wallets: wallets.map((wallet) => this.mapWalletToResponseDto(wallet)),
+            data: wallets.map((wallet) => this.mapWalletToResponseDto(wallet)),
+        };
+    }
+    async getCompanyTransactions(companyId) {
+        const transactionsResult = await transactionModel_1.default.get({
+            company_id: companyId,
+        });
+        if (transactionsResult.error) {
+            throw new common_1.BadRequestException(transactionsResult.error.message);
+        }
+        const transactions = transactionsResult.output;
+        return {
+            data: transactions,
+        };
+    }
+    async getAllCompanies() {
+        const companyResult = await companyModel_1.default.get();
+        if (companyResult.error || !companyResult.output) {
+            throw new common_1.NotFoundException("Company not found");
+        }
+        const companies = companyResult.output || [];
+        return { companies };
+    }
+    async getCompanyById(companyId) {
+        const companyResult = await companyModel_1.default.getOne({ id: companyId });
+        if (companyResult.error || !companyResult.output) {
+            throw new common_1.NotFoundException("Company not found");
+        }
+        const company = companyResult.output;
+        return {
+            company,
         };
     }
     async updateKybStatus(companyId, updateKybStatusDto) {

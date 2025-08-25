@@ -36,6 +36,15 @@ let CompanyController = class CompanyController {
     async getCompanyWallets(business) {
         return this.companyService.getCompanyBalance(business.businessId);
     }
+    async getCompanyTransactions(business) {
+        return this.companyService.getCompanyTransactions(business.businessId);
+    }
+    async getAllCompanies() {
+        return this.companyService.getAllCompanies();
+    }
+    async getCompanyById(companyId) {
+        return this.companyService.getCompanyById(companyId);
+    }
     async updateKybStatus(companyId, updateKybStatusDto) {
         return this.companyService.updateKybStatus(companyId, updateKybStatusDto);
     }
@@ -80,7 +89,6 @@ __decorate([
         { name: "share_holding_document", maxCount: 1 },
         { name: "incorporation_certificate", maxCount: 1 },
         { name: "proof_of_address", maxCount: 1 },
-        { name: "memart", maxCount: 1 },
     ])),
     (0, swagger_1.ApiConsumes)("multipart/form-data"),
     (0, swagger_1.ApiOperation)({
@@ -153,9 +161,46 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], CompanyController.prototype, "getCompanyWallets", null);
 __decorate([
-    (0, common_1.Patch)(":companyId/kyb-status"),
+    (0, common_1.Get)("transactions"),
     (0, swagger_1.ApiBearerAuth)(),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiOperation)({
+        summary: "Get company transactions",
+        description: "Get all active transactions for the authenticated company",
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: "Company transactions retrieved successfully",
+        type: [company_dto_1.TransactionResponseDto],
+    }),
+    __param(0, (0, current_business_decorator_1.CurrentBusiness)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], CompanyController.prototype, "getCompanyTransactions", null);
+__decorate([
+    (0, common_1.Get)("admin"),
+    (0, swagger_1.ApiOperation)({
+        summary: "Get all companies",
+        description: "Get all companies",
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], CompanyController.prototype, "getAllCompanies", null);
+__decorate([
+    (0, common_1.Get)("admin/:companyId"),
+    (0, swagger_1.ApiOperation)({
+        summary: "Get company by Id",
+        description: "Get company by Id",
+    }),
+    __param(0, (0, common_1.Param)("companyId")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], CompanyController.prototype, "getCompanyById", null);
+__decorate([
+    (0, common_1.Patch)(":companyId/kyb-status"),
     (0, swagger_1.ApiOperation)({
         summary: "Update company KYB status",
         description: "Update the KYB (Know Your Business) status for a company",

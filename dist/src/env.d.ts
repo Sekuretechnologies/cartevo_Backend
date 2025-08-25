@@ -17,6 +17,7 @@ declare const env: Readonly<{
     POSTMARK_PORT: string;
     POSTMARK_USERNAME: string;
     POSTMARK_PASSWORD: string;
+    POSTMARK_API_TOKEN: string;
     SUDO_BASE_URL: string;
     SUDO_API_KEY: string;
     SUDO_DOLLARS_FEES: number;

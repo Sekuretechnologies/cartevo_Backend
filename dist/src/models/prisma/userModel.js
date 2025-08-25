@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const common_1 = require("../../utils/shared/common");
 const fnOutputHandler_1 = require("../../utils/shared/fnOutputHandler");
 const client_1 = require("@prisma/client");
-const bcrypt_1 = require("bcrypt");
+const bcrypt = require("bcrypt");
 const functions_1 = require("../../../prisma/functions");
 const prisma = new client_1.PrismaClient();
 class UserModel {
@@ -79,7 +79,7 @@ class UserModel {
         try {
             let password = "";
             if (!hashedPassword) {
-                password = await bcrypt_1.default.hash(inputUser.password, 12);
+                password = await bcrypt.hash(inputUser.password, 12);
             }
             else {
                 password = hashedPassword;
@@ -116,7 +116,7 @@ class UserModel {
             }
             const updatedUserData = { ...userData };
             if (userData.password) {
-                let password = await bcrypt_1.default.hash(userData.password, 12);
+                let password = await bcrypt.hash(userData.password, 12);
                 updatedUserData.password = password;
             }
             if (userData.address) {

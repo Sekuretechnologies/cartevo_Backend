@@ -22,6 +22,7 @@ const env = (0, envalid_1.cleanEnv)(process.env, {
     POSTMARK_PORT: (0, envalid_1.str)(),
     POSTMARK_USERNAME: (0, envalid_1.str)(),
     POSTMARK_PASSWORD: (0, envalid_1.str)(),
+    POSTMARK_API_TOKEN: (0, envalid_1.str)(),
     SUDO_BASE_URL: (0, envalid_1.str)(),
     SUDO_API_KEY: (0, envalid_1.str)(),
     SUDO_DOLLARS_FEES: (0, envalid_1.num)(),

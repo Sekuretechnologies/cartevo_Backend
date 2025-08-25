@@ -135,4 +135,49 @@ export class CustomerController {
   ): Promise<CustomerResponseDto> {
     return this.customerService.findOne(business.businessId, id);
   }
+
+  @Get(":id/cards")
+  @ApiOperation({
+    summary: "Get customer cards",
+    description: "Retrieve cards of a specific customer",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Customer cards retrieved successfully",
+    // type: CustomerResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Customer cards not found",
+  })
+  async findCustomerCards(
+    @CurrentBusiness() business: CurrentBusinessData,
+    @Param("id") id: string
+  ): Promise<any[]> {
+    return this.customerService.findCustomerCards(business.businessId, id);
+  }
+
+  @Get(":id/transactions")
+  @ApiOperation({
+    summary: "Get customer transactions",
+    description: "Retrieve transactions of a specific customer",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Customer transactions retrieved successfully",
+    // type: CustomerResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Customer transactions not found",
+  })
+  async findCustomerTransactions(
+    @CurrentBusiness() business: CurrentBusinessData,
+    @Param("id") id: string
+  ): Promise<any[]> {
+    return this.customerService.findCustomerTransactions(
+      business.businessId,
+      id
+    );
+  }
 }

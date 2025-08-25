@@ -13,11 +13,16 @@ exports.CustomerService = void 0;
 const common_1 = require("@nestjs/common");
 const companyModel_1 = require("../../models/prisma/companyModel");
 const customerModel_1 = require("../../models/prisma/customerModel");
+const uuid_1 = require("uuid");
+const firebase_service_1 = require("../../services/firebase.service");
 let CustomerService = class CustomerService {
-    constructor() { }
-    async create(companyId, createCustomerDto) {
+    constructor(firebaseService) {
+        this.firebaseService = firebaseService;
+    }
+    async create(companyId, createCustomerDto, files) {
         const existingCustomerResult = await customerModel_1.default.getOne({
-            companyId,
+            company_id: companyId,
+            identification_number: createCustomerDto.identification_number,
             email: createCustomerDto.email,
         });
         if (existingCustomerResult.output) {
@@ -27,7 +32,20 @@ let CustomerService = class CustomerService {
         if (!companyResult.output) {
             throw new common_1.NotFoundException("Company not found");
         }
+        const company = companyResult.output;
+        const customerId = (0, uuid_1.v4)();
+        let idDocumentBackUrl = null;
+        let idDocumentFrontUrl = null;
+        if (files?.id_document_back?.[0]) {
+            const file = files.id_document_back[0];
+            idDocumentBackUrl = await this.firebaseService.uploadFile(file.buffer, `id_document_back_${Date.now()}.${file.originalname.split(".").pop()}`, `companies/${companyId}/customers/${customerId}`, file.mimetype);
+        }
+        if (files?.id_document_front?.[0]) {
+            const file = files.id_document_front[0];
+            idDocumentFrontUrl = await this.firebaseService.uploadFile(file.buffer, `id_document_front_${Date.now()}.${file.originalname.split(".").pop()}`, `companies/${companyId}/customers/${customerId}`, file.mimetype);
+        }
         const customerResult = await customerModel_1.default.create({
+            id: customerId,
             company_id: companyId,
             first_name: createCustomerDto.first_name,
             last_name: createCustomerDto.last_name,
@@ -42,8 +60,8 @@ let CustomerService = class CustomerService {
             phone_number: createCustomerDto.phone_number,
             identification_number: createCustomerDto.identification_number,
             id_document_type: createCustomerDto.id_document_type,
-            id_document_front: createCustomerDto.id_document_front,
-            id_document_back: createCustomerDto.id_document_back,
+            id_document_front: idDocumentFrontUrl,
+            id_document_back: idDocumentBackUrl,
             date_of_birth: new Date(createCustomerDto.date_of_birth),
         });
         if (customerResult.error) {
@@ -51,6 +69,57 @@ let CustomerService = class CustomerService {
         }
         const customer = customerResult.output;
         return this.mapToResponseDto(customer);
+    }
+    async update(companyId, customerId, createCustomerDto, files) {
+        const existingCustomerResult = await customerModel_1.default.getOne({
+            id: customerId,
+            company_id: companyId,
+        });
+        if (!existingCustomerResult.output) {
+            throw new common_1.NotFoundException("Customer not found");
+        }
+        const customer = existingCustomerResult.output;
+        const companyResult = await companyModel_1.default.getOne({ id: companyId });
+        if (!companyResult.output) {
+            throw new common_1.NotFoundException("Company not found");
+        }
+        const company = companyResult.output;
+        let idDocumentBackUrl = null;
+        let idDocumentFrontUrl = null;
+        if (files?.id_document_back?.[0]) {
+            const file = files.id_document_back[0];
+            idDocumentBackUrl = await this.firebaseService.uploadFile(file.buffer, `id_document_back_${Date.now()}.${file.originalname.split(".").pop()}`, `companies/${companyId}/customers/${customerId}`, file.mimetype);
+        }
+        if (files?.id_document_front?.[0]) {
+            const file = files.id_document_front[0];
+            idDocumentFrontUrl = await this.firebaseService.uploadFile(file.buffer, `id_document_front_${Date.now()}.${file.originalname.split(".").pop()}`, `companies/${companyId}/customers/${customerId}`, file.mimetype);
+        }
+        const updatedCustomerResult = await customerModel_1.default.update({ id: customerId }, {
+            id: customerId,
+            company_id: companyId,
+            first_name: createCustomerDto.first_name,
+            last_name: createCustomerDto.last_name,
+            country: createCustomerDto.country,
+            email: createCustomerDto.email,
+            street: createCustomerDto.street,
+            city: createCustomerDto.city,
+            state: createCustomerDto.state,
+            postal_code: createCustomerDto.postal_code,
+            country_iso_code: createCustomerDto.country_iso_code,
+            country_phone_code: createCustomerDto.country_phone_code,
+            phone_number: createCustomerDto.phone_number,
+            identification_number: createCustomerDto.identification_number,
+            id_document_type: createCustomerDto.id_document_type,
+            id_document_front: idDocumentFrontUrl,
+            id_document_back: idDocumentBackUrl,
+            date_of_birth: new Date(createCustomerDto.date_of_birth),
+            updated_at: new Date(),
+        });
+        if (updatedCustomerResult.error) {
+            throw new common_1.ConflictException(updatedCustomerResult.error.message);
+        }
+        const updatedCustomer = updatedCustomerResult.output;
+        return this.mapToResponseDto(updatedCustomer);
     }
     async findAllByCompany(companyId) {
         const customersResult = await customerModel_1.default.get({
@@ -103,6 +172,6 @@ let CustomerService = class CustomerService {
 exports.CustomerService = CustomerService;
 exports.CustomerService = CustomerService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [])
+    __metadata("design:paramtypes", [firebase_service_1.FirebaseService])
 ], CustomerService);
 //# sourceMappingURL=customer.service.js.map

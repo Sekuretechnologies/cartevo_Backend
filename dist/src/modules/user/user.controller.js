@@ -48,6 +48,12 @@ let UserController = class UserController {
             message: result.message,
         };
     }
+    async getAllUsers() {
+        return this.userService.getAllUsers();
+    }
+    async getCompanyById(id) {
+        return this.userService.getUserById(id);
+    }
     async updateKycStatus(userId, updateKycStatusDto) {
         return this.userService.updateKycStatus(userId, updateKycStatusDto);
     }
@@ -178,9 +184,28 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], UserController.prototype, "deleteUser", null);
 __decorate([
+    (0, common_1.Get)("admin"),
+    (0, swagger_1.ApiOperation)({
+        summary: "Get all users",
+        description: "Get all users",
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], UserController.prototype, "getAllUsers", null);
+__decorate([
+    (0, common_1.Get)("admin/:id"),
+    (0, swagger_1.ApiOperation)({
+        summary: "Get user by Id",
+        description: "Get user by Id",
+    }),
+    __param(0, (0, common_1.Param)("id")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], UserController.prototype, "getCompanyById", null);
+__decorate([
     (0, common_1.Patch)(":userId/kyc-status"),
-    (0, swagger_1.ApiBearerAuth)(),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiOperation)({
         summary: "Update user KYC status",
         description: "Update the KYC (Know Your Customer) status for a user",

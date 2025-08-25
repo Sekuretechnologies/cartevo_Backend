@@ -20,13 +20,14 @@ let EmailService = class EmailService {
     }
     initializeTransporter() {
         try {
+            const apiKey = this.configService.get("POSTMARK_API_TOKEN");
             this.transporter = nodemailer.createTransport({
                 host: this.configService.get("POSTMARK_HOST") || "smtp.postmarkapp.com",
                 port: parseInt(this.configService.get("POSTMARK_PORT") || "25"),
                 secure: false,
                 auth: {
-                    user: this.configService.get("POSTMARK_USERNAME"),
-                    pass: this.configService.get("POSTMARK_PASSWORD"),
+                    user: apiKey,
+                    pass: apiKey,
                 },
             });
         }

@@ -1,5 +1,5 @@
 // src/models/prisma/transactionModel.ts
-import { FilterObject } from "@/types";
+import { FilterObject, IncludeObject } from "@/types";
 import { setMethodFilter } from "@/utils/shared/common";
 import fnOutput from "@/utils/shared/fnOutputHandler";
 import { Prisma, PrismaClient } from "@prisma/client";
@@ -18,10 +18,10 @@ export interface TransactionModelInterface {
 }
 
 class TransactionModel {
-  static async getOne(filters: FilterObject) {
+  static async getOne(filters: FilterObject, include: IncludeObject = {}) {
     try {
       const result = await prisma.transaction.findFirst(
-        buildPrismaQuery({ filters })
+        buildPrismaQuery({ filters, include })
       );
       if (!result) {
         return fnOutput.error({

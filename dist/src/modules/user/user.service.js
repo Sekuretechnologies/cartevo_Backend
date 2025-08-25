@@ -158,6 +158,7 @@ let UserService = class UserService {
         };
     }
     async verifyOtp(verifyOtpDto) {
+        console.log("verifyOtpDto :: ", verifyOtpDto);
         const userResult = await models_1.UserModel.getOne({
             email: verifyOtpDto.email,
             otp: verifyOtpDto.otp,
@@ -172,7 +173,11 @@ let UserService = class UserService {
             throw new common_1.UnauthorizedException(userResult.error.message);
         }
         const user = userResult.output;
-        if (!user || !user.otpExpires || user.otpExpires < new Date()) {
+        console.log("user.otpExpires :: ", user.otp_expires);
+        console.log("new Date() :: ", new Date());
+        console.log("user.otpExpires < new Date() :: ", user.otp_expires < new Date());
+        console.log("user :: ", user);
+        if (!user || !user.otp_expires || user.otp_expires < new Date()) {
             throw new common_1.UnauthorizedException("Invalid or expired OTP");
         }
         await models_1.UserModel.update(user.id, {
@@ -182,10 +187,12 @@ let UserService = class UserService {
         const payload = {
             sub: user.id,
             email: user.email,
-            company_id: user.company_id,
-            roles: user.userCompanyRoles.map((ucr) => ucr.role.name),
+            company_id: user.company.id,
+            roles: user.userCompanyRoles?.map((ucr) => ucr.role.name),
         };
         const accessToken = this.jwtService.sign(payload);
+        console.log("payload :: ", payload);
+        console.log("accessToken :: ", accessToken);
         let redirectTo = "dashboard";
         let redirectMessage = "Login successful";
         if (user.step === 1) {
@@ -199,7 +206,8 @@ let UserService = class UserService {
             const hasCompanyDocuments = user.company.share_holding_document &&
                 user.company.incorporation_certificate &&
                 user.company.business_proof_of_address;
-            if (!hasUserDocuments || !hasCompanyDocuments) {
+            if (user.kyc_status !== "APPROVED" &&
+                user.company.kyb_status !== "APPROVED") {
                 redirectTo = "waiting";
                 redirectMessage =
                     "Your account is under review. Please wait for KYC/KYB completion.";
@@ -359,6 +367,35 @@ let UserService = class UserService {
         }
         const users = usersResult.output;
         return Promise.all(users.map((u) => this.mapToResponseDto(u)));
+    }
+    async getAllUsers() {
+        const targetUserResult = await models_1.UserModel.get();
+        if (targetUserResult.error) {
+            throw new common_1.NotFoundException(targetUserResult.error.message);
+        }
+        const users = targetUserResult.output || [];
+        return {
+            users,
+        };
+    }
+    async getUserById(userId) {
+        const targetUserResult = await models_1.UserModel.getOne({
+            id: userId,
+        }, {
+            userCompanyRoles: {
+                include: { role: true, company: true },
+            },
+        });
+        if (targetUserResult.error) {
+            throw new common_1.NotFoundException(targetUserResult.error.message);
+        }
+        const targetUser = targetUserResult.output;
+        if (!targetUser) {
+            throw new common_1.NotFoundException("User not found in your company");
+        }
+        return {
+            user: targetUser,
+        };
     }
     async updateKycStatus(userId, updateKycStatusDto) {
         try {

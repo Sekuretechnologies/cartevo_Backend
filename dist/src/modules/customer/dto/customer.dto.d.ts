@@ -11,8 +11,8 @@ export declare class CreateCustomerDto {
     country_phone_code: string;
     phone_number: string;
     identification_number: string;
-    id_document_front: string;
-    id_document_back?: string;
+    id_document_front: any;
+    id_document_back: any;
     id_document_type: string;
     image?: string;
     photo?: string;

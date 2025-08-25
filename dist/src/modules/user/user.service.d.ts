@@ -20,6 +20,12 @@ export declare class UserService {
         message: string;
     }>;
     getCompanyUsers(userId: string): Promise<UserResponseDto[]>;
+    getAllUsers(): Promise<{
+        users: any[];
+    }>;
+    getUserById(userId: string): Promise<{
+        user: any;
+    }>;
     updateKycStatus(userId: string, updateKycStatusDto: UpdateKycStatusDto): Promise<UpdateKycStatusResponseDto>;
     private generateInvitationCode;
     private generateOTP;

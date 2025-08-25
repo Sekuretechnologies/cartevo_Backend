@@ -10,6 +10,12 @@ export declare class UserController {
     getCompanyUsers(currentUser: CurrentUserData): Promise<UserResponseDto[]>;
     updateUser(currentUser: CurrentUserData, userId: string, updateDto: UpdateUserDto): Promise<UserResponseDto>;
     deleteUser(currentUser: CurrentUserData, userId: string): Promise<SuccessResponseDto>;
+    getAllUsers(): Promise<{
+        users: any[];
+    }>;
+    getCompanyById(id: string): Promise<{
+        user: any;
+    }>;
     updateKycStatus(userId: string, updateKycStatusDto: UpdateKycStatusDto): Promise<UpdateKycStatusResponseDto>;
 }
 export declare class AuthController {

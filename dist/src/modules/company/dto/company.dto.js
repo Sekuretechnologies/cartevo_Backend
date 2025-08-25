@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UpdateKycStatusResponseDto = exports.UpdateKybStatusResponseDto = exports.UpdateKycStatusDto = exports.UpdateKybStatusDto = exports.CheckExistingUserResponseDto = exports.BusinessInfoResponseDto = exports.PersonalInfoResponseDto = exports.ErrorResponseDto = exports.CreateCompanyUserResponseDto = exports.WalletResponseDto = exports.UserResponseDto = exports.CompanyResponseDto = exports.CreateCompanyUserDto = exports.BusinessInfoDto = exports.PersonalInfoDto = void 0;
+exports.TransactionResponseDto = exports.UpdateKycStatusResponseDto = exports.UpdateKybStatusResponseDto = exports.UpdateKycStatusDto = exports.UpdateKybStatusDto = exports.CheckExistingUserResponseDto = exports.BusinessInfoResponseDto = exports.PersonalInfoResponseDto = exports.ErrorResponseDto = exports.CreateCompanyUserResponseDto = exports.WalletResponseDto = exports.UserResponseDto = exports.CompanyResponseDto = exports.CreateCompanyUserDto = exports.BusinessInfoDto = exports.PersonalInfoDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 const class_validator_1 = require("class-validator");
 class PersonalInfoDto {
@@ -309,7 +309,6 @@ __decorate([
         required: false,
     }),
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsUrl)({}, { message: "Enter a valid URL for the website" }),
     __metadata("design:type", String)
 ], BusinessInfoDto.prototype, "business_website", void 0);
 __decorate([
@@ -358,14 +357,6 @@ __decorate([
     }),
     __metadata("design:type", Object)
 ], BusinessInfoDto.prototype, "proof_of_address", void 0);
-__decorate([
-    (0, swagger_1.ApiProperty)({
-        description: "MEMART document file",
-        type: "string",
-        format: "binary",
-    }),
-    __metadata("design:type", Object)
-], BusinessInfoDto.prototype, "memart", void 0);
 class CreateCompanyUserDto {
 }
 exports.CreateCompanyUserDto = CreateCompanyUserDto;
@@ -772,4 +763,55 @@ __decorate([
     (0, swagger_1.ApiProperty)(),
     __metadata("design:type", Date)
 ], UpdateKycStatusResponseDto.prototype, "updated_at", void 0);
+class TransactionResponseDto {
+}
+exports.TransactionResponseDto = TransactionResponseDto;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], TransactionResponseDto.prototype, "id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], TransactionResponseDto.prototype, "category", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], TransactionResponseDto.prototype, "type", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], TransactionResponseDto.prototype, "card_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Number)
+], TransactionResponseDto.prototype, "card_balance_before", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Number)
+], TransactionResponseDto.prototype, "card_balance_after", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Number)
+], TransactionResponseDto.prototype, "wallet_balance_before", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Number)
+], TransactionResponseDto.prototype, "wallet_balance_after", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Number)
+], TransactionResponseDto.prototype, "amount", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], TransactionResponseDto.prototype, "currency", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], TransactionResponseDto.prototype, "status", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Date)
+], TransactionResponseDto.prototype, "created_at", void 0);
 //# sourceMappingURL=company.dto.js.map

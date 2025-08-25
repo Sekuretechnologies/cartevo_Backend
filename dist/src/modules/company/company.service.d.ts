@@ -1,4 +1,4 @@
-import { CreateCompanyUserDto, CreateCompanyUserResponseDto, WalletResponseDto, PersonalInfoDto, PersonalInfoResponseDto, BusinessInfoDto, BusinessInfoResponseDto, CheckExistingUserResponseDto, UpdateKybStatusDto, UpdateKybStatusResponseDto } from "./dto/company.dto";
+import { CreateCompanyUserDto, CreateCompanyUserResponseDto, WalletResponseDto, PersonalInfoDto, PersonalInfoResponseDto, BusinessInfoDto, BusinessInfoResponseDto, CheckExistingUserResponseDto, UpdateKybStatusDto, UpdateKybStatusResponseDto, TransactionResponseDto } from "./dto/company.dto";
 import { FirebaseService } from "../../services/firebase.service";
 import { EmailService } from "../../services/email.service";
 export declare class CompanyService {
@@ -18,7 +18,16 @@ export declare class CompanyService {
         memart?: any[];
     }): Promise<BusinessInfoResponseDto>;
     getCompanyBalance(companyId: string): Promise<{
-        wallets: WalletResponseDto[];
+        data: WalletResponseDto[];
+    }>;
+    getCompanyTransactions(companyId: string): Promise<{
+        data: TransactionResponseDto[];
+    }>;
+    getAllCompanies(): Promise<{
+        companies: any[];
+    }>;
+    getCompanyById(companyId: string): Promise<{
+        company: any;
     }>;
     updateKybStatus(companyId: string, updateKybStatusDto: UpdateKybStatusDto): Promise<UpdateKybStatusResponseDto>;
     private generateClientId;

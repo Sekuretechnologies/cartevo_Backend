@@ -1,5 +1,5 @@
 import { CompanyService } from "./company.service";
-import { CreateCompanyUserDto, CreateCompanyUserResponseDto, WalletResponseDto, PersonalInfoDto, PersonalInfoResponseDto, BusinessInfoDto, BusinessInfoResponseDto, CheckExistingUserResponseDto, UpdateKybStatusDto, UpdateKybStatusResponseDto } from "./dto/company.dto";
+import { CreateCompanyUserDto, CreateCompanyUserResponseDto, WalletResponseDto, PersonalInfoDto, PersonalInfoResponseDto, BusinessInfoDto, BusinessInfoResponseDto, CheckExistingUserResponseDto, UpdateKybStatusDto, UpdateKybStatusResponseDto, TransactionResponseDto } from "./dto/company.dto";
 import { CurrentBusinessData } from "../common/decorators/current-business.decorator";
 export declare class CompanyController {
     private readonly companyService;
@@ -17,7 +17,16 @@ export declare class CompanyController {
     }): Promise<BusinessInfoResponseDto>;
     registerCompanyUser(createDto: CreateCompanyUserDto): Promise<CreateCompanyUserResponseDto>;
     getCompanyWallets(business: CurrentBusinessData): Promise<{
-        wallets: WalletResponseDto[];
+        data: WalletResponseDto[];
+    }>;
+    getCompanyTransactions(business: CurrentBusinessData): Promise<{
+        data: TransactionResponseDto[];
+    }>;
+    getAllCompanies(): Promise<{
+        companies: any[];
+    }>;
+    getCompanyById(companyId: string): Promise<{
+        company: any;
     }>;
     updateKybStatus(companyId: string, updateKybStatusDto: UpdateKybStatusDto): Promise<UpdateKybStatusResponseDto>;
 }

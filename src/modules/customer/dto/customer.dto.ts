@@ -158,7 +158,7 @@ export class CreateCustomerDto {
     type: "string",
     format: "binary",
   })
-  id_document_back: any;
+  id_document_back?: any;
 
   @ApiProperty({
     description: "Type of identification",
@@ -169,36 +169,6 @@ export class CreateCustomerDto {
   @IsNotEmpty()
   @IsIn(["NIN", "PASSPORT", "VOTERS_CARD", "DRIVERS_LICENSE"])
   id_document_type: string;
-
-  @ApiProperty({
-    description: "URL or path to identification document image",
-    example: "https://example.com/images/id.jpg",
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  image?: string;
-
-  @ApiProperty({
-    description: "URL or path to customer photo",
-    example: "https://example.com/images/photo.jpg",
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  photo?: string;
-
-  @ApiProperty({
-    description: "Additional identification number",
-    example: "ABC123456",
-    minLength: 3,
-    maxLength: 255,
-  })
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(3)
-  @MaxLength(255)
-  number: string;
 
   @ApiProperty({
     description: "Date of birth (YYYY-MM-DD)",
