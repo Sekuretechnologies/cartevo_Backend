@@ -69,6 +69,9 @@ export class CustomerService {
       );
     }
 
+    console.log("idDocumentBackUrl :: ", idDocumentBackUrl);
+    console.log("idDocumentFrontUrl :: ", idDocumentFrontUrl);
+
     const customerResult = await CustomerModel.create({
       id: customerId,
       company_id: companyId,

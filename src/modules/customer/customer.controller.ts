@@ -51,7 +51,7 @@ export class CustomerController {
   })
   @ApiResponse({
     status: 409,
-    description: "Customer with this email already exists",
+    description: "Customer with this email or ID already exists",
   })
   async create(
     @CurrentBusiness() business: CurrentBusinessData,
@@ -62,7 +62,11 @@ export class CustomerController {
       id_document_back?: any[];
     }
   ): Promise<CustomerResponseDto> {
-    return this.customerService.create(business.businessId, createCustomerDto);
+    return this.customerService.create(
+      business.businessId,
+      createCustomerDto,
+      files
+    );
   }
 
   @Put()
