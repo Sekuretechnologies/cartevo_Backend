@@ -115,7 +115,7 @@ export class CustomerController {
   })
   async findAll(
     @CurrentBusiness() business: CurrentBusinessData
-  ): Promise<CustomerResponseDto[]> {
+  ): Promise<{ data: CustomerResponseDto[] }> {
     return this.customerService.findAllByCompany(business.businessId);
   }
 

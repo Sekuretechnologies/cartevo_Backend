@@ -179,7 +179,9 @@ export class CustomerService {
     return this.mapToResponseDto(updatedCustomer);
   }
 
-  async findAllByCompany(companyId: string): Promise<CustomerResponseDto[]> {
+  async findAllByCompany(
+    companyId: string
+  ): Promise<{ data: CustomerResponseDto[] }> {
     const customersResult = await CustomerModel.get({
       company_id: companyId,
       is_active: true,
@@ -188,7 +190,9 @@ export class CustomerService {
       throw new NotFoundException(customersResult.error.message);
     }
     const customers = customersResult.output;
-    return customers.map((customer) => this.mapToResponseDto(customer));
+    return {
+      data: customers.map((customer) => this.mapToResponseDto(customer)),
+    };
   }
 
   async findOne(
