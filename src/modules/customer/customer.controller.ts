@@ -154,7 +154,7 @@ export class CustomerController {
   async findOne(
     @CurrentBusiness() business: CurrentBusinessData,
     @Param("id") id: string
-  ): Promise<{ data: CustomerResponseDto }> {
+  ): Promise<{ data: any }> {
     return this.customerService.findOne(business.businessId, id);
   }
 

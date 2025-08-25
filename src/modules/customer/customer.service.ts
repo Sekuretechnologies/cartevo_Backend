@@ -209,10 +209,7 @@ export class CustomerService {
     };
   }
 
-  async findOne(
-    companyId: string,
-    customerId: string
-  ): Promise<{ data: CustomerResponseDto }> {
+  async findOne(companyId: string, customerId: string): Promise<{ data: any }> {
     const customerResult = await CustomerModel.getOne({
       id: customerId,
       company_id: companyId,
@@ -222,7 +219,7 @@ export class CustomerService {
       throw new NotFoundException("Customer not found");
     }
     const customer = customerResult.output;
-    return { data: this.mapToResponseDto(customer) };
+    return { data: customer }; //this.mapToResponseDto(customer)
   }
 
   async findCustomerCards(
