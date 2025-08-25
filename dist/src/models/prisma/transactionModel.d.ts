@@ -1,4 +1,4 @@
-import { FilterObject } from "@/types";
+import { FilterObject, IncludeObject } from "@/types";
 import { Prisma } from "@prisma/client";
 export interface TransactionModelInterface {
     getOne(filters: FilterObject): Promise<any>;
@@ -8,7 +8,7 @@ export interface TransactionModelInterface {
     delete(identifier: string | any): Promise<any>;
 }
 declare class TransactionModel {
-    static getOne(filters: FilterObject): Promise<import("@/utils/shared/fnOutputHandler").OutputProps>;
+    static getOne(filters: FilterObject, include?: IncludeObject): Promise<import("@/utils/shared/fnOutputHandler").OutputProps>;
     static get(filters?: FilterObject): Promise<import("@/utils/shared/fnOutputHandler").OutputProps>;
     static create(inputTransaction: Prisma.TransactionUncheckedCreateInput): Promise<import("@/utils/shared/fnOutputHandler").OutputProps>;
     static update(identifier: string | any, transactionData: any): Promise<import("@/utils/shared/fnOutputHandler").OutputProps>;

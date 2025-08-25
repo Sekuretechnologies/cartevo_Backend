@@ -36,6 +36,12 @@ let CustomerController = class CustomerController {
     async findOne(business, id) {
         return this.customerService.findOne(business.businessId, id);
     }
+    async findCustomerCards(business, id) {
+        return this.customerService.findCustomerCards(business.businessId, id);
+    }
+    async findCustomerTransactions(business, id) {
+        return this.customerService.findCustomerTransactions(business.businessId, id);
+    }
 };
 exports.CustomerController = CustomerController;
 __decorate([
@@ -126,6 +132,46 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
 ], CustomerController.prototype, "findOne", null);
+__decorate([
+    (0, common_1.Get)(":id/cards"),
+    (0, swagger_1.ApiOperation)({
+        summary: "Get customer cards",
+        description: "Retrieve cards of a specific customer",
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: "Customer cards retrieved successfully",
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 404,
+        description: "Customer cards not found",
+    }),
+    __param(0, (0, current_business_decorator_1.CurrentBusiness)()),
+    __param(1, (0, common_1.Param)("id")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], CustomerController.prototype, "findCustomerCards", null);
+__decorate([
+    (0, common_1.Get)(":id/transactions"),
+    (0, swagger_1.ApiOperation)({
+        summary: "Get customer transactions",
+        description: "Retrieve transactions of a specific customer",
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: "Customer transactions retrieved successfully",
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 404,
+        description: "Customer transactions not found",
+    }),
+    __param(0, (0, current_business_decorator_1.CurrentBusiness)()),
+    __param(1, (0, common_1.Param)("id")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], CustomerController.prototype, "findCustomerTransactions", null);
 exports.CustomerController = CustomerController = __decorate([
     (0, swagger_1.ApiTags)("Customers"),
     (0, swagger_1.ApiBearerAuth)(),

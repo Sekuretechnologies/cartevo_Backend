@@ -12,6 +12,14 @@ export declare class CustomerService {
         id_document_back?: any[];
     }): Promise<CustomerResponseDto>;
     findAllByCompany(companyId: string): Promise<CustomerResponseDto[]>;
-    findOne(companyId: string, customerId: string): Promise<CustomerResponseDto>;
+    findOne(companyId: string, customerId: string): Promise<{
+        data: CustomerResponseDto;
+    }>;
+    findCustomerCards(companyId: string, customerId: string): Promise<{
+        data: any[];
+    }>;
+    findCustomerTransactions(companyId: string, customerId: string): Promise<{
+        data: any[];
+    }>;
     private mapToResponseDto;
 }

@@ -1,4 +1,4 @@
-import { FilterObject } from "@/types";
+import { FilterObject, IncludeObject } from "@/types";
 import { Prisma } from "@prisma/client";
 export interface CardModelInterface {
     getOne(filters: FilterObject): Promise<any>;
@@ -8,7 +8,7 @@ export interface CardModelInterface {
     delete(identifier: string | any): Promise<any>;
 }
 declare class CardModel {
-    static getOne(filters: FilterObject): Promise<import("@/utils/shared/fnOutputHandler").OutputProps>;
+    static getOne(filters: FilterObject, include?: IncludeObject): Promise<import("@/utils/shared/fnOutputHandler").OutputProps>;
     static get(filters?: FilterObject): Promise<import("@/utils/shared/fnOutputHandler").OutputProps>;
     static create(inputCard: Prisma.CardUncheckedCreateInput): Promise<import("@/utils/shared/fnOutputHandler").OutputProps>;
     static update(identifier: string | any, cardData: any): Promise<import("@/utils/shared/fnOutputHandler").OutputProps>;

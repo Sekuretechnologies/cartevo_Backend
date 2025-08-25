@@ -12,11 +12,8 @@ export declare class CreateCustomerDto {
     phone_number: string;
     identification_number: string;
     id_document_front: any;
-    id_document_back: any;
+    id_document_back?: any;
     id_document_type: string;
-    image?: string;
-    photo?: string;
-    number: string;
     date_of_birth: string;
 }
 export declare class CustomerResponseDto {

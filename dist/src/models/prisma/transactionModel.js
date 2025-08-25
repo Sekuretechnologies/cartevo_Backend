@@ -6,9 +6,9 @@ const client_1 = require("@prisma/client");
 const functions_1 = require("../../../prisma/functions");
 const prisma = new client_1.PrismaClient();
 class TransactionModel {
-    static async getOne(filters) {
+    static async getOne(filters, include = {}) {
         try {
-            const result = await prisma.transaction.findFirst((0, functions_1.buildPrismaQuery)({ filters }));
+            const result = await prisma.transaction.findFirst((0, functions_1.buildPrismaQuery)({ filters, include }));
             if (!result) {
                 return fnOutputHandler_1.default.error({
                     message: "Transaction not found",

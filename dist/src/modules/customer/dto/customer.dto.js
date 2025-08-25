@@ -190,39 +190,6 @@ __decorate([
 ], CreateCustomerDto.prototype, "id_document_type", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({
-        description: "URL or path to identification document image",
-        example: "https://example.com/images/id.jpg",
-        required: false,
-    }),
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", String)
-], CreateCustomerDto.prototype, "image", void 0);
-__decorate([
-    (0, swagger_1.ApiProperty)({
-        description: "URL or path to customer photo",
-        example: "https://example.com/images/photo.jpg",
-        required: false,
-    }),
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", String)
-], CreateCustomerDto.prototype, "photo", void 0);
-__decorate([
-    (0, swagger_1.ApiProperty)({
-        description: "Additional identification number",
-        example: "ABC123456",
-        minLength: 3,
-        maxLength: 255,
-    }),
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.MinLength)(3),
-    (0, class_validator_1.MaxLength)(255),
-    __metadata("design:type", String)
-], CreateCustomerDto.prototype, "number", void 0);
-__decorate([
-    (0, swagger_1.ApiProperty)({
         description: "Date of birth (YYYY-MM-DD)",
         example: "1990-01-15",
     }),

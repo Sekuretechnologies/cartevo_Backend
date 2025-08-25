@@ -11,8 +11,10 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CustomerService = void 0;
 const common_1 = require("@nestjs/common");
+const cardModel_1 = require("../../models/prisma/cardModel");
 const companyModel_1 = require("../../models/prisma/companyModel");
 const customerModel_1 = require("../../models/prisma/customerModel");
+const transactionModel_1 = require("../../models/prisma/transactionModel");
 const uuid_1 = require("uuid");
 const firebase_service_1 = require("../../services/firebase.service");
 let CustomerService = class CustomerService {
@@ -142,7 +144,30 @@ let CustomerService = class CustomerService {
             throw new common_1.NotFoundException("Customer not found");
         }
         const customer = customerResult.output;
-        return this.mapToResponseDto(customer);
+        return { data: this.mapToResponseDto(customer) };
+    }
+    async findCustomerCards(companyId, customerId) {
+        const customerCardsResult = await cardModel_1.default.get({
+            customer_id: customerId,
+            company_id: companyId,
+        });
+        if (customerCardsResult.error || !customerCardsResult.output) {
+            throw new common_1.NotFoundException("Customer cards not found");
+        }
+        const customerCards = customerCardsResult.output;
+        return { data: customerCards };
+    }
+    async findCustomerTransactions(companyId, customerId) {
+        const customerTransactionsResult = await transactionModel_1.default.get({
+            customer_id: customerId,
+            company_id: companyId,
+        });
+        if (customerTransactionsResult.error ||
+            !customerTransactionsResult.output) {
+            throw new common_1.NotFoundException("Customer transactions not found");
+        }
+        const customerTransactions = customerTransactionsResult.output;
+        return { data: customerTransactions };
     }
     mapToResponseDto(customer) {
         return {
