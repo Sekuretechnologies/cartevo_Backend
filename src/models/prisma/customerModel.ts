@@ -52,7 +52,13 @@ class CustomerModel {
 
   static async create(inputCustomer: Prisma.CustomerUncheckedCreateInput) {
     try {
-      const customerData = { ...inputCustomer };
+      const customerData: any = { ...inputCustomer };
+      if (inputCustomer.first_name) {
+        customerData.first_name = sanitizeTextInput(inputCustomer.first_name);
+      }
+      if (inputCustomer.last_name) {
+        customerData.last_name = sanitizeTextInput(inputCustomer.last_name);
+      }
       if (inputCustomer.street) {
         customerData.street = sanitizeTextInput(inputCustomer.street);
       }
@@ -64,6 +70,11 @@ class CustomerModel {
       }
       if (inputCustomer.postal_code) {
         customerData.postal_code = sanitizeTextInput(inputCustomer.postal_code);
+      }
+      if (inputCustomer.company_id) {
+        customerData.company = {
+          connect: { id: inputCustomer.company_id },
+        };
       }
       const customer = await prisma.customer.create({ data: customerData });
       return fnOutput.success({ code: 201, output: customer });
