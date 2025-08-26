@@ -13,7 +13,7 @@ datasource db {
 model Company {
   id           String   @id @default(uuid())
   name         String
-  country      String
+  country      String?
   email        String?   @unique
   client_id     String?   @unique @map("client_id")
   client_key    String?   @map("client_key")
@@ -28,7 +28,9 @@ model Company {
   business_phone_number String?  @map("business_phone_number")
   business_address      String?  @map("business_address")
   business_type         String?  @map("business_type")
-  country_of_operation  String?  @map("country_of_operation")
+  country_iso_code      String?  @map("country_iso_code")
+  country_phone_code    String?  @map("country_phone_code")
+  country_currency    String?  @map("country_currency")
   tax_id_number         String?  @map("tax_id_number")
   business_website      String?  @map("business_website")
   business_description  String?  @map("business_description")
@@ -48,6 +50,8 @@ model Company {
   wallets          Wallet[]
   userCompanyRoles UserCompanyRole[]
   syncmetadatas    Syncmetadata[]
+  exchangeRates    ExchangeRate[]
+  transactionFees  TransactionFee[]
 
   @@map("companies")
 }
@@ -70,6 +74,11 @@ enum KybStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum FeeType {
+  FIXED
+  PERCENTAGE
 }
 
 model User {
@@ -337,4 +346,44 @@ model CustomerLogs {
   transaction_id      String?
   status              String?
   customer_phone_number String?
+}
+
+model ExchangeRate {
+  id            String   @id @default(uuid())
+  company_id    String   @map("company_id")
+  from_currency String   @map("from_currency")
+  to_currency   String   @map("to_currency")
+  rate          Decimal  @db.Decimal(15, 8)
+  source        String?
+  description   String?
+  is_active     Boolean  @default(true) @map("is_active")
+  created_at    DateTime @default(now()) @map("created_at")
+  updated_at    DateTime @updatedAt @map("updated_at")
+
+  company Company @relation(fields: [company_id], references: [id])
+
+  @@unique([company_id, from_currency, to_currency])
+  @@map("exchange_rates")
+}
+
+model TransactionFee {
+  id                   String   @id @default(uuid())
+  company_id           String   @map("company_id")
+  transaction_type     String   @map("transaction_type")
+  transaction_category String   @map("transaction_category")
+  country_iso_code     String   @map("country_iso_code")
+  currency             String
+  fee_percentage       Decimal? @map("fee_percentage") @db.Decimal(5, 4)
+  fee_fixed            Decimal? @map("fee_fixed") @db.Decimal(15, 2)
+  type                 FeeType
+  value                Decimal  @db.Decimal(15, 2)
+  active               Boolean  @default(true)
+  description          String?
+  created_at           DateTime @default(now()) @map("created_at")
+  updated_at           DateTime @updatedAt @map("updated_at")
+
+  company Company @relation(fields: [company_id], references: [id])
+
+  @@unique([company_id, transaction_type, transaction_category, country_iso_code, currency])
+  @@map("transaction_fees")
 }

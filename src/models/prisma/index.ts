@@ -10,3 +10,5 @@ export { default as UserModel } from "./userModel";
 export { default as WalletModel } from "./walletModel";
 export { default as UserCompanyRoleModel } from "./userCompanyRoleModel";
 export { default as SyncmetadataModel } from "./syncmetadataModel";
+export { default as ExchangeRateModel } from "./exchangeRateModel";
+export { default as TransactionFeeModel } from "./transactionFeeModel";

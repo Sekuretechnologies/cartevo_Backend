@@ -19,6 +19,17 @@ import {
   UpdateKybStatusDto,
   UpdateKybStatusResponseDto,
   TransactionResponseDto,
+  CompanyUserDto,
+  CreateExchangeRateDto,
+  UpdateExchangeRateDto,
+  ExchangeRateResponseDto,
+  CurrencyConversionDto,
+  CurrencyConversionResponseDto,
+  CreateTransactionFeeDto,
+  UpdateTransactionFeeDto,
+  TransactionFeeResponseDto,
+  CalculateTransactionFeeDto,
+  CalculateTransactionFeeResponseDto,
 } from "./dto/company.dto";
 import CardModel from "@/models/prisma/cardModel";
 import CompanyModel from "@/models/prisma/companyModel";
@@ -28,6 +39,8 @@ import TransactionModel from "@/models/prisma/transactionModel";
 import WalletModel from "@/models/prisma/walletModel";
 import RoleModel from "@/models/prisma/roleModel";
 import UserCompanyRoleModel from "@/models/prisma/userCompanyRoleModel";
+import ExchangeRateModel from "@/models/prisma/exchangeRateModel";
+import TransactionFeeModel from "@/models/prisma/transactionFeeModel";
 import { FirebaseService } from "../../services/firebase.service";
 import { EmailService } from "../../services/email.service";
 import { UserStatus } from "@prisma/client";
@@ -40,100 +53,177 @@ export class CompanyService {
   ) {}
 
   async createCompanyUser(
-    createDto: CreateCompanyUserDto
-  ): Promise<CreateCompanyUserResponseDto> {
+    createDto: CompanyUserDto
+  ): Promise<BusinessInfoResponseDto> {
     try {
       // Step 1-3: Check for pre-existing emails
       const [existingUserResult, existingCompanyResult] = await Promise.all([
-        UserModel.getOne({ email: createDto.email_user }),
-        CompanyModel.getOne({ email: createDto.email_company }),
+        UserModel.getOne({ email: createDto.business_email }),
+        CompanyModel.getOne({ email: createDto.business_email }),
       ]);
       const existingUser = existingUserResult.output;
       const existingCompany = existingCompanyResult.output;
-      if (existingUser) {
-        throw new ConflictException("User with this email already exists");
-      }
       if (existingCompany) {
         throw new ConflictException("Company with this email already exists");
       }
+      if (existingUser) {
+        throw new ConflictException("User with this email already exists");
+      }
+
       // Step 4: Hash user's password
-      const hashedPassword = await bcrypt.hash(createDto.password_user, 12);
+      // const hashedPassword = await bcrypt.hash(createDto.password_user, 12);
       // Step 5: Generate company's client_id and client_key
       const clientId = this.generateClientId();
       const clientKey = this.generateClientKey();
       const hashedClientKey = await bcrypt.hash(clientKey, 12);
       // Use database transaction for atomicity
-      const result = await CompanyModel.operation(async (prisma) => {
-        // Step 6: Create company record
-        const companyResult = await CompanyModel.create({
-          name: createDto.name_company,
-          country: createDto.country_company,
-          email: createDto.email_company,
-          client_id: clientId,
-          client_key: hashedClientKey,
-        });
-        if (companyResult.error)
-          throw new BadRequestException(companyResult.error.message);
-        const company = companyResult.output;
-        // Step 7: Create user record associated with company
-        const userResult = await UserModel.create({
-          full_name: createDto.full_name_user,
-          email: createDto.email_user,
-          password: hashedPassword,
-          company_id: company.id,
-        });
-        if (userResult.error)
-          throw new BadRequestException(userResult.error.message);
-        const user = userResult.output;
-        // Step 8: Assign 'owner' role to user for this company
-        let ownerRoleResult = await RoleModel.getOne({ name: "owner" });
-        let ownerRole = ownerRoleResult.output;
-        if (!ownerRole) {
-          const roleCreateResult = await RoleModel.create({ name: "owner" });
-          if (roleCreateResult.error)
-            throw new BadRequestException(roleCreateResult.error.message);
-          ownerRole = roleCreateResult.output;
-        }
-        // Create user-company-role association
-        const ucrResult = await UserCompanyRoleModel.create({
-          user_id: user.id,
-          company_id: company.id,
-          role_id: ownerRole.id,
-        });
-        if (ucrResult.error)
-          throw new BadRequestException(ucrResult.error.message);
-        // Step 9: Create default wallets for the company
-        const walletsResult = await Promise.all([
-          WalletModel.create({
-            balance: 0,
-            active: true,
-            currency: "XAF",
-            country: "Cameroon",
-            country_iso_code: "CM",
-            company_id: company.id,
-          }),
-          WalletModel.create({
-            balance: 2000,
-            active: true,
-            currency: "USD",
-            country: "USA",
-            country_iso_code: "USA",
-            company_id: company.id,
-          }),
-        ]);
-        const wallets = walletsResult.map((w) => w.output);
-        return { company, user, wallets };
+      // const result = await CompanyModel.operation(async (prisma) => {
+      // Step 6: Create company record
+      const companyResult = await CompanyModel.create({
+        name: createDto.business_name,
+        email: createDto.business_email,
+        business_type: createDto.business_type,
+        country: createDto.business_country,
+        country_iso_code: createDto.business_country_iso_code,
+        country_phone_code: createDto.business_country_phone_code,
+        country_currency: createDto.business_country_currency,
+        client_id: clientId,
+        client_key: hashedClientKey,
       });
-      // Step 10: Return success response
+      if (companyResult.error)
+        throw new BadRequestException(companyResult.error.message);
+      const company = companyResult.output;
+      // Step 7: Create user record associated with company
+      const userResult = await UserModel.create({
+        first_name: createDto.first_name,
+        last_name: createDto.last_name,
+        email: createDto.business_email,
+        password: createDto.password,
+        phone_number: createDto.phone_number,
+        company_id: company.id,
+      });
+      if (userResult.error)
+        throw new BadRequestException(userResult.error.message);
+      const user = userResult.output;
+      // Step 8: Assign 'owner' role to user for this company
+      let ownerRoleResult = await RoleModel.getOne({ name: "owner" });
+      let ownerRole = ownerRoleResult.output;
+      if (!ownerRole) {
+        const roleCreateResult = await RoleModel.create({ name: "owner" });
+        if (roleCreateResult.error)
+          throw new BadRequestException(roleCreateResult.error.message);
+        ownerRole = roleCreateResult.output;
+      }
+      // Create user-company-role association
+      const ucrResult = await UserCompanyRoleModel.create({
+        user_id: user.id,
+        company_id: company.id,
+        role_id: ownerRole.id,
+      });
+      if (ucrResult.error)
+        throw new BadRequestException(ucrResult.error.message);
+      // Step 9: Create default wallets for the company
+      const walletsResult = await Promise.all([
+        WalletModel.create({
+          balance: 0,
+          active: true,
+          currency: createDto.business_country_currency || "",
+          country: createDto.business_country || "",
+          country_iso_code: createDto.business_country_iso_code || "",
+          company_id: company.id,
+        }),
+        WalletModel.create({
+          balance: 2000,
+          active: true,
+          currency: "USD",
+          country: "USA",
+          country_iso_code: "US",
+          company_id: company.id,
+        }),
+      ]);
+      const wallets = walletsResult.map((w) => w.output);
+      // return { company, user, wallets };
+
+      // });
+      // Step 10: Create default exchange rates and transaction fees for the company
+      try {
+        // Create default exchange rate: 1 USD = 650 XAF
+        await this.createExchangeRate(company.id, {
+          fromCurrency: "USD",
+          toCurrency: "XAF",
+          rate: 650,
+          source: "DEFAULT",
+          description: "Default exchange rate: 1 USD = 650 XAF",
+          isActive: true,
+        });
+
+        // Create default transaction fees
+        await this.createTransactionFee(company.id, {
+          transactionType: "CARD",
+          transactionCategory: "PURCHASE",
+          countryIsoCode: "US",
+          currency: "USD",
+          type: "FIXED",
+          value: 1,
+          description: "Card purchase fee",
+        });
+
+        await this.createTransactionFee(company.id, {
+          transactionType: "CARD",
+          transactionCategory: "FUND",
+          countryIsoCode: "US",
+          currency: "USD",
+          type: "FIXED",
+          value: 0.5,
+          description: "Card funding fee",
+        });
+
+        await this.createTransactionFee(company.id, {
+          transactionType: "CARD",
+          transactionCategory: "WITHDRAWAL",
+          countryIsoCode: "US",
+          currency: "USD",
+          type: "FIXED",
+          value: 0.3,
+          description: "Card withdrawal fee",
+        });
+
+        await this.createTransactionFee(company.id, {
+          transactionType: "WALLET",
+          transactionCategory: "TOPUP",
+          countryIsoCode: "US",
+          currency: "USD",
+          type: "PERCENTAGE",
+          value: 3.6,
+          description: "Wallet topup fee (3.6%)",
+        });
+
+        await this.createTransactionFee(company.id, {
+          transactionType: "WALLET",
+          transactionCategory: "WITHDRAWAL",
+          countryIsoCode: "US",
+          currency: "USD",
+          type: "PERCENTAGE",
+          value: 2,
+          description: "Wallet withdrawal fee (2%)",
+        });
+      } catch (feeError) {
+        console.error("Error creating default fees and rates:", feeError);
+        // Don't throw the error to prevent company creation from failing
+        // Just log the error and continue
+      }
+
+      // Step 11: Return success response
       return {
-        status: true,
+        success: true,
         message:
-          "Company and owner user created successfully. Proceed to next step.",
-        user: this.mapUserToResponseDto(result.user),
-        company: this.mapCompanyToResponseDto(result.company, clientKey), // Include raw client_key in response
-        wallets: result.wallets.map((wallet) =>
-          this.mapWalletToResponseDto(wallet)
-        ),
+          "Informations de l'entreprise complétées avec succès. Vous pouvez maintenant vous connecter.",
+        company_id: company.id,
+        company_name: company.business_name || company.name,
+        user_id: user.id,
+        user_name: user.full_name,
+        user_email: user.email,
+        next_step: "login",
       };
     } catch (error) {
       // Handle known validation errors
@@ -425,6 +515,7 @@ export class CompanyService {
       // const result = await CompanyModel.operation(async (prisma) => {
       // Update company with business information
       const updatedCompanyResult = await CompanyModel.update(company.id, {
+        name: businessInfoDto.business_name,
         business_name: businessInfoDto.business_name,
         business_phone_number: businessInfoDto.business_phone_number,
         business_address: businessInfoDto.business_address,
@@ -481,6 +572,74 @@ export class CompanyService {
           company_id: updatedCompany.id,
         }),
       ]);
+
+      // Create default exchange rates and transaction fees for the company
+      try {
+        // Create default exchange rate: 1 USD = 650 XAF
+        await this.createExchangeRate(company.id, {
+          fromCurrency: "USD",
+          toCurrency: "XAF",
+          rate: 650,
+          source: "DEFAULT",
+          description: "Default exchange rate: 1 USD = 650 XAF",
+          isActive: true,
+        });
+
+        // Create default transaction fees
+        await this.createTransactionFee(company.id, {
+          transactionType: "CARD",
+          transactionCategory: "PURCHASE",
+          countryIsoCode: "US",
+          currency: "USD",
+          type: "FIXED",
+          value: 1,
+          description: "Card purchase fee",
+        });
+
+        await this.createTransactionFee(company.id, {
+          transactionType: "CARD",
+          transactionCategory: "FUND",
+          countryIsoCode: "US",
+          currency: "USD",
+          type: "FIXED",
+          value: 0.5,
+          description: "Card funding fee",
+        });
+
+        await this.createTransactionFee(company.id, {
+          transactionType: "CARD",
+          transactionCategory: "WITHDRAWAL",
+          countryIsoCode: "US",
+          currency: "USD",
+          type: "FIXED",
+          value: 0.3,
+          description: "Card withdrawal fee",
+        });
+
+        await this.createTransactionFee(company.id, {
+          transactionType: "WALLET",
+          transactionCategory: "TOPUP",
+          countryIsoCode: "US",
+          currency: "USD",
+          type: "PERCENTAGE",
+          value: 3.6,
+          description: "Wallet topup fee (3.6%)",
+        });
+
+        await this.createTransactionFee(company.id, {
+          transactionType: "WALLET",
+          transactionCategory: "WITHDRAWAL",
+          countryIsoCode: "US",
+          currency: "USD",
+          type: "PERCENTAGE",
+          value: 2,
+          description: "Wallet withdrawal fee (2%)",
+        });
+      } catch (feeError) {
+        console.error("Error creating default fees and rates:", feeError);
+        // Don't throw the error to prevent company creation from failing
+        // Just log the error and continue
+      }
 
       //   return { company: updatedCompany, user: updatedUser };
       // });
@@ -688,5 +847,377 @@ export class CompanyService {
       created_at: wallet.created_at,
       updated_at: wallet.updated_at,
     };
+  }
+
+  // ==================== EXCHANGE RATE MANAGEMENT ====================
+
+  /**
+   * Create a new exchange rate for a company
+   */
+  async createExchangeRate(
+    companyId: string,
+    exchangeRateData: {
+      fromCurrency: string;
+      toCurrency: string;
+      rate: number;
+      source?: string;
+      description?: string;
+      isActive?: boolean;
+    }
+  ) {
+    try {
+      const result = await ExchangeRateModel.create({
+        company_id: companyId,
+        from_currency: exchangeRateData.fromCurrency.toUpperCase(),
+        to_currency: exchangeRateData.toCurrency.toUpperCase(),
+        rate: exchangeRateData.rate,
+        source: exchangeRateData.source,
+        description: exchangeRateData.description,
+        is_active: exchangeRateData.isActive ?? true,
+      });
+
+      if (result.error) {
+        throw new BadRequestException(result.error.message);
+      }
+
+      return {
+        success: true,
+        message: "Exchange rate created successfully",
+        data: result.output,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "Error creating exchange rate",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Get all exchange rates for a company
+   */
+  async getCompanyExchangeRates(companyId: string) {
+    try {
+      const result = await ExchangeRateModel.get({ company_id: companyId });
+      if (result.error) {
+        throw new BadRequestException(result.error.message);
+      }
+
+      return {
+        success: true,
+        data: result.output,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "Error fetching exchange rates",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Update an exchange rate
+   */
+  async updateExchangeRate(
+    exchangeRateId: string,
+    updateData: {
+      rate?: number;
+      source?: string;
+      description?: string;
+      isActive?: boolean;
+    }
+  ) {
+    try {
+      const result = await ExchangeRateModel.update(exchangeRateId, {
+        rate: updateData.rate,
+        source: updateData.source,
+        description: updateData.description,
+        is_active: updateData.isActive,
+      });
+
+      if (result.error) {
+        throw new BadRequestException(result.error.message);
+      }
+
+      return {
+        success: true,
+        message: "Exchange rate updated successfully",
+        data: result.output,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "Error updating exchange rate",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Delete an exchange rate
+   */
+  async deleteExchangeRate(exchangeRateId: string) {
+    try {
+      const result = await ExchangeRateModel.delete(exchangeRateId);
+      if (result.error) {
+        throw new BadRequestException(result.error.message);
+      }
+
+      return {
+        success: true,
+        message: "Exchange rate deleted successfully",
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "Error deleting exchange rate",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Convert currency using company's exchange rates
+   */
+  async convertCurrency(
+    companyId: string,
+    amount: number,
+    fromCurrency: string,
+    toCurrency: string
+  ) {
+    try {
+      const result = await ExchangeRateModel.convertCurrency(
+        companyId,
+        amount,
+        fromCurrency,
+        toCurrency
+      );
+
+      if (result.error) {
+        throw new BadRequestException(result.error.message);
+      }
+
+      return {
+        success: true,
+        data: result.output,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "Error converting currency",
+        error: error.message,
+      });
+    }
+  }
+
+  // ==================== TRANSACTION FEE MANAGEMENT ====================
+
+  /**
+   * Create a new transaction fee for a company
+   */
+  async createTransactionFee(
+    companyId: string,
+    feeData: {
+      transactionType: string;
+      transactionCategory: string;
+      countryIsoCode: string;
+      currency: string;
+      feePercentage?: number;
+      feeFixed?: number;
+      type: "FIXED" | "PERCENTAGE";
+      value: number;
+      active?: boolean;
+      description?: string;
+    }
+  ) {
+    try {
+      const result = await TransactionFeeModel.create({
+        company_id: companyId,
+        transaction_type: feeData.transactionType.toUpperCase(),
+        transaction_category: feeData.transactionCategory.toUpperCase(),
+        country_iso_code: feeData.countryIsoCode.toUpperCase(),
+        currency: feeData.currency.toUpperCase(),
+        fee_percentage: feeData.feePercentage,
+        fee_fixed: feeData.feeFixed,
+        type: feeData.type,
+        value: feeData.value,
+        active: feeData.active ?? true,
+        description: feeData.description,
+      });
+
+      if (result.error) {
+        throw new BadRequestException(result.error.message);
+      }
+
+      return {
+        success: true,
+        message: "Transaction fee created successfully",
+        data: result.output,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "Error creating transaction fee",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Get all transaction fees for a company
+   */
+  async getCompanyTransactionFees(companyId: string) {
+    try {
+      const result = await TransactionFeeModel.get({ company_id: companyId });
+      if (result.error) {
+        throw new BadRequestException(result.error.message);
+      }
+
+      return {
+        success: true,
+        data: result.output,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "Error fetching transaction fees",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Update a transaction fee
+   */
+  async updateTransactionFee(
+    feeId: string,
+    updateData: {
+      feePercentage?: number;
+      feeFixed?: number;
+      type?: "FIXED" | "PERCENTAGE";
+      value?: number;
+      active?: boolean;
+      description?: string;
+    }
+  ) {
+    try {
+      const result = await TransactionFeeModel.update(feeId, {
+        fee_percentage: updateData.feePercentage,
+        fee_fixed: updateData.feeFixed,
+        type: updateData.type,
+        value: updateData.value,
+        active: updateData.active,
+        description: updateData.description,
+      });
+
+      if (result.error) {
+        throw new BadRequestException(result.error.message);
+      }
+
+      return {
+        success: true,
+        message: "Transaction fee updated successfully",
+        data: result.output,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "Error updating transaction fee",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Delete a transaction fee
+   */
+  async deleteTransactionFee(feeId: string) {
+    try {
+      const result = await TransactionFeeModel.delete(feeId);
+      if (result.error) {
+        throw new BadRequestException(result.error.message);
+      }
+
+      return {
+        success: true,
+        message: "Transaction fee deleted successfully",
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "Error deleting transaction fee",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Calculate fee for a transaction
+   */
+  async calculateTransactionFee(
+    companyId: string,
+    amount: number,
+    transactionType: string,
+    transactionCategory: string,
+    countryIsoCode: string,
+    currency: string
+  ) {
+    try {
+      const result = await TransactionFeeModel.calculateFee(
+        companyId,
+        amount,
+        transactionType,
+        transactionCategory,
+        countryIsoCode,
+        currency
+      );
+
+      if (result.error) {
+        throw new BadRequestException(result.error.message);
+      }
+
+      return {
+        success: true,
+        data: result.output,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "Error calculating transaction fee",
+        error: error.message,
+      });
+    }
   }
 }

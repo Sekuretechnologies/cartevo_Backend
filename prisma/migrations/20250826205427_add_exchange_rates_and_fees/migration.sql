@@ -1,0 +1,2 @@
+-- RenameIndex
+ALTER INDEX "transaction_fees_company_id_transaction_type_transaction_cat_ke" RENAME TO "transaction_fees_company_id_transaction_type_transaction_ca_key";

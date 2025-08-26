@@ -8,7 +8,174 @@ import {
   Matches,
   IsOptional,
   IsUrl,
+  IsBoolean,
+  IsNumber,
+  IsEnum,
 } from "class-validator";
+
+// Register company and user
+export class CompanyUserDto {
+  @ApiProperty({
+    description: "Business name",
+    example: "Acme Corporation",
+    minLength: 3,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  business_name: string;
+
+  @ApiProperty({
+    description: "User first name",
+    example: "John",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  first_name: string;
+
+  @ApiProperty({
+    description: "User last name",
+    example: "Doe",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  last_name: string;
+
+  @ApiProperty({
+    description: "Email address",
+    example: "john.doe@example.com",
+  })
+  @IsEmail()
+  @IsNotEmpty()
+  business_email: string;
+
+  @ApiProperty({
+    description: "Phone number",
+    example: "123456789",
+    minLength: 7,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(7)
+  @Matches(/^[\d+\-\s]+$/, { message: "Invalid phone number format" })
+  phone_number: string;
+
+  @ApiProperty({
+    description: "Business type",
+    example: "Fintech",
+    minLength: 1,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(1)
+  business_type: string;
+
+  @ApiProperty({
+    description: "Business country",
+    example: "Cameroon",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  business_country: string;
+
+  @ApiProperty({
+    description: "Business country phone code",
+    example: "237",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  business_country_phone_code: string;
+
+  @ApiProperty({
+    description: "Business Country ISO 2 code",
+    example: "CM",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  business_country_iso_code: string;
+
+  @ApiProperty({
+    description: "country currency",
+    example: "XAF",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  business_country_currency: string;
+
+  @ApiProperty({
+    description: "ID document type",
+    example: "NIN",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  id_document_type: string;
+
+  @ApiProperty({
+    description: "ID number",
+    example: "123456789",
+    minLength: 3,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  id_number: string;
+
+  @ApiProperty({
+    description: "ID document front image file",
+    type: "string",
+    format: "binary",
+  })
+  id_document_front: any;
+
+  @ApiProperty({
+    description: "ID document back image file",
+    type: "string",
+    format: "binary",
+  })
+  id_document_back: any;
+
+  @ApiProperty({
+    description: "Country of residence",
+    example: "Cameroon",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  country_of_residence: string;
+
+  @ApiProperty({
+    description: "Password - Must contain at least 8 characters",
+    example: "SecurePass123!",
+    minLength: 8,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(8)
+  password: string;
+
+  @ApiProperty({
+    description: "Confirm password",
+    example: "SecurePass123!",
+  })
+  @IsString()
+  @IsNotEmpty()
+  confirm_password: string;
+}
 
 // Step 1: Personal Information DTO
 export class PersonalInfoDto {
@@ -715,4 +882,471 @@ export class TransactionResponseDto {
   reference?: string | null;
 
   updated_at?: Date | string;
+}
+
+// Exchange Rate DTOs
+export class CreateExchangeRateDto {
+  @ApiProperty({
+    description: "Source currency code",
+    example: "USD",
+    minLength: 3,
+    maxLength: 3,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  @MaxLength(3)
+  fromCurrency: string;
+
+  @ApiProperty({
+    description: "Target currency code",
+    example: "EUR",
+    minLength: 3,
+    maxLength: 3,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  @MaxLength(3)
+  toCurrency: string;
+
+  @ApiProperty({
+    description: "Exchange rate value",
+    example: 0.85,
+  })
+  @IsNotEmpty()
+  rate: number;
+
+  @ApiProperty({
+    description: "Source of the exchange rate",
+    example: "ECB",
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  source?: string;
+
+  @ApiProperty({
+    description: "Description of the exchange rate",
+    example: "USD to EUR exchange rate",
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @ApiProperty({
+    description: "Whether the exchange rate is active",
+    example: true,
+    required: false,
+    default: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+}
+
+export class UpdateExchangeRateDto {
+  @ApiProperty({
+    description: "Exchange rate value",
+    example: 0.87,
+    required: false,
+  })
+  @IsOptional()
+  @IsNotEmpty()
+  rate?: number;
+
+  @ApiProperty({
+    description: "Source of the exchange rate",
+    example: "ECB",
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  source?: string;
+
+  @ApiProperty({
+    description: "Description of the exchange rate",
+    example: "Updated USD to EUR exchange rate",
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @ApiProperty({
+    description: "Whether the exchange rate is active",
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+}
+
+export class ExchangeRateResponseDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  company_id: string;
+
+  @ApiProperty()
+  from_currency: string;
+
+  @ApiProperty()
+  to_currency: string;
+
+  @ApiProperty()
+  rate: number;
+
+  @ApiProperty()
+  source?: string;
+
+  @ApiProperty()
+  description?: string;
+
+  @ApiProperty()
+  is_active: boolean;
+
+  @ApiProperty()
+  created_at: Date;
+
+  @ApiProperty()
+  updated_at: Date;
+}
+
+export class CurrencyConversionDto {
+  @ApiProperty({
+    description: "Amount to convert",
+    example: 100,
+  })
+  @IsNotEmpty()
+  amount: number;
+
+  @ApiProperty({
+    description: "Source currency code",
+    example: "USD",
+    minLength: 3,
+    maxLength: 3,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  @MaxLength(3)
+  fromCurrency: string;
+
+  @ApiProperty({
+    description: "Target currency code",
+    example: "EUR",
+    minLength: 3,
+    maxLength: 3,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  @MaxLength(3)
+  toCurrency: string;
+}
+
+export class CurrencyConversionResponseDto {
+  @ApiProperty()
+  convertedAmount: number;
+
+  @ApiProperty()
+  rate: number;
+
+  @ApiProperty()
+  exchangeRateId: string;
+
+  @ApiProperty()
+  fromCurrency: string;
+
+  @ApiProperty()
+  toCurrency: string;
+}
+
+// Transaction Fee DTOs
+export class CreateTransactionFeeDto {
+  @ApiProperty({
+    description: "Transaction type",
+    example: "FUND",
+    minLength: 2,
+    maxLength: 20,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  @MaxLength(20)
+  transactionType: string;
+
+  @ApiProperty({
+    description: "Transaction category",
+    example: "CARD",
+    minLength: 2,
+    maxLength: 20,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  @MaxLength(20)
+  transactionCategory: string;
+
+  @ApiProperty({
+    description: "Country ISO code",
+    example: "US",
+    minLength: 2,
+    maxLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  @MaxLength(2)
+  countryIsoCode: string;
+
+  @ApiProperty({
+    description: "Currency code",
+    example: "USD",
+    minLength: 3,
+    maxLength: 3,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  @MaxLength(3)
+  currency: string;
+
+  @ApiProperty({
+    description: "Fee percentage (optional)",
+    example: 2.5,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  feePercentage?: number;
+
+  @ApiProperty({
+    description: "Fixed fee amount (optional)",
+    example: 0.5,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  feeFixed?: number;
+
+  @ApiProperty({
+    description: "Fee type",
+    example: "PERCENTAGE",
+    enum: ["FIXED", "PERCENTAGE"],
+  })
+  @IsString()
+  @IsNotEmpty()
+  @IsEnum(["FIXED", "PERCENTAGE"])
+  type: "FIXED" | "PERCENTAGE";
+
+  @ApiProperty({
+    description: "Fee value",
+    example: 2.5,
+  })
+  @IsNotEmpty()
+  @IsNumber()
+  value: number;
+
+  @ApiProperty({
+    description: "Whether the fee is active",
+    example: true,
+    required: false,
+    default: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  active?: boolean;
+
+  @ApiProperty({
+    description: "Description of the fee",
+    example: "Card funding fee for US",
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
+
+export class UpdateTransactionFeeDto {
+  @ApiProperty({
+    description: "Fee percentage (optional)",
+    example: 3.0,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  feePercentage?: number;
+
+  @ApiProperty({
+    description: "Fixed fee amount (optional)",
+    example: 1.0,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  feeFixed?: number;
+
+  @ApiProperty({
+    description: "Fee type",
+    example: "PERCENTAGE",
+    enum: ["FIXED", "PERCENTAGE"],
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(["FIXED", "PERCENTAGE"])
+  type?: "FIXED" | "PERCENTAGE";
+
+  @ApiProperty({
+    description: "Fee value",
+    example: 3.0,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  value?: number;
+
+  @ApiProperty({
+    description: "Whether the fee is active",
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  active?: boolean;
+
+  @ApiProperty({
+    description: "Description of the fee",
+    example: "Updated card funding fee for US",
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
+
+export class TransactionFeeResponseDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  company_id: string;
+
+  @ApiProperty()
+  transaction_type: string;
+
+  @ApiProperty()
+  transaction_category: string;
+
+  @ApiProperty()
+  country_iso_code: string;
+
+  @ApiProperty()
+  currency: string;
+
+  @ApiProperty()
+  fee_percentage?: number;
+
+  @ApiProperty()
+  fee_fixed?: number;
+
+  @ApiProperty()
+  type: "FIXED" | "PERCENTAGE";
+
+  @ApiProperty()
+  value: number;
+
+  @ApiProperty()
+  active: boolean;
+
+  @ApiProperty()
+  description?: string;
+
+  @ApiProperty()
+  created_at: Date;
+
+  @ApiProperty()
+  updated_at: Date;
+}
+
+export class CalculateTransactionFeeDto {
+  @ApiProperty({
+    description: "Transaction amount",
+    example: 1000,
+  })
+  @IsNotEmpty()
+  @IsNumber()
+  amount: number;
+
+  @ApiProperty({
+    description: "Transaction type",
+    example: "FUND",
+    minLength: 2,
+    maxLength: 20,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  @MaxLength(20)
+  transactionType: string;
+
+  @ApiProperty({
+    description: "Transaction category",
+    example: "CARD",
+    minLength: 2,
+    maxLength: 20,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  @MaxLength(20)
+  transactionCategory: string;
+
+  @ApiProperty({
+    description: "Country ISO code",
+    example: "US",
+    minLength: 2,
+    maxLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  @MaxLength(2)
+  countryIsoCode: string;
+
+  @ApiProperty({
+    description: "Currency code",
+    example: "USD",
+    minLength: 3,
+    maxLength: 3,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  @MaxLength(3)
+  currency: string;
+}
+
+export class CalculateTransactionFeeResponseDto {
+  @ApiProperty()
+  feeAmount: number;
+
+  @ApiProperty()
+  feeType: "FIXED" | "PERCENTAGE";
+
+  @ApiProperty()
+  feeValue: number;
+
+  @ApiProperty()
+  calculatedPercentage?: number;
+
+  @ApiProperty()
+  calculatedFixed?: number;
+
+  @ApiProperty()
+  transactionFeeId: string;
 }
