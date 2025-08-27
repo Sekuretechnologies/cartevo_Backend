@@ -115,50 +115,6 @@ export class CompanyUserDto {
   business_country_currency: string;
 
   @ApiProperty({
-    description: "ID document type",
-    example: "NIN",
-    minLength: 2,
-  })
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(2)
-  id_document_type: string;
-
-  @ApiProperty({
-    description: "ID number",
-    example: "123456789",
-    minLength: 3,
-  })
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(3)
-  id_number: string;
-
-  @ApiProperty({
-    description: "ID document front image file",
-    type: "string",
-    format: "binary",
-  })
-  id_document_front: any;
-
-  @ApiProperty({
-    description: "ID document back image file",
-    type: "string",
-    format: "binary",
-  })
-  id_document_back: any;
-
-  @ApiProperty({
-    description: "Country of residence",
-    example: "Cameroon",
-    minLength: 2,
-  })
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(2)
-  country_of_residence: string;
-
-  @ApiProperty({
     description: "Password - Must contain at least 8 characters",
     example: "SecurePass123!",
     minLength: 8,
