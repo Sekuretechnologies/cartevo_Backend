@@ -1024,15 +1024,15 @@ export class CompleteKycDto {
   @MinLength(2)
   nationality: string;
 
-  @ApiProperty({
-    description: "User address",
-    example: "123 Main Street, Yaoundé",
-    minLength: 5,
-  })
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(5)
-  address: string;
+  // @ApiProperty({
+  //   description: "User address",
+  //   example: "123 Main Street, Yaoundé",
+  //   minLength: 5,
+  // })
+  // @IsString()
+  // @IsNotEmpty()
+  // @MinLength(5)
+  // address: string;
 }
 
 // KYC Completion Response DTO

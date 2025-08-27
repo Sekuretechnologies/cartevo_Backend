@@ -1325,7 +1325,7 @@ export class CompanyService {
         phone_number: kycData.phone_number,
         gender: kycData.gender,
         nationality: kycData.nationality,
-        address: kycData.address,
+        // address: kycData.address,
 
         status: UserStatus.ACTIVE,
         id_document_type: kycData.id_document_type,
