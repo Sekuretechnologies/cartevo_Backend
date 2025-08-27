@@ -982,6 +982,57 @@ export class CompleteKycDto {
   @IsNotEmpty()
   @MinLength(2)
   postal_code: string;
+
+  @ApiProperty({
+    description: "User role in company",
+    example: "CEO",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  role_in_company: string;
+
+  @ApiProperty({
+    description: "User phone number",
+    example: "+237123456789",
+    minLength: 7,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(7)
+  @Matches(/^[\d+\-\s]+$/, { message: "Invalid phone number format" })
+  phone_number: string;
+
+  @ApiProperty({
+    description: "User gender",
+    example: "Male",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  gender: string;
+
+  @ApiProperty({
+    description: "User nationality",
+    example: "Cameroonian",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  nationality: string;
+
+  @ApiProperty({
+    description: "User address",
+    example: "123 Main Street, Yaoundé",
+    minLength: 5,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(5)
+  address: string;
 }
 
 // KYC Completion Response DTO

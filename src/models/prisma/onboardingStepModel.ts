@@ -266,14 +266,14 @@ class OnboardingStepModel {
 
       const defaultSteps = [
         {
-          name: "Profile Completion",
+          name: "Profile",
           slug: "profile_completion",
           order: 1,
           description: "Complete user profile",
         },
         {
-          name: "Business Information",
-          slug: "business_info",
+          name: "Business details",
+          slug: "kyb_completion",
           order: 2,
           description: "Complete business details and KYB",
         },

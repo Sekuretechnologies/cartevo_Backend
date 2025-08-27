@@ -1321,6 +1321,13 @@ export class CompanyService {
 
       // Update user with KYC information
       const updatedUserResult = await UserModel.update(user.id, {
+        role_in_company: kycData.role_in_company,
+        phone_number: kycData.phone_number,
+        gender: kycData.gender,
+        nationality: kycData.nationality,
+        address: kycData.address,
+
+        status: UserStatus.ACTIVE,
         id_document_type: kycData.id_document_type,
         id_number: kycData.id_number,
         id_document_front: idDocumentFrontUrl,
@@ -1332,7 +1339,7 @@ export class CompanyService {
         street: kycData.street,
         postal_code: kycData.postal_code,
         kyc_status: "PENDING", // Set to PENDING for review
-        step: user.step + 1, // Increment step to track KYC completion
+        // step: user.step + 1, // Increment step to track KYC completion
       });
 
       if (updatedUserResult.error) {
@@ -1345,7 +1352,7 @@ export class CompanyService {
       try {
         const stepResult = await OnboardingStepModel.get({
           company_id: companyId,
-          slug: "personal_info",
+          slug: "profile_completion",
         });
         if (!stepResult.error && stepResult.output.length > 0) {
           await OnboardingStepModel.updateStatus(
@@ -1468,7 +1475,7 @@ export class CompanyService {
       try {
         const stepResult = await OnboardingStepModel.get({
           company_id: companyId,
-          slug: "business_info",
+          slug: "kyb_completion",
         });
         if (!stepResult.error && stepResult.output.length > 0) {
           await OnboardingStepModel.updateStatus(
