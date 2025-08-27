@@ -190,10 +190,18 @@ export class UserService {
     // AuthResponseDto
 
     // Find active user
-    const userResult = await UserModel.getOne({
-      email: loginDto.email,
-      status: UserStatus.ACTIVE,
-    });
+    const userResult = await UserModel.getOne(
+      {
+        email: loginDto.email,
+        status: UserStatus.ACTIVE,
+      },
+      {
+        company: true,
+        userCompanyRoles: {
+          include: { role: true },
+        },
+      }
+    );
     if (userResult.error) {
       throw new UnauthorizedException(userResult.error.message);
     }
