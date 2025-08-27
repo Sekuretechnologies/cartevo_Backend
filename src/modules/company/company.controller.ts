@@ -787,7 +787,7 @@ export class CompanyController {
   async getOnboardingSteps(
     @CurrentBusiness() business: CurrentBusinessData,
     @Query("status") status?: string
-  ): Promise<GetOnboardingStepsResponseDto> {
+  ): Promise<{ data: GetOnboardingStepsResponseDto }> {
     return this.companyService.getCompanyOnboardingSteps(
       business.businessId,
       status

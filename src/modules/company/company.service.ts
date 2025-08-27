@@ -1613,11 +1613,11 @@ export class CompanyService {
 
       // Update user with profile information
       const updatedUserResult = await UserModel.update(user.id, {
-        role_in_company: profileData.role_in_company,
+        // role_in_company: profileData.role,
         phone_number: profileData.phone_number,
         gender: profileData.gender,
         nationality: profileData.nationality,
-        address: profileData.address,
+        // address: profileData.address,
         status: UserStatus.ACTIVE,
         step: user.step + 1, // Increment step to track profile completion
       });
@@ -1832,7 +1832,7 @@ export class CompanyService {
   async getCompanyOnboardingSteps(
     companyId: string,
     status?: string
-  ): Promise<GetOnboardingStepsResponseDto> {
+  ): Promise<{ data: GetOnboardingStepsResponseDto }> {
     try {
       const where: any = { company_id: companyId };
       if (status) {
@@ -1844,31 +1844,33 @@ export class CompanyService {
         throw new BadRequestException(result.error.message);
       }
 
-      const steps = result.output.map((step) =>
+      const steps = result.output.map((step: any) =>
         this.mapOnboardingStepToResponseDto(step)
       );
 
       // Count by status
       const completedCount = steps.filter(
-        (step) => step.status === "COMPLETED"
+        (step: any) => step.status === "COMPLETED"
       ).length;
       const pendingCount = steps.filter(
-        (step) => step.status === "PENDING"
+        (step: any) => step.status === "PENDING"
       ).length;
       const inProgressCount = steps.filter(
-        (step) => step.status === "IN_PROGRESS"
+        (step: any) => step.status === "IN_PROGRESS"
       ).length;
       const failedCount = steps.filter(
-        (step) => step.status === "FAILED"
+        (step: any) => step.status === "FAILED"
       ).length;
 
       return {
-        steps,
-        total: steps.length,
-        completed_count: completedCount,
-        pending_count: pendingCount,
-        in_progress_count: inProgressCount,
-        failed_count: failedCount,
+        data: {
+          steps,
+          total: steps.length,
+          completed_count: completedCount,
+          pending_count: pendingCount,
+          in_progress_count: inProgressCount,
+          failed_count: failedCount,
+        },
       };
     } catch (error) {
       if (error instanceof BadRequestException) {
