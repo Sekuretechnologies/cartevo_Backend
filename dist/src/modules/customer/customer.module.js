@@ -10,13 +10,15 @@ exports.CustomerModule = void 0;
 const common_1 = require("@nestjs/common");
 const customer_controller_1 = require("./customer.controller");
 const customer_service_1 = require("./customer.service");
+const firebase_service_1 = require("../../services/firebase.service");
+const email_service_1 = require("../../services/email.service");
 let CustomerModule = class CustomerModule {
 };
 exports.CustomerModule = CustomerModule;
 exports.CustomerModule = CustomerModule = __decorate([
     (0, common_1.Module)({
         controllers: [customer_controller_1.CustomerController],
-        providers: [customer_service_1.CustomerService],
+        providers: [customer_service_1.CustomerService, email_service_1.EmailService, firebase_service_1.FirebaseService],
         exports: [customer_service_1.CustomerService],
     })
 ], CustomerModule);

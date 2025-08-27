@@ -25,7 +25,7 @@ let CustomerController = class CustomerController {
         this.customerService = customerService;
     }
     async create(business, createCustomerDto, files) {
-        return this.customerService.create(business.businessId, createCustomerDto);
+        return this.customerService.create(business.businessId, createCustomerDto, files);
     }
     async update(business, customerId, createCustomerDto, files) {
         return this.customerService.update(business.businessId, customerId, createCustomerDto);
@@ -62,7 +62,7 @@ __decorate([
     }),
     (0, swagger_1.ApiResponse)({
         status: 409,
-        description: "Customer with this email already exists",
+        description: "Customer with this email or ID already exists",
     }),
     __param(0, (0, current_business_decorator_1.CurrentBusiness)()),
     __param(1, (0, common_1.Body)()),

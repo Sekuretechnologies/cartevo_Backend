@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SyncmetadataModel = exports.UserCompanyRoleModel = exports.WalletModel = exports.UserModel = exports.TransactionModel = exports.RoleModel = exports.NotificationModel = exports.CustomerModel = exports.CompanyModel = exports.CardModel = void 0;
+exports.TransactionFeeModel = exports.ExchangeRateModel = exports.SyncmetadataModel = exports.UserCompanyRoleModel = exports.WalletModel = exports.UserModel = exports.TransactionModel = exports.RoleModel = exports.NotificationModel = exports.CustomerModel = exports.CompanyModel = exports.CardModel = void 0;
 var cardModel_1 = require("./cardModel");
 Object.defineProperty(exports, "CardModel", { enumerable: true, get: function () { return cardModel_1.default; } });
 var companyModel_1 = require("./companyModel");
@@ -21,4 +21,8 @@ var userCompanyRoleModel_1 = require("./userCompanyRoleModel");
 Object.defineProperty(exports, "UserCompanyRoleModel", { enumerable: true, get: function () { return userCompanyRoleModel_1.default; } });
 var syncmetadataModel_1 = require("./syncmetadataModel");
 Object.defineProperty(exports, "SyncmetadataModel", { enumerable: true, get: function () { return syncmetadataModel_1.default; } });
+var exchangeRateModel_1 = require("./exchangeRateModel");
+Object.defineProperty(exports, "ExchangeRateModel", { enumerable: true, get: function () { return exchangeRateModel_1.default; } });
+var transactionFeeModel_1 = require("./transactionFeeModel");
+Object.defineProperty(exports, "TransactionFeeModel", { enumerable: true, get: function () { return transactionFeeModel_1.default; } });
 //# sourceMappingURL=index.js.map

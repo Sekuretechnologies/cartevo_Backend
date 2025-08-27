@@ -46,6 +46,8 @@ let CustomerService = class CustomerService {
             const file = files.id_document_front[0];
             idDocumentFrontUrl = await this.firebaseService.uploadFile(file.buffer, `id_document_front_${Date.now()}.${file.originalname.split(".").pop()}`, `companies/${companyId}/customers/${customerId}`, file.mimetype);
         }
+        console.log("idDocumentBackUrl :: ", idDocumentBackUrl);
+        console.log("idDocumentFrontUrl :: ", idDocumentFrontUrl);
         const customerResult = await customerModel_1.default.create({
             id: customerId,
             company_id: companyId,
@@ -132,7 +134,22 @@ let CustomerService = class CustomerService {
             throw new common_1.NotFoundException(customersResult.error.message);
         }
         const customers = customersResult.output;
-        return customers.map((customer) => this.mapToResponseDto(customer));
+        return {
+            data: customers,
+        };
+    }
+    async findAllCustomersWithCardCountByCompany(companyId) {
+        const customersResult = await customerModel_1.default.getCustomersWithCardCount({
+            company_id: companyId,
+            is_active: true,
+        });
+        if (customersResult.error) {
+            throw new common_1.NotFoundException(customersResult.error.message);
+        }
+        const customers = customersResult.output;
+        return {
+            data: customers,
+        };
     }
     async findOne(companyId, customerId) {
         const customerResult = await customerModel_1.default.getOne({
@@ -144,7 +161,7 @@ let CustomerService = class CustomerService {
             throw new common_1.NotFoundException("Customer not found");
         }
         const customer = customerResult.output;
-        return { data: this.mapToResponseDto(customer) };
+        return { data: customer };
     }
     async findCustomerCards(companyId, customerId) {
         const customerCardsResult = await cardModel_1.default.get({

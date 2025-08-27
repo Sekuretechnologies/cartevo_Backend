@@ -10,6 +10,7 @@ export interface CustomerModelInterface {
 declare class CustomerModel {
     static getOne(filters: FilterObject): Promise<import("@/utils/shared/fnOutputHandler").OutputProps>;
     static get(filters?: FilterObject): Promise<import("@/utils/shared/fnOutputHandler").OutputProps>;
+    static getCustomersWithCardCount(filters?: FilterObject): Promise<import("@/utils/shared/fnOutputHandler").OutputProps>;
     static create(inputCustomer: Prisma.CustomerUncheckedCreateInput): Promise<import("@/utils/shared/fnOutputHandler").OutputProps>;
     static update(identifier: string | any, customerData: any): Promise<import("@/utils/shared/fnOutputHandler").OutputProps>;
     static delete(identifier: string | any): Promise<import("@/utils/shared/fnOutputHandler").OutputProps>;

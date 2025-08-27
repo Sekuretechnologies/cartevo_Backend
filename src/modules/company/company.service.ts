@@ -30,6 +30,25 @@ import {
   TransactionFeeResponseDto,
   CalculateTransactionFeeDto,
   CalculateTransactionFeeResponseDto,
+  CompleteKycDto,
+  CompleteKycResponseDto,
+  CompleteKybDto,
+  CompleteKybResponseDto,
+  BankingInfoDto,
+  BankingInfoResponseDto,
+  CompleteProfileDto,
+  CompleteProfileResponseDto,
+  OnboardingStatusDto,
+  CreateOnboardingStepDto,
+  UpdateOnboardingStepDto,
+  OnboardingStepResponseDto,
+  OnboardingStepListResponseDto,
+  InitializeOnboardingStepsDto,
+  InitializeOnboardingStepsResponseDto,
+  UpdateStepStatusDto,
+  UpdateStepStatusResponseDto,
+  GetOnboardingStepsDto,
+  GetOnboardingStepsResponseDto,
 } from "./dto/company.dto";
 import CardModel from "@/models/prisma/cardModel";
 import CompanyModel from "@/models/prisma/companyModel";
@@ -41,9 +60,10 @@ import RoleModel from "@/models/prisma/roleModel";
 import UserCompanyRoleModel from "@/models/prisma/userCompanyRoleModel";
 import ExchangeRateModel from "@/models/prisma/exchangeRateModel";
 import TransactionFeeModel from "@/models/prisma/transactionFeeModel";
+import OnboardingStepModel from "@/models/prisma/onboardingStepModel";
 import { FirebaseService } from "../../services/firebase.service";
 import { EmailService } from "../../services/email.service";
-import { UserStatus } from "@prisma/client";
+import { UserStatus, StepStatus } from "@prisma/client";
 
 @Injectable()
 export class CompanyService {
@@ -157,6 +177,16 @@ export class CompanyService {
           isActive: true,
         });
 
+        // Create default exchange rate: 1 USD = 650 XOF
+        await this.createExchangeRate(company.id, {
+          fromCurrency: "USD",
+          toCurrency: "XOF",
+          rate: 650,
+          source: "DEFAULT",
+          description: "Default exchange rate: 1 USD = 650 XOF",
+          isActive: true,
+        });
+
         // Create default transaction fees
         await this.createTransactionFee(company.id, {
           transactionType: "CARD",
@@ -209,6 +239,16 @@ export class CompanyService {
         });
       } catch (feeError) {
         console.error("Error creating default fees and rates:", feeError);
+        // Don't throw the error to prevent company creation from failing
+        // Just log the error and continue
+      }
+
+      // Step 10.5: Initialize default onboarding steps
+      try {
+        await this.initializeOnboardingSteps({ company_id: company.id });
+        console.log("Default onboarding steps initialized successfully");
+      } catch (stepError) {
+        console.error("Error initializing onboarding steps:", stepError);
         // Don't throw the error to prevent company creation from failing
         // Just log the error and continue
       }
@@ -1219,5 +1259,861 @@ export class CompanyService {
         error: error.message,
       });
     }
+  }
+
+  // ==================== ADDITIONAL ONBOARDING METHODS ====================
+
+  /**
+   * Complete KYC information for a user
+   */
+  async completeKyc(
+    companyId: string,
+    kycData: CompleteKycDto,
+    files?: {
+      id_document_front?: any[];
+      id_document_back?: any[];
+      proof_of_address?: any[];
+    }
+  ): Promise<CompleteKycResponseDto> {
+    try {
+      // Find the user associated with this company
+      const userResult = await UserModel.getOne({ company_id: companyId });
+      if (userResult.error || !userResult.output) {
+        throw new NotFoundException("User not found for this company");
+      }
+
+      const user = userResult.output;
+
+      // Upload files to Firebase if provided
+      let idDocumentFrontUrl = null;
+      let idDocumentBackUrl = null;
+      let proofOfAddressUrl = null;
+
+      if (files?.id_document_front?.[0]) {
+        const file = files.id_document_front[0];
+        idDocumentFrontUrl = await this.firebaseService.uploadFile(
+          file.buffer,
+          `id_front_${Date.now()}.${file.originalname.split(".").pop()}`,
+          `users/${user.email}/documents`,
+          file.mimetype
+        );
+      }
+
+      if (files?.id_document_back?.[0]) {
+        const file = files.id_document_back[0];
+        idDocumentBackUrl = await this.firebaseService.uploadFile(
+          file.buffer,
+          `id_back_${Date.now()}.${file.originalname.split(".").pop()}`,
+          `users/${user.email}/documents`,
+          file.mimetype
+        );
+      }
+
+      if (files?.proof_of_address?.[0]) {
+        const file = files.proof_of_address[0];
+        proofOfAddressUrl = await this.firebaseService.uploadFile(
+          file.buffer,
+          `proof_address_${Date.now()}.${file.originalname.split(".").pop()}`,
+          `users/${user.email}/documents`,
+          file.mimetype
+        );
+      }
+
+      // Update user with KYC information
+      const updatedUserResult = await UserModel.update(user.id, {
+        id_document_type: kycData.id_document_type,
+        id_number: kycData.id_number,
+        id_document_front: idDocumentFrontUrl,
+        id_document_back: idDocumentBackUrl,
+        proof_of_address: proofOfAddressUrl,
+        country_of_residence: kycData.country_of_residence,
+        state: kycData.state,
+        city: kycData.city,
+        street: kycData.street,
+        postal_code: kycData.postal_code,
+        kyc_status: "PENDING", // Set to PENDING for review
+        step: user.step + 1, // Increment step to track KYC completion
+      });
+
+      if (updatedUserResult.error) {
+        throw new BadRequestException(updatedUserResult.error.message);
+      }
+
+      const updatedUser = updatedUserResult.output;
+
+      // Update onboarding step status to COMPLETED
+      try {
+        const stepResult = await OnboardingStepModel.get({
+          company_id: companyId,
+          slug: "personal_info",
+        });
+        if (!stepResult.error && stepResult.output.length > 0) {
+          await OnboardingStepModel.updateStatus(
+            stepResult.output[0].id,
+            StepStatus.COMPLETED
+          );
+        }
+      } catch (stepError) {
+        console.error(
+          "Error updating onboarding step status for KYC:",
+          stepError
+        );
+        // Don't throw error to prevent main operation from failing
+      }
+
+      return {
+        success: true,
+        message: "KYC information submitted successfully. Awaiting review.",
+        user_id: user.id,
+        kyc_status: "PENDING",
+        next_step: "kyb_completion",
+        completed_at: new Date(),
+      };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+
+      throw new BadRequestException({
+        success: false,
+        message: "Error completing KYC information",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Complete KYB information for a company
+   */
+  async completeKyb(
+    companyId: string,
+    kybData: CompleteKybDto,
+    files?: {
+      share_holding_document?: any[];
+      incorporation_certificate?: any[];
+      business_proof_of_address?: any[];
+    }
+  ): Promise<CompleteKybResponseDto> {
+    try {
+      // Find the company
+      const companyResult = await CompanyModel.getOne({ id: companyId });
+      if (companyResult.error || !companyResult.output) {
+        throw new NotFoundException("Company not found");
+      }
+
+      const company = companyResult.output;
+
+      // Upload business files to Firebase if provided
+      let shareHoldingDocumentUrl = null;
+      let incorporationCertificateUrl = null;
+      let businessProofOfAddressUrl = null;
+
+      if (files?.share_holding_document?.[0]) {
+        const file = files.share_holding_document[0];
+        shareHoldingDocumentUrl = await this.firebaseService.uploadFile(
+          file.buffer,
+          `shareholding_${Date.now()}.${file.originalname.split(".").pop()}`,
+          `companies/${company.name}/documents`,
+          file.mimetype
+        );
+      }
+
+      if (files?.incorporation_certificate?.[0]) {
+        const file = files.incorporation_certificate[0];
+        incorporationCertificateUrl = await this.firebaseService.uploadFile(
+          file.buffer,
+          `incorporation_${Date.now()}.${file.originalname.split(".").pop()}`,
+          `companies/${company.name}/documents`,
+          file.mimetype
+        );
+      }
+
+      if (files?.business_proof_of_address?.[0]) {
+        const file = files.business_proof_of_address[0];
+        businessProofOfAddressUrl = await this.firebaseService.uploadFile(
+          file.buffer,
+          `business_address_${Date.now()}.${file.originalname
+            .split(".")
+            .pop()}`,
+          `companies/${company.name}/documents`,
+          file.mimetype
+        );
+      }
+
+      // Update company with KYB information
+      const updatedCompanyResult = await CompanyModel.update(companyId, {
+        business_phone_number: kybData.business_phone_number,
+        business_address: kybData.business_address,
+        tax_id_number: kybData.tax_id_number,
+        business_website: kybData.business_website,
+        business_description: kybData.business_description,
+        source_of_funds: kybData.source_of_funds,
+        share_holding_document: shareHoldingDocumentUrl,
+        incorporation_certificate: incorporationCertificateUrl,
+        business_proof_of_address: businessProofOfAddressUrl,
+        kyb_status: "PENDING", // Set to PENDING for review
+        step: company.step + 1, // Increment step to track KYB completion
+      });
+
+      if (updatedCompanyResult.error) {
+        throw new BadRequestException(updatedCompanyResult.error.message);
+      }
+
+      const updatedCompany = updatedCompanyResult.output;
+
+      // Update onboarding step status to COMPLETED
+      try {
+        const stepResult = await OnboardingStepModel.get({
+          company_id: companyId,
+          slug: "business_info",
+        });
+        if (!stepResult.error && stepResult.output.length > 0) {
+          await OnboardingStepModel.updateStatus(
+            stepResult.output[0].id,
+            StepStatus.COMPLETED
+          );
+        }
+      } catch (stepError) {
+        console.error(
+          "Error updating onboarding step status for KYB:",
+          stepError
+        );
+        // Don't throw error to prevent main operation from failing
+      }
+
+      return {
+        success: true,
+        message: "KYB information submitted successfully. Awaiting review.",
+        company_id: company.id,
+        kyb_status: "PENDING",
+        next_step: "banking_info",
+        completed_at: new Date(),
+      };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+
+      throw new BadRequestException({
+        success: false,
+        message: "Error completing KYB information",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Add banking information for a company
+   */
+  async addBankingInfo(
+    companyId: string,
+    bankingData: BankingInfoDto
+  ): Promise<BankingInfoResponseDto> {
+    try {
+      // Find the company
+      const companyResult = await CompanyModel.getOne({ id: companyId });
+      if (companyResult.error || !companyResult.output) {
+        throw new NotFoundException("Company not found");
+      }
+
+      const company = companyResult.output;
+
+      // For now, we'll store banking information in the company model
+      // In a real implementation, you might want to create a separate BankingInfo model
+      const updatedCompanyResult = await CompanyModel.update(companyId, {
+        // Add banking fields to company model temporarily
+        // In a real implementation, you'd create a separate BankingInfo model
+        bank_account_holder: bankingData.account_holder_name,
+        bank_account_number: bankingData.account_number,
+        bank_routing_number: bankingData.routing_number,
+        bank_name: bankingData.bank_name,
+        bank_swift_code: bankingData.swift_code,
+        bank_address: bankingData.bank_address,
+        bank_country: bankingData.bank_country,
+        bank_currency: bankingData.bank_currency,
+        step: company.step + 1, // Increment step to track banking info completion
+      });
+
+      if (updatedCompanyResult.error) {
+        throw new BadRequestException(updatedCompanyResult.error.message);
+      }
+
+      // Update onboarding step status to COMPLETED
+      try {
+        const stepResult = await OnboardingStepModel.get({
+          company_id: companyId,
+          slug: "banking_info",
+        });
+        if (!stepResult.error && stepResult.output.length > 0) {
+          await OnboardingStepModel.updateStatus(
+            stepResult.output[0].id,
+            StepStatus.COMPLETED
+          );
+        }
+      } catch (stepError) {
+        console.error(
+          "Error updating onboarding step status for banking info:",
+          stepError
+        );
+        // Don't throw error to prevent main operation from failing
+      }
+
+      return {
+        success: true,
+        message: "Banking information added successfully",
+        company_id: companyId,
+        bank_account_id: "banking_info_temp_id", // In real implementation, this would be the actual ID
+        next_step: "profile_completion",
+        completed_at: new Date(),
+      };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+
+      throw new BadRequestException({
+        success: false,
+        message: "Error adding banking information",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Complete user profile information
+   */
+  async completeProfile(
+    companyId: string,
+    profileData: CompleteProfileDto
+  ): Promise<CompleteProfileResponseDto> {
+    try {
+      // Find the user associated with this company
+      const userResult = await UserModel.getOne({ company_id: companyId });
+      if (userResult.error || !userResult.output) {
+        throw new NotFoundException("User not found for this company");
+      }
+
+      const user = userResult.output;
+
+      // Update user with profile information
+      const updatedUserResult = await UserModel.update(user.id, {
+        role_in_company: profileData.role_in_company,
+        phone_number: profileData.phone_number,
+        gender: profileData.gender,
+        nationality: profileData.nationality,
+        address: profileData.address,
+        status: UserStatus.ACTIVE,
+        step: user.step + 1, // Increment step to track profile completion
+      });
+
+      if (updatedUserResult.error) {
+        throw new BadRequestException(updatedUserResult.error.message);
+      }
+
+      const updatedUser = updatedUserResult.output;
+
+      // Update onboarding step status to COMPLETED
+      try {
+        const stepResult = await OnboardingStepModel.get({
+          company_id: companyId,
+          slug: "profile_completion",
+        });
+        if (!stepResult.error && stepResult.output.length > 0) {
+          await OnboardingStepModel.updateStatus(
+            stepResult.output[0].id,
+            StepStatus.COMPLETED
+          );
+        }
+
+        // Check if all steps are completed and update the final step
+        const allStepsResult = await OnboardingStepModel.get({
+          company_id: companyId,
+        });
+        if (!allStepsResult.error) {
+          const completedSteps = allStepsResult.output.filter(
+            (step) => step.status === StepStatus.COMPLETED
+          );
+          const totalSteps = allStepsResult.output.length;
+
+          // If all but the last step are completed, complete the onboarding
+          if (completedSteps.length === totalSteps - 1) {
+            const finalStepResult = await OnboardingStepModel.get({
+              company_id: companyId,
+              slug: "onboarding_complete",
+            });
+            if (!finalStepResult.error && finalStepResult.output.length > 0) {
+              await OnboardingStepModel.updateStatus(
+                finalStepResult.output[0].id,
+                "COMPLETED"
+              );
+            }
+          }
+        }
+      } catch (stepError) {
+        console.error(
+          "Error updating onboarding step status for profile completion:",
+          stepError
+        );
+        // Don't throw error to prevent main operation from failing
+      }
+
+      return {
+        success: true,
+        message: "Profile information completed successfully",
+        user_id: user.id,
+        company_id: companyId,
+        next_step: "onboarding_complete",
+        completed_at: new Date(),
+      };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+
+      throw new BadRequestException({
+        success: false,
+        message: "Error completing profile information",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Get onboarding status for a company and user
+   */
+  async getOnboardingStatus(
+    companyId: string,
+    userId: string
+  ): Promise<OnboardingStatusDto> {
+    try {
+      // Find the company and user
+      const [companyResult, userResult] = await Promise.all([
+        CompanyModel.getOne({ id: companyId }),
+        UserModel.getOne({ id: userId }),
+      ]);
+
+      if (companyResult.error || !companyResult.output) {
+        throw new NotFoundException("Company not found");
+      }
+
+      if (userResult.error || !userResult.output) {
+        throw new NotFoundException("User not found");
+      }
+
+      const company = companyResult.output;
+      const user = userResult.output;
+
+      // Determine completed steps
+      const completedSteps: string[] = [];
+      let nextStep = "onboarding_complete";
+      let isComplete = true;
+
+      // Check KYC status
+      if (user.kyc_status !== "NONE" && user.kyc_status !== "PENDING") {
+        completedSteps.push("kyc_completed");
+      } else {
+        nextStep = "kyc_completion";
+        isComplete = false;
+      }
+
+      // Check KYB status
+      if (company.kyb_status !== "NONE" && company.kyb_status !== "PENDING") {
+        completedSteps.push("kyb_completed");
+      } else if (nextStep === "onboarding_complete") {
+        nextStep = "kyb_completion";
+        isComplete = false;
+      }
+
+      // Check banking info (simplified check)
+      const hasBankingInfo =
+        company.bank_account_holder && company.bank_account_number;
+      if (hasBankingInfo) {
+        completedSteps.push("banking_info_completed");
+      } else if (nextStep === "onboarding_complete") {
+        nextStep = "banking_info";
+        isComplete = false;
+      }
+
+      // Check profile completion
+      const hasProfileInfo =
+        user.role_in_company && user.phone_number && user.gender;
+      if (hasProfileInfo) {
+        completedSteps.push("profile_completed");
+      } else if (nextStep === "onboarding_complete") {
+        nextStep = "profile_completion";
+        isComplete = false;
+      }
+
+      return {
+        company_id: companyId,
+        user_id: userId,
+        current_step: Math.max(company.step, user.step),
+        completed_steps: completedSteps,
+        next_step: nextStep,
+        is_complete: isComplete,
+        kyc_status: user.kyc_status,
+        kyb_status: company.kyb_status,
+        banking_info_complete: hasBankingInfo,
+        profile_complete: hasProfileInfo,
+      };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+
+      throw new BadRequestException({
+        success: false,
+        message: "Error getting onboarding status",
+        error: error.message,
+      });
+    }
+  }
+
+  // ==================== ONBOARDING STEP MANAGEMENT ====================
+
+  /**
+   * Create a new onboarding step
+   */
+  async createOnboardingStep(
+    stepData: CreateOnboardingStepDto
+  ): Promise<OnboardingStepResponseDto> {
+    try {
+      const result = await OnboardingStepModel.create({
+        company_id: stepData.company_id,
+        name: stepData.name,
+        slug: stepData.slug,
+        status: stepData.status || "PENDING",
+        order: stepData.order || 0,
+        description: stepData.description,
+      });
+
+      if (result.error) {
+        throw new BadRequestException(result.error.message);
+      }
+
+      return this.mapOnboardingStepToResponseDto(result.output);
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "Error creating onboarding step",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Get all onboarding steps for a company
+   */
+  async getCompanyOnboardingSteps(
+    companyId: string,
+    status?: string
+  ): Promise<GetOnboardingStepsResponseDto> {
+    try {
+      const where: any = { company_id: companyId };
+      if (status) {
+        where.status = status;
+      }
+
+      const result = await OnboardingStepModel.get(where);
+      if (result.error) {
+        throw new BadRequestException(result.error.message);
+      }
+
+      const steps = result.output.map((step) =>
+        this.mapOnboardingStepToResponseDto(step)
+      );
+
+      // Count by status
+      const completedCount = steps.filter(
+        (step) => step.status === "COMPLETED"
+      ).length;
+      const pendingCount = steps.filter(
+        (step) => step.status === "PENDING"
+      ).length;
+      const inProgressCount = steps.filter(
+        (step) => step.status === "IN_PROGRESS"
+      ).length;
+      const failedCount = steps.filter(
+        (step) => step.status === "FAILED"
+      ).length;
+
+      return {
+        steps,
+        total: steps.length,
+        completed_count: completedCount,
+        pending_count: pendingCount,
+        in_progress_count: inProgressCount,
+        failed_count: failedCount,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "Error fetching onboarding steps",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Get a single onboarding step
+   */
+  async getOnboardingStep(stepId: string): Promise<OnboardingStepResponseDto> {
+    try {
+      const result = await OnboardingStepModel.getOne({ id: stepId });
+      if (result.error || !result.output) {
+        throw new NotFoundException("Onboarding step not found");
+      }
+
+      return this.mapOnboardingStepToResponseDto(result.output);
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "Error fetching onboarding step",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Update an onboarding step
+   */
+  async updateOnboardingStep(
+    stepId: string,
+    updateData: UpdateOnboardingStepDto
+  ): Promise<OnboardingStepResponseDto> {
+    try {
+      const result = await OnboardingStepModel.update(stepId, {
+        name: updateData.name,
+        slug: updateData.slug,
+        status: updateData.status,
+        order: updateData.order,
+        description: updateData.description,
+      });
+
+      if (result.error) {
+        throw new BadRequestException(result.error.message);
+      }
+
+      return this.mapOnboardingStepToResponseDto(result.output);
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "Error updating onboarding step",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Delete an onboarding step
+   */
+  async deleteOnboardingStep(
+    stepId: string
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const result = await OnboardingStepModel.delete(stepId);
+      if (result.error) {
+        throw new BadRequestException(result.error.message);
+      }
+
+      return {
+        success: true,
+        message: "Onboarding step deleted successfully",
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "Error deleting onboarding step",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Initialize default onboarding steps for a company
+   */
+  async initializeOnboardingSteps(
+    initData: InitializeOnboardingStepsDto
+  ): Promise<InitializeOnboardingStepsResponseDto> {
+    try {
+      const result = await OnboardingStepModel.initializeDefaultSteps(
+        initData.company_id
+      );
+      if (result.error) {
+        throw new BadRequestException(result.error.message);
+      }
+
+      const steps = result.output.map((step) =>
+        this.mapOnboardingStepToResponseDto(step)
+      );
+
+      return {
+        success: true,
+        message: "Onboarding steps initialized successfully",
+        steps,
+        initialized_at: new Date(),
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "Error initializing onboarding steps",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Update step status
+   */
+  async updateStepStatus(
+    stepId: string,
+    status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED"
+  ): Promise<UpdateStepStatusResponseDto> {
+    try {
+      const result = await OnboardingStepModel.updateStatus(stepId, status);
+      if (result.error) {
+        throw new BadRequestException(result.error.message);
+      }
+
+      return {
+        success: true,
+        message: `Step status updated to ${status} successfully`,
+        step: this.mapOnboardingStepToResponseDto(result.output),
+        updated_at: new Date(),
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "Error updating step status",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Start a step (mark as IN_PROGRESS)
+   */
+  async startStep(stepId: string): Promise<UpdateStepStatusResponseDto> {
+    return this.updateStepStatus(stepId, "IN_PROGRESS");
+  }
+
+  /**
+   * Complete a step (mark as COMPLETED)
+   */
+  async completeStep(stepId: string): Promise<UpdateStepStatusResponseDto> {
+    return this.updateStepStatus(stepId, "COMPLETED");
+  }
+
+  /**
+   * Get next pending step for a company
+   */
+  async getNextPendingStep(
+    companyId: string
+  ): Promise<OnboardingStepResponseDto | null> {
+    try {
+      const result = await OnboardingStepModel.getNextPendingStep(companyId);
+      if (result.error) {
+        throw new BadRequestException(result.error.message);
+      }
+
+      if (!result.output) {
+        return null;
+      }
+
+      return this.mapOnboardingStepToResponseDto(result.output);
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "Error fetching next pending step",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Reset all steps for a company
+   */
+  async resetCompanySteps(
+    companyId: string
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const result = await OnboardingStepModel.resetCompanySteps(companyId);
+      if (result.error) {
+        throw new BadRequestException(result.error.message);
+      }
+
+      return {
+        success: true,
+        message: "All onboarding steps reset successfully",
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "Error resetting company steps",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Map onboarding step to response DTO
+   */
+  private mapOnboardingStepToResponseDto(step: any): OnboardingStepResponseDto {
+    return {
+      id: step.id,
+      company_id: step.company_id,
+      name: step.name,
+      slug: step.slug,
+      status: step.status,
+      order: step.order,
+      description: step.description,
+      created_at: step.created_at,
+      updated_at: step.updated_at,
+    };
   }
 }

@@ -9,6 +9,8 @@ import {
   Delete,
   UseInterceptors,
   UploadedFiles,
+  Query,
+  NotFoundException,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -19,6 +21,7 @@ import {
 } from "@nestjs/swagger";
 import { FileFieldsInterceptor } from "@nestjs/platform-express";
 import { CompanyService } from "./company.service";
+import UserModel from "@/models/prisma/userModel";
 import {
   CreateCompanyUserDto,
   CreateCompanyUserResponseDto,
@@ -43,6 +46,25 @@ import {
   TransactionFeeResponseDto,
   CalculateTransactionFeeDto,
   CalculateTransactionFeeResponseDto,
+  CompleteKycDto,
+  CompleteKycResponseDto,
+  CompleteKybDto,
+  CompleteKybResponseDto,
+  BankingInfoDto,
+  BankingInfoResponseDto,
+  CompleteProfileDto,
+  CompleteProfileResponseDto,
+  OnboardingStatusDto,
+  CreateOnboardingStepDto,
+  UpdateOnboardingStepDto,
+  OnboardingStepResponseDto,
+  OnboardingStepListResponseDto,
+  InitializeOnboardingStepsDto,
+  InitializeOnboardingStepsResponseDto,
+  UpdateStepStatusDto,
+  UpdateStepStatusResponseDto,
+  GetOnboardingStepsDto,
+  GetOnboardingStepsResponseDto,
 } from "./dto/company.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import {
@@ -517,5 +539,438 @@ export class CompanyController {
       calculateTransactionFeeDto.countryIsoCode,
       calculateTransactionFeeDto.currency
     );
+  }
+
+  // ==================== ADDITIONAL ONBOARDING ROUTES ====================
+
+  @Post("onboarding/kyc")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: "id_document_front", maxCount: 1 },
+      { name: "id_document_back", maxCount: 1 },
+      { name: "proof_of_address", maxCount: 1 },
+    ])
+  )
+  @ApiConsumes("multipart/form-data")
+  @ApiOperation({
+    summary: "Complete KYC information",
+    description:
+      "Complete Know Your Customer verification for the authenticated user",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "KYC information completed successfully",
+    type: CompleteKycResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Validation error or KYC completion failed",
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: "User not found",
+    type: ErrorResponseDto,
+  })
+  async completeKyc(
+    @CurrentBusiness() business: CurrentBusinessData,
+    @Body() completeKycDto: CompleteKycDto,
+    @UploadedFiles()
+    files: {
+      id_document_front?: any[];
+      id_document_back?: any[];
+      proof_of_address?: any[];
+    }
+  ): Promise<CompleteKycResponseDto> {
+    return this.companyService.completeKyc(
+      business.businessId, // We'll get the user ID from the company context
+      completeKycDto,
+      files
+    );
+  }
+
+  @Post("onboarding/kyb")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: "share_holding_document", maxCount: 1 },
+      { name: "incorporation_certificate", maxCount: 1 },
+      { name: "business_proof_of_address", maxCount: 1 },
+    ])
+  )
+  @ApiConsumes("multipart/form-data")
+  @ApiOperation({
+    summary: "Complete KYB information",
+    description:
+      "Complete Know Your Business verification for the authenticated company",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "KYB information completed successfully",
+    type: CompleteKybResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Validation error or KYB completion failed",
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Company not found",
+    type: ErrorResponseDto,
+  })
+  async completeKyb(
+    @CurrentBusiness() business: CurrentBusinessData,
+    @Body() completeKybDto: CompleteKybDto,
+    @UploadedFiles()
+    files: {
+      share_holding_document?: any[];
+      incorporation_certificate?: any[];
+      business_proof_of_address?: any[];
+    }
+  ): Promise<CompleteKybResponseDto> {
+    return this.companyService.completeKyb(
+      business.businessId,
+      completeKybDto,
+      files
+    );
+  }
+
+  @Post("onboarding/banking")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Add banking information",
+    description: "Add banking details for the authenticated company",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Banking information added successfully",
+    type: BankingInfoResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Validation error or banking info addition failed",
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Company not found",
+    type: ErrorResponseDto,
+  })
+  async addBankingInfo(
+    @CurrentBusiness() business: CurrentBusinessData,
+    @Body() bankingInfoDto: BankingInfoDto
+  ): Promise<BankingInfoResponseDto> {
+    return this.companyService.addBankingInfo(
+      business.businessId,
+      bankingInfoDto
+    );
+  }
+
+  @Post("onboarding/profile")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Complete user profile",
+    description: "Complete additional user profile information",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Profile information completed successfully",
+    type: CompleteProfileResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Validation error or profile completion failed",
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: "User not found",
+    type: ErrorResponseDto,
+  })
+  async completeProfile(
+    @CurrentBusiness() business: CurrentBusinessData,
+    @Body() completeProfileDto: CompleteProfileDto
+  ): Promise<CompleteProfileResponseDto> {
+    return this.companyService.completeProfile(
+      business.businessId, // We'll get the user ID from the company context
+      completeProfileDto
+    );
+  }
+
+  @Get("onboarding/status")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Get onboarding status",
+    description:
+      "Get the current onboarding status for the authenticated company and user",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Onboarding status retrieved successfully",
+    type: OnboardingStatusDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Company or user not found",
+    type: ErrorResponseDto,
+  })
+  async getOnboardingStatus(
+    @CurrentBusiness() business: CurrentBusinessData
+  ): Promise<OnboardingStatusDto> {
+    // Find the user associated with this company
+    const userResult = await UserModel.getOne({
+      company_id: business.businessId,
+    });
+    if (userResult.error || !userResult.output) {
+      throw new NotFoundException("User not found for this company");
+    }
+
+    const user = userResult.output;
+
+    return this.companyService.getOnboardingStatus(
+      business.businessId,
+      user.id
+    );
+  }
+
+  // ==================== ONBOARDING STEP CONTROLLERS ====================
+
+  @Post("onboarding-steps/initialize")
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Initialize default onboarding steps for a company",
+    description: "Create default onboarding steps for a new company",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Onboarding steps initialized successfully",
+    type: InitializeOnboardingStepsResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Bad request",
+    type: ErrorResponseDto,
+  })
+  async initializeOnboardingSteps(
+    @Body() initData: InitializeOnboardingStepsDto,
+    @CurrentBusiness() business: CurrentBusinessData
+  ): Promise<InitializeOnboardingStepsResponseDto> {
+    // Override company_id with authenticated company ID
+    initData.company_id = business.businessId;
+    return this.companyService.initializeOnboardingSteps(initData);
+  }
+
+  @Get("onboarding-steps")
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Get all onboarding steps for a company",
+    description:
+      "Retrieve all onboarding steps for the authenticated company, with optional status filtering",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Onboarding steps retrieved successfully",
+    type: GetOnboardingStepsResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Bad request",
+    type: ErrorResponseDto,
+  })
+  async getOnboardingSteps(
+    @CurrentBusiness() business: CurrentBusinessData,
+    @Query("status") status?: string
+  ): Promise<GetOnboardingStepsResponseDto> {
+    return this.companyService.getCompanyOnboardingSteps(
+      business.businessId,
+      status
+    );
+  }
+
+  @Get("onboarding-steps/:stepId")
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Get a specific onboarding step",
+    description: "Retrieve a specific onboarding step by ID",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Onboarding step retrieved successfully",
+    type: OnboardingStepResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Onboarding step not found",
+    type: ErrorResponseDto,
+  })
+  async getOnboardingStep(
+    @Param("stepId") stepId: string,
+    @CurrentBusiness() business: CurrentBusinessData
+  ): Promise<OnboardingStepResponseDto> {
+    return this.companyService.getOnboardingStep(stepId);
+  }
+
+  @Patch("onboarding-steps/:stepId/status")
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Update onboarding step status",
+    description: "Update the status of a specific onboarding step",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Step status updated successfully",
+    type: UpdateStepStatusResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Bad request",
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Onboarding step not found",
+    type: ErrorResponseDto,
+  })
+  async updateStepStatus(
+    @Param("stepId") stepId: string,
+    @Body() statusData: UpdateStepStatusDto,
+    @CurrentBusiness() business: CurrentBusinessData
+  ): Promise<UpdateStepStatusResponseDto> {
+    return this.companyService.updateStepStatus(stepId, statusData.status);
+  }
+
+  @Post("onboarding-steps/:stepId/start")
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Start an onboarding step",
+    description: "Mark a specific onboarding step as IN_PROGRESS",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Step started successfully",
+    type: UpdateStepStatusResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Bad request",
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Onboarding step not found",
+    type: ErrorResponseDto,
+  })
+  async startStep(
+    @Param("stepId") stepId: string,
+    @CurrentBusiness() business: CurrentBusinessData
+  ): Promise<UpdateStepStatusResponseDto> {
+    return this.companyService.startStep(stepId);
+  }
+
+  @Post("onboarding-steps/:stepId/complete")
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Complete an onboarding step",
+    description: "Mark a specific onboarding step as COMPLETED",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Step completed successfully",
+    type: UpdateStepStatusResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Bad request",
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Onboarding step not found",
+    type: ErrorResponseDto,
+  })
+  async completeStep(
+    @Param("stepId") stepId: string,
+    @CurrentBusiness() business: CurrentBusinessData
+  ): Promise<UpdateStepStatusResponseDto> {
+    return this.companyService.completeStep(stepId);
+  }
+
+  @Get("onboarding-steps/next-pending")
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Get next pending onboarding step",
+    description: "Retrieve the next pending onboarding step for the company",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Next pending step retrieved successfully",
+    type: OnboardingStepResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: "No pending steps found",
+    type: ErrorResponseDto,
+  })
+  async getNextPendingStep(
+    @CurrentBusiness() business: CurrentBusinessData
+  ): Promise<OnboardingStepResponseDto | null> {
+    return this.companyService.getNextPendingStep(business.businessId);
+  }
+
+  @Delete("onboarding-steps/:stepId")
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Delete an onboarding step",
+    description: "Delete a specific onboarding step",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Onboarding step deleted successfully",
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Bad request",
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Onboarding step not found",
+    type: ErrorResponseDto,
+  })
+  async deleteOnboardingStep(
+    @Param("stepId") stepId: string,
+    @CurrentBusiness() business: CurrentBusinessData
+  ): Promise<{ success: boolean; message: string }> {
+    return this.companyService.deleteOnboardingStep(stepId);
+  }
+
+  @Post("onboarding-steps/reset")
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Reset all onboarding steps",
+    description: "Reset all onboarding steps for a company to PENDING status",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Onboarding steps reset successfully",
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Bad request",
+    type: ErrorResponseDto,
+  })
+  async resetOnboardingSteps(
+    @CurrentBusiness() business: CurrentBusinessData
+  ): Promise<{ success: boolean; message: string }> {
+    return this.companyService.resetCompanySteps(business.businessId);
   }
 }

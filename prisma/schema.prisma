@@ -53,6 +53,7 @@ model Company {
   exchangeRates    ExchangeRate[]
   transactionFees  TransactionFee[]
 
+  onboardingSteps OnboardingStep[]
   @@map("companies")
 }
 
@@ -386,4 +387,28 @@ model TransactionFee {
 
   @@unique([company_id, transaction_type, transaction_category, country_iso_code, currency])
   @@map("transaction_fees")
+}
+
+model OnboardingStep {
+  id          String   @id @default(uuid())
+  company_id  String   @map("company_id")
+  name        String   // Step name (e.g., "Personal Information", "KYC Completion")
+  slug        String   // URL-friendly slug (e.g., "personal_info", "kyc_completion")
+  status      StepStatus @default(PENDING) // Current status of the step
+  order       Int      @default(0) // Order for display purposes
+  description String?  // Optional description of the step
+  created_at  DateTime @default(now()) @map("created_at")
+  updated_at  DateTime @updatedAt @map("updated_at")
+
+  company Company @relation(fields: [company_id], references: [id])
+
+  @@unique([company_id, slug])
+  @@map("onboarding_steps")
+}
+
+enum StepStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
 }

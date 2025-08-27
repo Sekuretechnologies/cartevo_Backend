@@ -12,9 +12,11 @@ export declare class CustomerController {
         id_document_front?: any[];
         id_document_back?: any[];
     }): Promise<CustomerResponseDto>;
-    findAll(business: CurrentBusinessData): Promise<CustomerResponseDto[]>;
+    findAll(business: CurrentBusinessData): Promise<{
+        data: any[];
+    }>;
     findOne(business: CurrentBusinessData, id: string): Promise<{
-        data: CustomerResponseDto;
+        data: any;
     }>;
     findCustomerCards(business: CurrentBusinessData, id: string): Promise<{
         data: any[];

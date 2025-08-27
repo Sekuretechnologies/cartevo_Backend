@@ -36,9 +36,45 @@ class CustomerModel {
             });
         }
     }
+    static async getCustomersWithCardCount(filters) {
+        try {
+            const query = `
+      SELECT 
+          c.id AS id,
+          c.first_name AS first_name,
+          c.last_name AS last_name,
+          c.country_phone_code AS country_phone_code,
+          c.phone_number AS phone_number,
+          c.email AS email,
+          c.created_at AS created_at,
+          COUNT(card.id) AS number_of_cards
+      FROM 
+          "Customer" c
+      WHERE c.company_id = ${filters.company_id}
+      LEFT JOIN 
+          "Card" card ON c.id = card.customer_id
+      GROUP BY 
+          c.id;
+    `;
+            const result = await prisma.$queryRaw `${query}`;
+            return fnOutputHandler_1.default.success({ output: result });
+        }
+        catch (error) {
+            return fnOutputHandler_1.default.error({
+                message: "Error fetching customers: " + error.message,
+                error: { message: "Error fetching customers: " + error.message },
+            });
+        }
+    }
     static async create(inputCustomer) {
         try {
             const customerData = { ...inputCustomer };
+            if (inputCustomer.first_name) {
+                customerData.first_name = (0, common_1.sanitizeTextInput)(inputCustomer.first_name);
+            }
+            if (inputCustomer.last_name) {
+                customerData.last_name = (0, common_1.sanitizeTextInput)(inputCustomer.last_name);
+            }
             if (inputCustomer.street) {
                 customerData.street = (0, common_1.sanitizeTextInput)(inputCustomer.street);
             }
@@ -50,6 +86,12 @@ class CustomerModel {
             }
             if (inputCustomer.postal_code) {
                 customerData.postal_code = (0, common_1.sanitizeTextInput)(inputCustomer.postal_code);
+            }
+            if (inputCustomer.company_id) {
+                customerData.company_id = undefined;
+                customerData.company = {
+                    connect: { id: inputCustomer.company_id },
+                };
             }
             const customer = await prisma.customer.create({ data: customerData });
             return fnOutputHandler_1.default.success({ code: 201, output: customer });

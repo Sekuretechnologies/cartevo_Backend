@@ -9,9 +9,190 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TransactionResponseDto = exports.UpdateKycStatusResponseDto = exports.UpdateKybStatusResponseDto = exports.UpdateKycStatusDto = exports.UpdateKybStatusDto = exports.CheckExistingUserResponseDto = exports.BusinessInfoResponseDto = exports.PersonalInfoResponseDto = exports.ErrorResponseDto = exports.CreateCompanyUserResponseDto = exports.WalletResponseDto = exports.UserResponseDto = exports.CompanyResponseDto = exports.CreateCompanyUserDto = exports.BusinessInfoDto = exports.PersonalInfoDto = void 0;
+exports.CalculateTransactionFeeResponseDto = exports.CalculateTransactionFeeDto = exports.TransactionFeeResponseDto = exports.UpdateTransactionFeeDto = exports.CreateTransactionFeeDto = exports.CurrencyConversionResponseDto = exports.CurrencyConversionDto = exports.ExchangeRateResponseDto = exports.UpdateExchangeRateDto = exports.CreateExchangeRateDto = exports.OnboardingStatusDto = exports.CompleteProfileResponseDto = exports.CompleteProfileDto = exports.BankingInfoResponseDto = exports.BankingInfoDto = exports.CompleteKybResponseDto = exports.CompleteKybDto = exports.CompleteKycResponseDto = exports.CompleteKycDto = exports.TransactionResponseDto = exports.UpdateKycStatusResponseDto = exports.UpdateKybStatusResponseDto = exports.UpdateKycStatusDto = exports.UpdateKybStatusDto = exports.CheckExistingUserResponseDto = exports.BusinessInfoResponseDto = exports.PersonalInfoResponseDto = exports.ErrorResponseDto = exports.CreateCompanyUserResponseDto = exports.WalletResponseDto = exports.UserResponseDto = exports.CompanyResponseDto = exports.CreateCompanyUserDto = exports.BusinessInfoDto = exports.PersonalInfoDto = exports.CompanyUserDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 const class_validator_1 = require("class-validator");
+class CompanyUserDto {
+}
+exports.CompanyUserDto = CompanyUserDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Business name",
+        example: "Acme Corporation",
+        minLength: 3,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(3),
+    __metadata("design:type", String)
+], CompanyUserDto.prototype, "business_name", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "User first name",
+        example: "John",
+        minLength: 2,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    __metadata("design:type", String)
+], CompanyUserDto.prototype, "first_name", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "User last name",
+        example: "Doe",
+        minLength: 2,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    __metadata("design:type", String)
+], CompanyUserDto.prototype, "last_name", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Email address",
+        example: "john.doe@example.com",
+    }),
+    (0, class_validator_1.IsEmail)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], CompanyUserDto.prototype, "business_email", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Phone number",
+        example: "123456789",
+        minLength: 7,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(7),
+    (0, class_validator_1.Matches)(/^[\d+\-\s]+$/, { message: "Invalid phone number format" }),
+    __metadata("design:type", String)
+], CompanyUserDto.prototype, "phone_number", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Business type",
+        example: "Fintech",
+        minLength: 1,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(1),
+    __metadata("design:type", String)
+], CompanyUserDto.prototype, "business_type", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Business country",
+        example: "Cameroon",
+        minLength: 2,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    __metadata("design:type", String)
+], CompanyUserDto.prototype, "business_country", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Business country phone code",
+        example: "237",
+        minLength: 2,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    __metadata("design:type", String)
+], CompanyUserDto.prototype, "business_country_phone_code", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Business Country ISO 2 code",
+        example: "CM",
+        minLength: 2,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    __metadata("design:type", String)
+], CompanyUserDto.prototype, "business_country_iso_code", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "country currency",
+        example: "XAF",
+        minLength: 2,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    __metadata("design:type", String)
+], CompanyUserDto.prototype, "business_country_currency", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "ID document type",
+        example: "NIN",
+        minLength: 2,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    __metadata("design:type", String)
+], CompanyUserDto.prototype, "id_document_type", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "ID number",
+        example: "123456789",
+        minLength: 3,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(3),
+    __metadata("design:type", String)
+], CompanyUserDto.prototype, "id_number", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "ID document front image file",
+        type: "string",
+        format: "binary",
+    }),
+    __metadata("design:type", Object)
+], CompanyUserDto.prototype, "id_document_front", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "ID document back image file",
+        type: "string",
+        format: "binary",
+    }),
+    __metadata("design:type", Object)
+], CompanyUserDto.prototype, "id_document_back", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Country of residence",
+        example: "Cameroon",
+        minLength: 2,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    __metadata("design:type", String)
+], CompanyUserDto.prototype, "country_of_residence", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Password - Must contain at least 8 characters",
+        example: "SecurePass123!",
+        minLength: 8,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(8),
+    __metadata("design:type", String)
+], CompanyUserDto.prototype, "password", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Confirm password",
+        example: "SecurePass123!",
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], CompanyUserDto.prototype, "confirm_password", void 0);
 class PersonalInfoDto {
 }
 exports.PersonalInfoDto = PersonalInfoDto;
@@ -814,4 +995,1052 @@ __decorate([
     (0, swagger_1.ApiProperty)(),
     __metadata("design:type", Date)
 ], TransactionResponseDto.prototype, "created_at", void 0);
+class CompleteKycDto {
+}
+exports.CompleteKycDto = CompleteKycDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "ID document type",
+        example: "PASSPORT",
+        enum: ["NIN", "PASSPORT", "VOTERS_CARD", "DRIVERS_LICENSE"],
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.Matches)(/^(NIN|PASSPORT|VOTERS_CARD|DRIVERS_LICENSE)$/, {
+        message: "ID document type must be one of: NIN, PASSPORT, VOTERS_CARD, DRIVERS_LICENSE",
+    }),
+    __metadata("design:type", String)
+], CompleteKycDto.prototype, "id_document_type", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "ID number",
+        example: "123456789",
+        minLength: 3,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(3),
+    __metadata("design:type", String)
+], CompleteKycDto.prototype, "id_number", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "ID document front image file",
+        type: "string",
+        format: "binary",
+    }),
+    __metadata("design:type", Object)
+], CompleteKycDto.prototype, "id_document_front", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "ID document back image file (optional)",
+        type: "string",
+        format: "binary",
+        required: false,
+    }),
+    __metadata("design:type", Object)
+], CompleteKycDto.prototype, "id_document_back", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Proof of address document file",
+        type: "string",
+        format: "binary",
+    }),
+    __metadata("design:type", Object)
+], CompleteKycDto.prototype, "proof_of_address", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Country of residence",
+        example: "Cameroon",
+        minLength: 2,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    __metadata("design:type", String)
+], CompleteKycDto.prototype, "country_of_residence", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "State/Region",
+        example: "Centre",
+        minLength: 2,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    __metadata("design:type", String)
+], CompleteKycDto.prototype, "state", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "City",
+        example: "Yaoundé",
+        minLength: 2,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    __metadata("design:type", String)
+], CompleteKycDto.prototype, "city", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Street address",
+        example: "123 Main Street",
+        minLength: 2,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    __metadata("design:type", String)
+], CompleteKycDto.prototype, "street", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Postal code",
+        example: "12345",
+        minLength: 2,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    __metadata("design:type", String)
+], CompleteKycDto.prototype, "postal_code", void 0);
+class CompleteKycResponseDto {
+}
+exports.CompleteKycResponseDto = CompleteKycResponseDto;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Boolean)
+], CompleteKycResponseDto.prototype, "success", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], CompleteKycResponseDto.prototype, "message", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], CompleteKycResponseDto.prototype, "user_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], CompleteKycResponseDto.prototype, "kyc_status", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], CompleteKycResponseDto.prototype, "next_step", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Date)
+], CompleteKycResponseDto.prototype, "completed_at", void 0);
+class CompleteKybDto {
+}
+exports.CompleteKybDto = CompleteKybDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Business phone number",
+        example: "+237123456789",
+        minLength: 7,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(7),
+    (0, class_validator_1.Matches)(/^[\d+\-\s]+$/, { message: "Invalid phone number format" }),
+    __metadata("design:type", String)
+], CompleteKybDto.prototype, "business_phone_number", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Business address",
+        example: "123 Business Street, Yaoundé",
+        minLength: 5,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(5),
+    __metadata("design:type", String)
+], CompleteKybDto.prototype, "business_address", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Tax ID number",
+        example: "TAX123456789",
+        minLength: 3,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(3),
+    __metadata("design:type", String)
+], CompleteKybDto.prototype, "tax_id_number", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Business website URL",
+        example: "https://acme.com",
+        required: false,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CompleteKybDto.prototype, "business_website", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Business description",
+        example: "Technology company providing software solutions",
+        minLength: 10,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(10),
+    __metadata("design:type", String)
+], CompleteKybDto.prototype, "business_description", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Source of funds",
+        example: "Investment",
+        minLength: 2,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    __metadata("design:type", String)
+], CompleteKybDto.prototype, "source_of_funds", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Share holding document file",
+        type: "string",
+        format: "binary",
+    }),
+    __metadata("design:type", Object)
+], CompleteKybDto.prototype, "share_holding_document", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Incorporation certificate file",
+        type: "string",
+        format: "binary",
+    }),
+    __metadata("design:type", Object)
+], CompleteKybDto.prototype, "incorporation_certificate", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Business proof of address file",
+        type: "string",
+        format: "binary",
+    }),
+    __metadata("design:type", Object)
+], CompleteKybDto.prototype, "business_proof_of_address", void 0);
+class CompleteKybResponseDto {
+}
+exports.CompleteKybResponseDto = CompleteKybResponseDto;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Boolean)
+], CompleteKybResponseDto.prototype, "success", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], CompleteKybResponseDto.prototype, "message", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], CompleteKybResponseDto.prototype, "company_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], CompleteKybResponseDto.prototype, "kyb_status", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], CompleteKybResponseDto.prototype, "next_step", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Date)
+], CompleteKybResponseDto.prototype, "completed_at", void 0);
+class BankingInfoDto {
+}
+exports.BankingInfoDto = BankingInfoDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Bank account holder name",
+        example: "Acme Corporation",
+        minLength: 2,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    __metadata("design:type", String)
+], BankingInfoDto.prototype, "account_holder_name", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Bank account number",
+        example: "1234567890",
+        minLength: 5,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(5),
+    __metadata("design:type", String)
+], BankingInfoDto.prototype, "account_number", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Bank routing number",
+        example: "021000021",
+        minLength: 5,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(5),
+    __metadata("design:type", String)
+], BankingInfoDto.prototype, "routing_number", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Bank name",
+        example: "Bank of Africa",
+        minLength: 2,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    __metadata("design:type", String)
+], BankingInfoDto.prototype, "bank_name", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Bank SWIFT code",
+        example: "BOACMCMXXX",
+        minLength: 8,
+        maxLength: 11,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(8),
+    (0, class_validator_1.MaxLength)(11),
+    __metadata("design:type", String)
+], BankingInfoDto.prototype, "swift_code", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Bank address",
+        example: "123 Bank Street, Yaoundé",
+        minLength: 5,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(5),
+    __metadata("design:type", String)
+], BankingInfoDto.prototype, "bank_address", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Country of bank",
+        example: "Cameroon",
+        minLength: 2,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    __metadata("design:type", String)
+], BankingInfoDto.prototype, "bank_country", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Currency of bank account",
+        example: "XAF",
+        minLength: 3,
+        maxLength: 3,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(3),
+    (0, class_validator_1.MaxLength)(3),
+    __metadata("design:type", String)
+], BankingInfoDto.prototype, "bank_currency", void 0);
+class BankingInfoResponseDto {
+}
+exports.BankingInfoResponseDto = BankingInfoResponseDto;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Boolean)
+], BankingInfoResponseDto.prototype, "success", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], BankingInfoResponseDto.prototype, "message", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], BankingInfoResponseDto.prototype, "company_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], BankingInfoResponseDto.prototype, "bank_account_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], BankingInfoResponseDto.prototype, "next_step", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Date)
+], BankingInfoResponseDto.prototype, "completed_at", void 0);
+class CompleteProfileDto {
+}
+exports.CompleteProfileDto = CompleteProfileDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "User role in company",
+        example: "CEO",
+        minLength: 2,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    __metadata("design:type", String)
+], CompleteProfileDto.prototype, "role_in_company", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "User phone number",
+        example: "+237123456789",
+        minLength: 7,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(7),
+    (0, class_validator_1.Matches)(/^[\d+\-\s]+$/, { message: "Invalid phone number format" }),
+    __metadata("design:type", String)
+], CompleteProfileDto.prototype, "phone_number", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "User gender",
+        example: "Male",
+        minLength: 2,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    __metadata("design:type", String)
+], CompleteProfileDto.prototype, "gender", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "User nationality",
+        example: "Cameroonian",
+        minLength: 2,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    __metadata("design:type", String)
+], CompleteProfileDto.prototype, "nationality", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "User address",
+        example: "123 Main Street, Yaoundé",
+        minLength: 5,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(5),
+    __metadata("design:type", String)
+], CompleteProfileDto.prototype, "address", void 0);
+class CompleteProfileResponseDto {
+}
+exports.CompleteProfileResponseDto = CompleteProfileResponseDto;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Boolean)
+], CompleteProfileResponseDto.prototype, "success", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], CompleteProfileResponseDto.prototype, "message", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], CompleteProfileResponseDto.prototype, "user_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], CompleteProfileResponseDto.prototype, "company_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], CompleteProfileResponseDto.prototype, "next_step", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Date)
+], CompleteProfileResponseDto.prototype, "completed_at", void 0);
+class OnboardingStatusDto {
+}
+exports.OnboardingStatusDto = OnboardingStatusDto;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], OnboardingStatusDto.prototype, "company_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], OnboardingStatusDto.prototype, "user_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Number)
+], OnboardingStatusDto.prototype, "current_step", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Array)
+], OnboardingStatusDto.prototype, "completed_steps", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], OnboardingStatusDto.prototype, "next_step", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Boolean)
+], OnboardingStatusDto.prototype, "is_complete", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], OnboardingStatusDto.prototype, "kyc_status", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], OnboardingStatusDto.prototype, "kyb_status", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Boolean)
+], OnboardingStatusDto.prototype, "banking_info_complete", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Boolean)
+], OnboardingStatusDto.prototype, "profile_complete", void 0);
+class CreateExchangeRateDto {
+}
+exports.CreateExchangeRateDto = CreateExchangeRateDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Source currency code",
+        example: "USD",
+        minLength: 3,
+        maxLength: 3,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(3),
+    (0, class_validator_1.MaxLength)(3),
+    __metadata("design:type", String)
+], CreateExchangeRateDto.prototype, "fromCurrency", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Target currency code",
+        example: "EUR",
+        minLength: 3,
+        maxLength: 3,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(3),
+    (0, class_validator_1.MaxLength)(3),
+    __metadata("design:type", String)
+], CreateExchangeRateDto.prototype, "toCurrency", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Exchange rate value",
+        example: 0.85,
+    }),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", Number)
+], CreateExchangeRateDto.prototype, "rate", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Source of the exchange rate",
+        example: "ECB",
+        required: false,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateExchangeRateDto.prototype, "source", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Description of the exchange rate",
+        example: "USD to EUR exchange rate",
+        required: false,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateExchangeRateDto.prototype, "description", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Whether the exchange rate is active",
+        example: true,
+        required: false,
+        default: true,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], CreateExchangeRateDto.prototype, "isActive", void 0);
+class UpdateExchangeRateDto {
+}
+exports.UpdateExchangeRateDto = UpdateExchangeRateDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Exchange rate value",
+        example: 0.87,
+        required: false,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", Number)
+], UpdateExchangeRateDto.prototype, "rate", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Source of the exchange rate",
+        example: "ECB",
+        required: false,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateExchangeRateDto.prototype, "source", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Description of the exchange rate",
+        example: "Updated USD to EUR exchange rate",
+        required: false,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateExchangeRateDto.prototype, "description", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Whether the exchange rate is active",
+        example: true,
+        required: false,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], UpdateExchangeRateDto.prototype, "isActive", void 0);
+class ExchangeRateResponseDto {
+}
+exports.ExchangeRateResponseDto = ExchangeRateResponseDto;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], ExchangeRateResponseDto.prototype, "id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], ExchangeRateResponseDto.prototype, "company_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], ExchangeRateResponseDto.prototype, "from_currency", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], ExchangeRateResponseDto.prototype, "to_currency", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Number)
+], ExchangeRateResponseDto.prototype, "rate", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], ExchangeRateResponseDto.prototype, "source", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], ExchangeRateResponseDto.prototype, "description", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Boolean)
+], ExchangeRateResponseDto.prototype, "is_active", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Date)
+], ExchangeRateResponseDto.prototype, "created_at", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Date)
+], ExchangeRateResponseDto.prototype, "updated_at", void 0);
+class CurrencyConversionDto {
+}
+exports.CurrencyConversionDto = CurrencyConversionDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Amount to convert",
+        example: 100,
+    }),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", Number)
+], CurrencyConversionDto.prototype, "amount", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Source currency code",
+        example: "USD",
+        minLength: 3,
+        maxLength: 3,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(3),
+    (0, class_validator_1.MaxLength)(3),
+    __metadata("design:type", String)
+], CurrencyConversionDto.prototype, "fromCurrency", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Target currency code",
+        example: "EUR",
+        minLength: 3,
+        maxLength: 3,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(3),
+    (0, class_validator_1.MaxLength)(3),
+    __metadata("design:type", String)
+], CurrencyConversionDto.prototype, "toCurrency", void 0);
+class CurrencyConversionResponseDto {
+}
+exports.CurrencyConversionResponseDto = CurrencyConversionResponseDto;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Number)
+], CurrencyConversionResponseDto.prototype, "convertedAmount", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Number)
+], CurrencyConversionResponseDto.prototype, "rate", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], CurrencyConversionResponseDto.prototype, "exchangeRateId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], CurrencyConversionResponseDto.prototype, "fromCurrency", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], CurrencyConversionResponseDto.prototype, "toCurrency", void 0);
+class CreateTransactionFeeDto {
+}
+exports.CreateTransactionFeeDto = CreateTransactionFeeDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Transaction type",
+        example: "FUND",
+        minLength: 2,
+        maxLength: 20,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    (0, class_validator_1.MaxLength)(20),
+    __metadata("design:type", String)
+], CreateTransactionFeeDto.prototype, "transactionType", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Transaction category",
+        example: "CARD",
+        minLength: 2,
+        maxLength: 20,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    (0, class_validator_1.MaxLength)(20),
+    __metadata("design:type", String)
+], CreateTransactionFeeDto.prototype, "transactionCategory", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Country ISO code",
+        example: "US",
+        minLength: 2,
+        maxLength: 2,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    (0, class_validator_1.MaxLength)(2),
+    __metadata("design:type", String)
+], CreateTransactionFeeDto.prototype, "countryIsoCode", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Currency code",
+        example: "USD",
+        minLength: 3,
+        maxLength: 3,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(3),
+    (0, class_validator_1.MaxLength)(3),
+    __metadata("design:type", String)
+], CreateTransactionFeeDto.prototype, "currency", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Fee percentage (optional)",
+        example: 2.5,
+        required: false,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateTransactionFeeDto.prototype, "feePercentage", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Fixed fee amount (optional)",
+        example: 0.5,
+        required: false,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateTransactionFeeDto.prototype, "feeFixed", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Fee type",
+        example: "PERCENTAGE",
+        enum: ["FIXED", "PERCENTAGE"],
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsEnum)(["FIXED", "PERCENTAGE"]),
+    __metadata("design:type", String)
+], CreateTransactionFeeDto.prototype, "type", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Fee value",
+        example: 2.5,
+    }),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateTransactionFeeDto.prototype, "value", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Whether the fee is active",
+        example: true,
+        required: false,
+        default: true,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], CreateTransactionFeeDto.prototype, "active", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Description of the fee",
+        example: "Card funding fee for US",
+        required: false,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateTransactionFeeDto.prototype, "description", void 0);
+class UpdateTransactionFeeDto {
+}
+exports.UpdateTransactionFeeDto = UpdateTransactionFeeDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Fee percentage (optional)",
+        example: 3.0,
+        required: false,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UpdateTransactionFeeDto.prototype, "feePercentage", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Fixed fee amount (optional)",
+        example: 1.0,
+        required: false,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UpdateTransactionFeeDto.prototype, "feeFixed", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Fee type",
+        example: "PERCENTAGE",
+        enum: ["FIXED", "PERCENTAGE"],
+        required: false,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(["FIXED", "PERCENTAGE"]),
+    __metadata("design:type", String)
+], UpdateTransactionFeeDto.prototype, "type", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Fee value",
+        example: 3.0,
+        required: false,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UpdateTransactionFeeDto.prototype, "value", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Whether the fee is active",
+        example: true,
+        required: false,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], UpdateTransactionFeeDto.prototype, "active", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Description of the fee",
+        example: "Updated card funding fee for US",
+        required: false,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateTransactionFeeDto.prototype, "description", void 0);
+class TransactionFeeResponseDto {
+}
+exports.TransactionFeeResponseDto = TransactionFeeResponseDto;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], TransactionFeeResponseDto.prototype, "id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], TransactionFeeResponseDto.prototype, "company_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], TransactionFeeResponseDto.prototype, "transaction_type", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], TransactionFeeResponseDto.prototype, "transaction_category", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], TransactionFeeResponseDto.prototype, "country_iso_code", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], TransactionFeeResponseDto.prototype, "currency", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Number)
+], TransactionFeeResponseDto.prototype, "fee_percentage", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Number)
+], TransactionFeeResponseDto.prototype, "fee_fixed", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], TransactionFeeResponseDto.prototype, "type", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Number)
+], TransactionFeeResponseDto.prototype, "value", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Boolean)
+], TransactionFeeResponseDto.prototype, "active", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], TransactionFeeResponseDto.prototype, "description", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Date)
+], TransactionFeeResponseDto.prototype, "created_at", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Date)
+], TransactionFeeResponseDto.prototype, "updated_at", void 0);
+class CalculateTransactionFeeDto {
+}
+exports.CalculateTransactionFeeDto = CalculateTransactionFeeDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Transaction amount",
+        example: 1000,
+    }),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CalculateTransactionFeeDto.prototype, "amount", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Transaction type",
+        example: "FUND",
+        minLength: 2,
+        maxLength: 20,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    (0, class_validator_1.MaxLength)(20),
+    __metadata("design:type", String)
+], CalculateTransactionFeeDto.prototype, "transactionType", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Transaction category",
+        example: "CARD",
+        minLength: 2,
+        maxLength: 20,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    (0, class_validator_1.MaxLength)(20),
+    __metadata("design:type", String)
+], CalculateTransactionFeeDto.prototype, "transactionCategory", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Country ISO code",
+        example: "US",
+        minLength: 2,
+        maxLength: 2,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(2),
+    (0, class_validator_1.MaxLength)(2),
+    __metadata("design:type", String)
+], CalculateTransactionFeeDto.prototype, "countryIsoCode", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Currency code",
+        example: "USD",
+        minLength: 3,
+        maxLength: 3,
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(3),
+    (0, class_validator_1.MaxLength)(3),
+    __metadata("design:type", String)
+], CalculateTransactionFeeDto.prototype, "currency", void 0);
+class CalculateTransactionFeeResponseDto {
+}
+exports.CalculateTransactionFeeResponseDto = CalculateTransactionFeeResponseDto;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Number)
+], CalculateTransactionFeeResponseDto.prototype, "feeAmount", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], CalculateTransactionFeeResponseDto.prototype, "feeType", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Number)
+], CalculateTransactionFeeResponseDto.prototype, "feeValue", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Number)
+], CalculateTransactionFeeResponseDto.prototype, "calculatedPercentage", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Number)
+], CalculateTransactionFeeResponseDto.prototype, "calculatedFixed", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], CalculateTransactionFeeResponseDto.prototype, "transactionFeeId", void 0);
 //# sourceMappingURL=company.dto.js.map

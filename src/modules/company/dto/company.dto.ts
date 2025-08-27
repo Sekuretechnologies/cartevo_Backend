@@ -884,6 +884,447 @@ export class TransactionResponseDto {
   updated_at?: Date | string;
 }
 
+// ==================== ADDITIONAL ONBOARDING DTOs ====================
+
+// KYC Completion DTO
+export class CompleteKycDto {
+  @ApiProperty({
+    description: "ID document type",
+    example: "PASSPORT",
+    enum: ["NIN", "PASSPORT", "VOTERS_CARD", "DRIVERS_LICENSE"],
+  })
+  @IsString()
+  @IsNotEmpty()
+  @Matches(/^(NIN|PASSPORT|VOTERS_CARD|DRIVERS_LICENSE)$/, {
+    message:
+      "ID document type must be one of: NIN, PASSPORT, VOTERS_CARD, DRIVERS_LICENSE",
+  })
+  id_document_type: string;
+
+  @ApiProperty({
+    description: "ID number",
+    example: "123456789",
+    minLength: 3,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  id_number: string;
+
+  @ApiProperty({
+    description: "ID document front image file",
+    type: "string",
+    format: "binary",
+  })
+  id_document_front: any;
+
+  @ApiProperty({
+    description: "ID document back image file (optional)",
+    type: "string",
+    format: "binary",
+    required: false,
+  })
+  id_document_back?: any;
+
+  @ApiProperty({
+    description: "Proof of address document file",
+    type: "string",
+    format: "binary",
+  })
+  proof_of_address: any;
+
+  @ApiProperty({
+    description: "Country of residence",
+    example: "Cameroon",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  country_of_residence: string;
+
+  @ApiProperty({
+    description: "State/Region",
+    example: "Centre",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  state: string;
+
+  @ApiProperty({
+    description: "City",
+    example: "Yaoundé",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  city: string;
+
+  @ApiProperty({
+    description: "Street address",
+    example: "123 Main Street",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  street: string;
+
+  @ApiProperty({
+    description: "Postal code",
+    example: "12345",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  postal_code: string;
+}
+
+// KYC Completion Response DTO
+export class CompleteKycResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty()
+  message: string;
+
+  @ApiProperty()
+  user_id: string;
+
+  @ApiProperty()
+  kyc_status: "NONE" | "PENDING" | "APPROVED" | "REJECTED";
+
+  @ApiProperty()
+  next_step: string;
+
+  @ApiProperty()
+  completed_at: Date;
+}
+
+// KYB Completion DTO
+export class CompleteKybDto {
+  @ApiProperty({
+    description: "Business phone number",
+    example: "+237123456789",
+    minLength: 7,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(7)
+  @Matches(/^[\d+\-\s]+$/, { message: "Invalid phone number format" })
+  business_phone_number: string;
+
+  @ApiProperty({
+    description: "Business address",
+    example: "123 Business Street, Yaoundé",
+    minLength: 5,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(5)
+  business_address: string;
+
+  @ApiProperty({
+    description: "Tax ID number",
+    example: "TAX123456789",
+    minLength: 3,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  tax_id_number: string;
+
+  @ApiProperty({
+    description: "Business website URL",
+    example: "https://acme.com",
+    required: false,
+  })
+  @IsOptional()
+  business_website?: string;
+
+  @ApiProperty({
+    description: "Business description",
+    example: "Technology company providing software solutions",
+    minLength: 10,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(10)
+  business_description: string;
+
+  @ApiProperty({
+    description: "Source of funds",
+    example: "Investment",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  source_of_funds: string;
+
+  @ApiProperty({
+    description: "Share holding document file",
+    type: "string",
+    format: "binary",
+  })
+  share_holding_document: any;
+
+  @ApiProperty({
+    description: "Incorporation certificate file",
+    type: "string",
+    format: "binary",
+  })
+  incorporation_certificate: any;
+
+  @ApiProperty({
+    description: "Business proof of address file",
+    type: "string",
+    format: "binary",
+  })
+  business_proof_of_address: any;
+}
+
+// KYB Completion Response DTO
+export class CompleteKybResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty()
+  message: string;
+
+  @ApiProperty()
+  company_id: string;
+
+  @ApiProperty()
+  kyb_status: "NONE" | "PENDING" | "APPROVED" | "REJECTED";
+
+  @ApiProperty()
+  next_step: string;
+
+  @ApiProperty()
+  completed_at: Date;
+}
+
+// Banking Information DTO
+export class BankingInfoDto {
+  @ApiProperty({
+    description: "Bank account holder name",
+    example: "Acme Corporation",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  account_holder_name: string;
+
+  @ApiProperty({
+    description: "Bank account number",
+    example: "1234567890",
+    minLength: 5,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(5)
+  account_number: string;
+
+  @ApiProperty({
+    description: "Bank routing number",
+    example: "021000021",
+    minLength: 5,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(5)
+  routing_number: string;
+
+  @ApiProperty({
+    description: "Bank name",
+    example: "Bank of Africa",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  bank_name: string;
+
+  @ApiProperty({
+    description: "Bank SWIFT code",
+    example: "BOACMCMXXX",
+    minLength: 8,
+    maxLength: 11,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(8)
+  @MaxLength(11)
+  swift_code: string;
+
+  @ApiProperty({
+    description: "Bank address",
+    example: "123 Bank Street, Yaoundé",
+    minLength: 5,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(5)
+  bank_address: string;
+
+  @ApiProperty({
+    description: "Country of bank",
+    example: "Cameroon",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  bank_country: string;
+
+  @ApiProperty({
+    description: "Currency of bank account",
+    example: "XAF",
+    minLength: 3,
+    maxLength: 3,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  @MaxLength(3)
+  bank_currency: string;
+}
+
+// Banking Information Response DTO
+export class BankingInfoResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty()
+  message: string;
+
+  @ApiProperty()
+  company_id: string;
+
+  @ApiProperty()
+  bank_account_id: string;
+
+  @ApiProperty()
+  next_step: string;
+
+  @ApiProperty()
+  completed_at: Date;
+}
+
+// Profile Completion DTO
+export class CompleteProfileDto {
+  @ApiProperty({
+    description: "User role in company",
+    example: "CEO",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  role_in_company: string;
+
+  @ApiProperty({
+    description: "User phone number",
+    example: "+237123456789",
+    minLength: 7,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(7)
+  @Matches(/^[\d+\-\s]+$/, { message: "Invalid phone number format" })
+  phone_number: string;
+
+  @ApiProperty({
+    description: "User gender",
+    example: "Male",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  gender: string;
+
+  @ApiProperty({
+    description: "User nationality",
+    example: "Cameroonian",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  nationality: string;
+
+  @ApiProperty({
+    description: "User address",
+    example: "123 Main Street, Yaoundé",
+    minLength: 5,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(5)
+  address: string;
+}
+
+// Profile Completion Response DTO
+export class CompleteProfileResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty()
+  message: string;
+
+  @ApiProperty()
+  user_id: string;
+
+  @ApiProperty()
+  company_id: string;
+
+  @ApiProperty()
+  next_step: string;
+
+  @ApiProperty()
+  completed_at: Date;
+}
+
+// Onboarding Status DTO
+export class OnboardingStatusDto {
+  @ApiProperty()
+  company_id: string;
+
+  @ApiProperty()
+  user_id: string;
+
+  @ApiProperty()
+  current_step: number;
+
+  @ApiProperty()
+  completed_steps: string[];
+
+  @ApiProperty()
+  next_step: string;
+
+  @ApiProperty()
+  is_complete: boolean;
+
+  @ApiProperty()
+  kyc_status: "NONE" | "PENDING" | "APPROVED" | "REJECTED";
+
+  @ApiProperty()
+  kyb_status: "NONE" | "PENDING" | "APPROVED" | "REJECTED";
+
+  @ApiProperty()
+  banking_info_complete: boolean;
+
+  @ApiProperty()
+  profile_complete: boolean;
+}
+
 // Exchange Rate DTOs
 export class CreateExchangeRateDto {
   @ApiProperty({
@@ -1349,4 +1790,254 @@ export class CalculateTransactionFeeResponseDto {
 
   @ApiProperty()
   transactionFeeId: string;
+}
+
+// ==================== ONBOARDING STEP DTOs ====================
+
+// Onboarding Step DTOs
+export class CreateOnboardingStepDto {
+  @ApiProperty({
+    description: "Company ID",
+    example: "company-uuid",
+  })
+  @IsString()
+  @IsNotEmpty()
+  company_id: string;
+
+  @ApiProperty({
+    description: "Step name",
+    example: "Personal Information",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  name: string;
+
+  @ApiProperty({
+    description: "Step slug",
+    example: "personal_info",
+    minLength: 2,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  slug: string;
+
+  @ApiProperty({
+    description: "Step status",
+    example: "PENDING",
+    enum: ["PENDING", "IN_PROGRESS", "COMPLETED", "FAILED"],
+    required: false,
+    default: "PENDING",
+  })
+  @IsOptional()
+  @IsEnum(["PENDING", "IN_PROGRESS", "COMPLETED", "FAILED"])
+  status?: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED";
+
+  @ApiProperty({
+    description: "Step order",
+    example: 1,
+    required: false,
+    default: 0,
+  })
+  @IsOptional()
+  @IsNumber()
+  order?: number;
+
+  @ApiProperty({
+    description: "Step description",
+    example: "Complete personal information and KYC",
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
+
+export class UpdateOnboardingStepDto {
+  @ApiProperty({
+    description: "Step name",
+    example: "Personal Information",
+    minLength: 2,
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  name?: string;
+
+  @ApiProperty({
+    description: "Step slug",
+    example: "personal_info",
+    minLength: 2,
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  slug?: string;
+
+  @ApiProperty({
+    description: "Step status",
+    example: "IN_PROGRESS",
+    enum: ["PENDING", "IN_PROGRESS", "COMPLETED", "FAILED"],
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(["PENDING", "IN_PROGRESS", "COMPLETED", "FAILED"])
+  status?: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED";
+
+  @ApiProperty({
+    description: "Step order",
+    example: 1,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  order?: number;
+
+  @ApiProperty({
+    description: "Step description",
+    example: "Complete personal information and KYC",
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
+
+export class OnboardingStepResponseDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  company_id: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty()
+  slug: string;
+
+  @ApiProperty()
+  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED";
+
+  @ApiProperty()
+  order: number;
+
+  @ApiProperty()
+  description?: string;
+
+  @ApiProperty()
+  created_at: Date;
+
+  @ApiProperty()
+  updated_at: Date;
+}
+
+export class OnboardingStepListResponseDto {
+  @ApiProperty({ type: [OnboardingStepResponseDto] })
+  steps: OnboardingStepResponseDto[];
+
+  @ApiProperty()
+  total: number;
+}
+
+export class InitializeOnboardingStepsDto {
+  @ApiProperty({
+    description: "Company ID",
+    example: "company-uuid",
+  })
+  @IsString()
+  @IsNotEmpty()
+  company_id: string;
+}
+
+export class InitializeOnboardingStepsResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty()
+  message: string;
+
+  @ApiProperty({ type: [OnboardingStepResponseDto] })
+  steps: OnboardingStepResponseDto[];
+
+  @ApiProperty()
+  initialized_at: Date;
+}
+
+export class UpdateStepStatusDto {
+  @ApiProperty({
+    description: "Step ID",
+    example: "step-uuid",
+  })
+  @IsString()
+  @IsNotEmpty()
+  step_id: string;
+
+  @ApiProperty({
+    description: "Step status",
+    example: "IN_PROGRESS",
+    enum: ["PENDING", "IN_PROGRESS", "COMPLETED", "FAILED"],
+  })
+  @IsString()
+  @IsNotEmpty()
+  @IsEnum(["PENDING", "IN_PROGRESS", "COMPLETED", "FAILED"])
+  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED";
+}
+
+export class UpdateStepStatusResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty()
+  message: string;
+
+  @ApiProperty({ type: OnboardingStepResponseDto })
+  step: OnboardingStepResponseDto;
+
+  @ApiProperty()
+  updated_at: Date;
+}
+
+export class GetOnboardingStepsDto {
+  @ApiProperty({
+    description: "Company ID",
+    example: "company-uuid",
+  })
+  @IsString()
+  @IsNotEmpty()
+  company_id: string;
+
+  @ApiProperty({
+    description: "Filter by status",
+    example: "PENDING",
+    enum: ["PENDING", "IN_PROGRESS", "COMPLETED", "FAILED"],
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(["PENDING", "IN_PROGRESS", "COMPLETED", "FAILED"])
+  status?: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED";
+}
+
+export class GetOnboardingStepsResponseDto {
+  @ApiProperty({ type: [OnboardingStepResponseDto] })
+  steps: OnboardingStepResponseDto[];
+
+  @ApiProperty()
+  total: number;
+
+  @ApiProperty()
+  completed_count: number;
+
+  @ApiProperty()
+  pending_count: number;
+
+  @ApiProperty()
+  in_progress_count: number;
+
+  @ApiProperty()
+  failed_count: number;
 }
