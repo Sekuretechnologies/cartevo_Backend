@@ -251,7 +251,8 @@ export class AuthController {
     status: 401,
     description: "Invalid credentials",
   })
-  async login(@Body() loginDto: LoginDto): Promise<AuthResponseDto> {
+  async login(@Body() loginDto: LoginDto): Promise<LoginSuccessResponseDto> {
+    // AuthResponseDto
     return this.userService.login(loginDto);
   }
 

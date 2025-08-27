@@ -266,10 +266,10 @@ class OnboardingStepModel {
 
       const defaultSteps = [
         {
-          name: "Personal Information",
-          slug: "personal_info",
+          name: "Profile Completion",
+          slug: "profile_completion",
           order: 1,
-          description: "Complete personal information and KYC",
+          description: "Complete user profile",
         },
         {
           name: "Business Information",
@@ -277,24 +277,26 @@ class OnboardingStepModel {
           order: 2,
           description: "Complete business details and KYB",
         },
-        {
-          name: "Banking Information",
-          slug: "banking_info",
-          order: 3,
-          description: "Add banking details",
-        },
-        {
-          name: "Profile Completion",
-          slug: "profile_completion",
-          order: 4,
-          description: "Complete user profile",
-        },
-        {
-          name: "Onboarding Complete",
-          slug: "onboarding_complete",
-          order: 5,
-          description: "Finalize onboarding process",
-        },
+        // {
+        //   name: "Personal Information",
+        //   slug: "personal_info",
+        //   order: 1,
+        //   description: "Complete personal information and KYC",
+        // },
+
+        // {
+        //   name: "Banking Information",
+        //   slug: "banking_info",
+        //   order: 3,
+        //   description: "Add banking details",
+        // },
+
+        // {
+        //   name: "Onboarding Complete",
+        //   slug: "onboarding_complete",
+        //   order: 5,
+        //   description: "Finalize onboarding process",
+        // },
       ];
 
       const createdSteps = await Promise.all(

@@ -186,7 +186,9 @@ export class UserService {
     };
   }
 
-  async login(loginDto: LoginDto): Promise<AuthResponseDto> {
+  async login(loginDto: LoginDto): Promise<LoginSuccessResponseDto> {
+    // AuthResponseDto
+
     // Find active user
     const userResult = await UserModel.getOne({
       email: loginDto.email,
@@ -210,26 +212,51 @@ export class UserService {
       throw new UnauthorizedException("Invalid credentials");
     }
 
-    // Generate and store OTP
-    const otp = this.generateOTP();
-    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    // Generate JWT token
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      company_id: user.company.id,
+      roles: user.userCompanyRoles?.map((ucr: any) => ucr.role.name),
+    };
 
-    const otpUpdateResult = await UserModel.update(user.id, {
-      otp,
-      otp_expires: otpExpires,
-    });
-    if (otpUpdateResult.error) {
-      throw new BadRequestException(otpUpdateResult.error.message);
-    }
-
-    // Send OTP email
-    await this.emailService.sendOtpEmail(user.email, otp, user.full_name);
+    const accessToken = this.jwtService.sign(payload);
+    let redirectTo = "dashboard";
+    let redirectMessage = "Login successful";
 
     return {
       success: true,
-      message: `OTP sent to ${user.email}. Please verify to complete login.`,
-      requires_otp: true,
+      message: redirectMessage,
+      access_token: accessToken,
+      user: await this.mapToResponseDto(user),
+      company: {
+        id: user.company.id,
+        name: user.company.name,
+        country: user.company.country,
+      },
+      redirect_to: redirectTo,
     };
+
+    // // Generate and store OTP
+    // const otp = this.generateOTP();
+    // const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // const otpUpdateResult = await UserModel.update(user.id, {
+    //   otp,
+    //   otp_expires: otpExpires,
+    // });
+    // if (otpUpdateResult.error) {
+    //   throw new BadRequestException(otpUpdateResult.error.message);
+    // }
+
+    // // Send OTP email
+    // await this.emailService.sendOtpEmail(user.email, otp, user.full_name);
+
+    // return {
+    //   success: true,
+    //   message: `OTP sent to ${user.email}. Please verify to complete login.`,
+    //   requires_otp: true,
+    // };
   }
 
   async verifyOtp(
@@ -288,41 +315,50 @@ export class UserService {
     let redirectTo = "dashboard";
     let redirectMessage = "Login successful";
 
-    // Check if user needs to complete step 2
-    if (user.step === 1) {
-      redirectTo = "step2";
-      redirectMessage = "Please complete your company registration (Step 2)";
-    }
+    // // Check if user needs to complete step 2
+    // if (user.step === 1) {
+    //   redirectTo = "step2";
+    //   redirectMessage = "Please complete your company registration (Step 2)";
+    // }
     // Check if KYC (user documents) and KYB (company documents) are completed
-    else if (user.step === 2) {
-      // Check if user has completed KYC (personal documents)
-      const hasUserDocuments =
-        user.id_document_front &&
-        user.id_document_back &&
-        user.proof_of_address;
+    // else if (user.step === 2) {
+    //   // Check if user has completed KYC (personal documents)
+    //   const hasUserDocuments =
+    //     user.id_document_front &&
+    //     user.id_document_back &&
+    //     user.proof_of_address;
 
-      // Check if company has completed KYB (business documents)
-      const hasCompanyDocuments =
-        user.company.share_holding_document &&
-        user.company.incorporation_certificate &&
-        user.company.business_proof_of_address;
-      // && user.company.memart;
+    //   // Check if company has completed KYB (business documents)
+    //   const hasCompanyDocuments =
+    //     user.company.share_holding_document &&
+    //     user.company.incorporation_certificate &&
+    //     user.company.business_proof_of_address;
+    //   // && user.company.memart;
 
-      // if (!hasUserDocuments || !hasCompanyDocuments) {
-      //   redirectTo = "waiting";
-      //   redirectMessage =
-      //     "Your account is under review. Please wait for KYC/KYB completion.";
-      // }
+    //   // if (!hasUserDocuments || !hasCompanyDocuments) {
+    //   //   redirectTo = "waiting";
+    //   //   redirectMessage =
+    //   //     "Your account is under review. Please wait for KYC/KYB completion.";
+    //   // }
 
-      if (
-        user.kyc_status !== "APPROVED" &&
-        user.company.kyb_status !== "APPROVED"
-      ) {
-        redirectTo = "waiting";
-        redirectMessage =
-          "Your account is under review. Please wait for KYC/KYB completion.";
-      }
-    }
+    //   if (
+    //     user.kyc_status !== "APPROVED" &&
+    //     user.company.kyb_status !== "APPROVED"
+    //   ) {
+    //     redirectTo = "waiting";
+    //     redirectMessage =
+    //       "Your account is under review. Please wait for KYC/KYB completion.";
+    //   }
+    // }
+
+    // if (
+    //   user.kyc_status !== "APPROVED" &&
+    //   user.company.kyb_status !== "APPROVED"
+    // ) {
+    //   redirectTo = "waiting";
+    //   redirectMessage =
+    //     "Your account is under review. Please wait for KYC/KYB completion.";
+    // }
 
     return {
       success: true,
