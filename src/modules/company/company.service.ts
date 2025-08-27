@@ -121,6 +121,7 @@ export class CompanyService {
         password: createDto.password,
         phone_number: createDto.phone_number,
         company_id: company.id,
+        status: UserStatus.ACTIVE,
       });
       if (userResult.error)
         throw new BadRequestException(userResult.error.message);
