@@ -1037,49 +1037,16 @@ export class CompanyController {
     @Req() request: Request,
     @Headers() headers: any
   ): Promise<UpdateWebhookUrlResponseDto> {
-    // Comprehensive request logging
-    // console.log("=== WEBHOOK UPDATE REQUEST DEBUG ===");
-    // console.log("Timestamp:", new Date().toISOString());
-    // console.log("Method:", request.method);
-    // console.log("URL:", request.url);
-    // console.log("Original URL:", request.originalUrl);
+    // console.log("\n=== REQUEST BODY ===");
+    // console.log("Raw Body:", JSON.stringify(request.body, null, 2));
+    // console.log("Parsed DTO:", JSON.stringify(updateWebhookUrlDto, null, 2));
 
-    // console.log("\n=== HEADERS ===");
-    // console.log("Content-Type:", headers["content-type"]);
-    // console.log("Content-Length:", headers["content-length"]);
-    // console.log(
-    //   "Authorization:",
-    //   headers.authorization ? "[PRESENT]" : "[MISSING]"
-    // );
-    // console.log("All Headers:", JSON.stringify(headers, null, 2));
-
-    console.log("\n=== REQUEST BODY ===");
-    console.log("Raw Body:", JSON.stringify(request.body, null, 2));
-    console.log("Parsed DTO:", JSON.stringify(updateWebhookUrlDto, null, 2));
-
-    // console.log("\n=== BUSINESS DATA ===");
-    // console.log("Business ID:", business.businessId);
-    // console.log("Full Business Data:", JSON.stringify(business, null, 2));
-
-    // console.log("\n=== REQUEST INFO ===");
-    // console.log("IP:", request.ip);
-    // console.log("User-Agent:", request.get("User-Agent"));
-    // console.log("Query Params:", JSON.stringify(request.query, null, 2));
-    // console.log("Params:", JSON.stringify(request.params, null, 2));
-
-    // Validate that at least one field is provided
-    if (
-      !updateWebhookUrlDto.webhook_url &&
-      updateWebhookUrlDto.webhook_is_active === undefined
-    ) {
+    if (!updateWebhookUrlDto.webhook_url) {
       console.log("❌ VALIDATION ERROR: No fields provided");
       throw new BadRequestException(
         "At least one field (webhook_url or webhook_is_active) must be provided"
       );
     }
-
-    console.log("✅ Validation passed, proceeding to service...");
-    console.log("=====================================");
 
     return this.companyService.updateWebhookUrl(
       business.businessId,
