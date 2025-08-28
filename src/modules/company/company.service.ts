@@ -177,21 +177,25 @@ export class CompanyService {
         await this.createExchangeRate(company.id, {
           fromCurrency: "USD",
           toCurrency: createDto.business_country_currency || "XAF",
-          rate: createDto.business_country_currency || "XAF" ? 650 : 0,
+          rate:
+            createDto.business_country_currency === "XAF" ||
+            createDto.business_country_currency === "XOF"
+              ? 650
+              : 0,
           source: "DEFAULT",
           description: "Default exchange rate: 1 USD = 650 XAF",
           isActive: true,
         });
 
         // Create default exchange rate: 1 USD = 650 XOF
-        await this.createExchangeRate(company.id, {
-          fromCurrency: "USD",
-          toCurrency: "XOF",
-          rate: 650,
-          source: "DEFAULT",
-          description: "Default exchange rate: 1 USD = 650 XOF",
-          isActive: true,
-        });
+        // await this.createExchangeRate(company.id, {
+        //   fromCurrency: "USD",
+        //   toCurrency: "XOF",
+        //   rate: 650,
+        //   source: "DEFAULT",
+        //   description: "Default exchange rate: 1 USD = 650 XOF",
+        //   isActive: true,
+        // });
 
         // Create default transaction fees
         await this.createTransactionFee(company.id, {
