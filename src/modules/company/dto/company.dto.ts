@@ -2081,9 +2081,9 @@ export class UpdateWebhookUrlDto {
     example: "https://example.com/webhooks",
     required: false,
   })
-  @IsOptional()
-  @IsUrl({}, { message: "Enter a valid URL for the webhook" })
-  webhook_url?: string;
+  // @IsOptional()
+  // @IsUrl({}, { message: "Enter a valid URL for the webhook" })
+  webhook_url: string;
 
   @ApiProperty({
     description: "Enable or disable Webhook",
