@@ -77,11 +77,11 @@ class TransactionFeeModel {
           inputTransactionFee.currency.toUpperCase()
         );
       }
-      if (inputTransactionFee.description) {
-        transactionFeeData.description = sanitizeTextInput(
-          inputTransactionFee.description
-        );
-      }
+      // if (inputTransactionFee.description) {
+      //   transactionFeeData.description = sanitizeTextInput(
+      //     inputTransactionFee.description
+      //   );
+      // }
 
       const transactionFee = await prisma.transactionFee.create({
         data: transactionFeeData,

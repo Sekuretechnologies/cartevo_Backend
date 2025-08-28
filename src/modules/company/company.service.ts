@@ -68,6 +68,7 @@ import OnboardingStepModel from "@/models/prisma/onboardingStepModel";
 import { FirebaseService } from "../../services/firebase.service";
 import { EmailService } from "../../services/email.service";
 import { UserStatus, StepStatus } from "@prisma/client";
+import { Console } from "console";
 
 @Injectable()
 export class CompanyService {
@@ -175,8 +176,8 @@ export class CompanyService {
         // Create default exchange rate: 1 USD = 650 XAF
         await this.createExchangeRate(company.id, {
           fromCurrency: "USD",
-          toCurrency: "XAF",
-          rate: 650,
+          toCurrency: createDto.business_country_currency || "XAF",
+          rate: createDto.business_country_currency || "XAF" ? 650 : 0,
           source: "DEFAULT",
           description: "Default exchange rate: 1 USD = 650 XAF",
           isActive: true,
@@ -230,7 +231,7 @@ export class CompanyService {
           currency: "USD",
           type: "PERCENTAGE",
           value: 3.6,
-          description: "Wallet topup fee (3.6%)",
+          description: "Wallet topup fee",
         });
 
         await this.createTransactionFee(company.id, {
@@ -240,7 +241,7 @@ export class CompanyService {
           currency: "USD",
           type: "PERCENTAGE",
           value: 2,
-          description: "Wallet withdrawal fee (2%)",
+          description: "Wallet withdrawal fee",
         });
       } catch (feeError) {
         console.error("Error creating default fees and rates:", feeError);
@@ -2184,6 +2185,8 @@ export class CompanyService {
         throw new NotFoundException("Company not found");
       }
 
+      console.log("updateData : ", updateData);
+
       const updatedCompanyResult = await CompanyModel.update(companyId, {
         webhook_url: updateData.webhook_url,
         webhook_is_active: updateData.webhook_is_active,
@@ -2194,6 +2197,15 @@ export class CompanyService {
       }
 
       const updatedCompany = updatedCompanyResult.output;
+
+      console.log("updatedCompany ::", {
+        success: true,
+        message: "Webhook URL updated successfully",
+        company_id: updatedCompany.id,
+        webhook_url: updatedCompany.webhook_url,
+        webhook_is_active: updatedCompany.webhook_is_active,
+        updated_at: updatedCompany.updated_at,
+      });
 
       return {
         success: true,

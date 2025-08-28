@@ -70,11 +70,11 @@ class ExchangeRateModel {
       if (inputExchangeRate.source) {
         exchangeRateData.source = sanitizeTextInput(inputExchangeRate.source);
       }
-      if (inputExchangeRate.description) {
-        exchangeRateData.description = sanitizeTextInput(
-          inputExchangeRate.description
-        );
-      }
+      // if (inputExchangeRate.description) {
+      //   exchangeRateData.description = sanitizeTextInput(
+      //     inputExchangeRate.description
+      //   );
+      // }
 
       const exchangeRate = await prisma.exchangeRate.create({
         data: exchangeRateData,

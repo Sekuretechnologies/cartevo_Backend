@@ -11,6 +11,7 @@ import {
   UploadedFiles,
   Query,
   NotFoundException,
+  Put,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -1004,7 +1005,7 @@ export class CompanyController {
     return this.companyService.getCompanyCredentials(business.businessId);
   }
 
-  @Patch("webhook")
+  @Put("webhook")
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
