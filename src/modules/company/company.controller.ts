@@ -1004,7 +1004,7 @@ export class CompanyController {
     return this.companyService.getCompanyCredentials(business.businessId);
   }
 
-  @Patch("webhook-url")
+  @Patch("webhook")
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
