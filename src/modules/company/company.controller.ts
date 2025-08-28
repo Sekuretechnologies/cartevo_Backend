@@ -12,6 +12,7 @@ import {
   Query,
   NotFoundException,
   Put,
+  BadRequestException,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -1031,8 +1032,20 @@ export class CompanyController {
     @CurrentBusiness() business: CurrentBusinessData,
     @Body() updateWebhookUrlDto: UpdateWebhookUrlDto
   ): Promise<UpdateWebhookUrlResponseDto> {
-    console.log("business : ", business);
-    console.log("updateWebhookUrlDto : ", updateWebhookUrlDto);
+    // Validate that at least one field is provided
+    if (
+      !updateWebhookUrlDto.webhook_url &&
+      updateWebhookUrlDto.webhook_is_active === undefined
+    ) {
+      throw new BadRequestException(
+        "At least field webhook_url must be provided"
+      );
+    }
+    console.log(
+      "updateWebhookUrlDto.webhook_url : ",
+      updateWebhookUrlDto.webhook_url
+    );
+
     return this.companyService.updateWebhookUrl(
       business.businessId,
       updateWebhookUrlDto

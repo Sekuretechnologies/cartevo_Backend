@@ -2191,10 +2191,18 @@ export class CompanyService {
 
       console.log("updateData : ", updateData);
 
-      const updatedCompanyResult = await CompanyModel.update(companyId, {
-        webhook_url: updateData.webhook_url,
-        webhook_is_active: updateData.webhook_is_active,
-      });
+      const updateFields: any = {};
+      if (updateData.webhook_url !== undefined) {
+        updateFields.webhook_url = updateData.webhook_url;
+      }
+      if (updateData.webhook_is_active !== undefined) {
+        updateFields.webhook_is_active = updateData.webhook_is_active;
+      }
+
+      const updatedCompanyResult = await CompanyModel.update(
+        companyId,
+        updateFields
+      );
 
       if (updatedCompanyResult.error) {
         throw new BadRequestException(updatedCompanyResult.error.message);
