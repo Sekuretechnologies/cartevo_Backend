@@ -2181,7 +2181,7 @@ export class CompanyService {
    */
   async updateWebhookUrl(
     companyId: string,
-    updateData: UpdateWebhookUrlDto
+    updateData: any
   ): Promise<UpdateWebhookUrlResponseDto> {
     try {
       const companyResult = await CompanyModel.getOne({ id: companyId });

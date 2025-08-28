@@ -1030,7 +1030,7 @@ export class CompanyController {
   })
   async updateWebhookUrl(
     @CurrentBusiness() business: CurrentBusinessData,
-    @Body() updateWebhookUrlDto: UpdateWebhookUrlDto
+    @Body() updateWebhookUrlDto: any
   ): Promise<UpdateWebhookUrlResponseDto> {
     // Validate that at least one field is provided
     if (!updateWebhookUrlDto.webhook_url) {
