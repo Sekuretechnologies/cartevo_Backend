@@ -2082,7 +2082,7 @@ export class UpdateWebhookUrlDto {
     required: false,
   })
   // @IsOptional()
-  @IsUrl({}, { message: "Enter a valid URL for the webhook" })
+  // @IsUrl({}, { message: "Enter a valid URL for the webhook" })
   webhook_url: string;
 
   @ApiProperty({
