@@ -2084,6 +2084,13 @@ export class UpdateWebhookUrlDto {
   @IsOptional()
   @IsUrl({}, { message: "Enter a valid URL for the webhook" })
   webhook_url?: string;
+
+  @ApiProperty({
+    description: "Enable or disable Webhook",
+    required: false,
+  })
+  @IsOptional()
+  webhook_is_active?: boolean;
 }
 
 // Update Webhook URL Response DTO
@@ -2099,6 +2106,9 @@ export class UpdateWebhookUrlResponseDto {
 
   @ApiProperty()
   webhook_url: string | null;
+
+  @ApiProperty()
+  webhook_is_active: boolean;
 
   @ApiProperty()
   updated_at: Date;

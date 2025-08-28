@@ -2186,6 +2186,7 @@ export class CompanyService {
 
       const updatedCompanyResult = await CompanyModel.update(companyId, {
         webhook_url: updateData.webhook_url,
+        webhook_is_active: updateData.webhook_is_active,
       });
 
       if (updatedCompanyResult.error) {
@@ -2199,6 +2200,7 @@ export class CompanyService {
         message: "Webhook URL updated successfully",
         company_id: updatedCompany.id,
         webhook_url: updatedCompany.webhook_url,
+        webhook_is_active: updatedCompany.webhook_is_active,
         updated_at: updatedCompany.updated_at,
       };
     } catch (error) {
