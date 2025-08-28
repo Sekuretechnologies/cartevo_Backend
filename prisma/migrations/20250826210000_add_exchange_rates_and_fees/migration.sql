@@ -41,7 +41,7 @@ CREATE TABLE "transaction_fees" (
 CREATE UNIQUE INDEX "exchange_rates_company_id_from_currency_to_currency_key" ON "exchange_rates"("company_id", "from_currency", "to_currency");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "transaction_fees_company_id_transaction_type_transaction_cat_key" ON "transaction_fees"("company_id", "transaction_type", "transaction_category", "country_iso_code", "currency");
+CREATE UNIQUE INDEX "transaction_fees_company_id_transaction_type_transaction_ca_key" ON "transaction_fees"("company_id", "transaction_type", "transaction_category", "country_iso_code", "currency");
 
 -- AddForeignKey
 ALTER TABLE "exchange_rates" ADD CONSTRAINT "exchange_rates_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "companies"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

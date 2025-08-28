@@ -49,6 +49,10 @@ import {
   UpdateStepStatusResponseDto,
   GetOnboardingStepsDto,
   GetOnboardingStepsResponseDto,
+  CompanyCredentialsResponseDto,
+  UpdateWebhookUrlDto,
+  UpdateWebhookUrlResponseDto,
+  RegenerateClientKeyResponseDto,
 } from "./dto/company.dto";
 import CardModel from "@/models/prisma/cardModel";
 import CompanyModel from "@/models/prisma/companyModel";
@@ -857,8 +861,8 @@ export class CompanyService {
       email: company.email,
       client_id: company.client_id,
       client_key: clientKey || "***hidden***", // Only show raw key during creation
-      card_price: parseFloat(company.card_price?.toString() || "5.00"),
-      card_fund_rate: parseFloat(company.card_fund_rate?.toString() || "1.02"),
+      // card_price: parseFloat(company.card_price?.toString() || "5.00"),
+      // card_fund_rate: parseFloat(company.card_fund_rate?.toString() || "1.02"),
       created_at: company.created_at,
       updated_at: company.updated_at,
     };
@@ -2125,5 +2129,138 @@ export class CompanyService {
       created_at: step.created_at,
       updated_at: step.updated_at,
     };
+  }
+
+  // ==================== CLIENT CREDENTIALS AND WEBHOOK MANAGEMENT ====================
+
+  /**
+   * Get company credentials including webhook URL, client ID, and client key
+   */
+  async getCompanyCredentials(
+    companyId: string
+  ): Promise<CompanyCredentialsResponseDto> {
+    try {
+      const companyResult = await CompanyModel.getOne({ id: companyId });
+      if (companyResult.error || !companyResult.output) {
+        throw new NotFoundException("Company not found");
+      }
+
+      const company = companyResult.output;
+
+      return {
+        success: true,
+        message: "Company credentials retrieved successfully",
+        company_id: company.id,
+        webhook_url: company.webhook_url,
+        client_id: company.client_id,
+        client_key: company.client_key, // Return actual client_key for authenticated requests
+        updated_at: company.updated_at,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "Error retrieving company credentials",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Update company webhook URL
+   */
+  async updateWebhookUrl(
+    companyId: string,
+    updateData: UpdateWebhookUrlDto
+  ): Promise<UpdateWebhookUrlResponseDto> {
+    try {
+      const companyResult = await CompanyModel.getOne({ id: companyId });
+      if (companyResult.error || !companyResult.output) {
+        throw new NotFoundException("Company not found");
+      }
+
+      const updatedCompanyResult = await CompanyModel.update(companyId, {
+        webhook_url: updateData.webhook_url,
+      });
+
+      if (updatedCompanyResult.error) {
+        throw new BadRequestException(updatedCompanyResult.error.message);
+      }
+
+      const updatedCompany = updatedCompanyResult.output;
+
+      return {
+        success: true,
+        message: "Webhook URL updated successfully",
+        company_id: updatedCompany.id,
+        webhook_url: updatedCompany.webhook_url,
+        updated_at: updatedCompany.updated_at,
+      };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "Error updating webhook URL",
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Regenerate client key for a company
+   */
+  async regenerateClientKey(
+    companyId: string
+  ): Promise<RegenerateClientKeyResponseDto> {
+    try {
+      const companyResult = await CompanyModel.getOne({ id: companyId });
+      if (companyResult.error || !companyResult.output) {
+        throw new NotFoundException("Company not found");
+      }
+
+      const company = companyResult.output;
+
+      // Generate new client key
+      const newClientKey = this.generateClientKey();
+      const hashedClientKey = await bcrypt.hash(newClientKey, 12);
+
+      const updatedCompanyResult = await CompanyModel.update(companyId, {
+        client_key: hashedClientKey,
+      });
+
+      if (updatedCompanyResult.error) {
+        throw new BadRequestException(updatedCompanyResult.error.message);
+      }
+
+      const updatedCompany = updatedCompanyResult.output;
+
+      return {
+        success: true,
+        message: "Client key regenerated successfully",
+        company_id: updatedCompany.id,
+        new_client_key: newClientKey, // Return the plain text key only once
+        client_id: updatedCompany.client_id,
+        regenerated_at: updatedCompany.updated_at,
+      };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "Error regenerating client key",
+        error: error.message,
+      });
+    }
   }
 }

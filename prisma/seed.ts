@@ -39,8 +39,8 @@ async function main() {
       email: "demo@company.com",
       client_id: "demo_client_001",
       client_key: hashedclient_key,
-      card_price: 5.0, // $5 per card
-      card_fund_rate: 1.02, // 2% fee on funding
+      // card_price: 5.0, // $5 per card
+      // card_fund_rate: 1.02, // 2% fee on funding
     },
   });
 

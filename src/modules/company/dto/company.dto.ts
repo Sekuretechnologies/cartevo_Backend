@@ -549,11 +549,11 @@ export class CompanyResponseDto {
   @ApiProperty()
   client_key: string;
 
-  @ApiProperty()
-  card_price: number;
+  // @ApiProperty()
+  // card_price: number;
 
-  @ApiProperty()
-  card_fund_rate: number;
+  // @ApiProperty()
+  // card_fund_rate: number;
 
   @ApiProperty()
   created_at: Date;
@@ -2047,4 +2047,81 @@ export class GetOnboardingStepsResponseDto {
 
   @ApiProperty()
   failed_count: number;
+}
+
+// ==================== CLIENT CREDENTIALS AND WEBHOOK DTOs ====================
+
+// Company Credentials Response DTO
+export class CompanyCredentialsResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty()
+  message: string;
+
+  @ApiProperty()
+  company_id: string;
+
+  @ApiProperty()
+  webhook_url: string | null;
+
+  @ApiProperty()
+  client_id: string;
+
+  @ApiProperty()
+  client_key: string;
+
+  @ApiProperty()
+  updated_at: Date;
+}
+
+// Update Webhook URL DTO
+export class UpdateWebhookUrlDto {
+  @ApiProperty({
+    description: "Webhook URL for receiving notifications",
+    example: "https://example.com/webhooks",
+    required: false,
+  })
+  @IsOptional()
+  @IsUrl({}, { message: "Enter a valid URL for the webhook" })
+  webhook_url?: string;
+}
+
+// Update Webhook URL Response DTO
+export class UpdateWebhookUrlResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty()
+  message: string;
+
+  @ApiProperty()
+  company_id: string;
+
+  @ApiProperty()
+  webhook_url: string | null;
+
+  @ApiProperty()
+  updated_at: Date;
+}
+
+// Regenerate Client Key Response DTO
+export class RegenerateClientKeyResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty()
+  message: string;
+
+  @ApiProperty()
+  company_id: string;
+
+  @ApiProperty()
+  new_client_key: string;
+
+  @ApiProperty()
+  client_id: string;
+
+  @ApiProperty()
+  regenerated_at: Date;
 }

@@ -65,6 +65,10 @@ import {
   UpdateStepStatusResponseDto,
   GetOnboardingStepsDto,
   GetOnboardingStepsResponseDto,
+  CompanyCredentialsResponseDto,
+  UpdateWebhookUrlDto,
+  UpdateWebhookUrlResponseDto,
+  RegenerateClientKeyResponseDto,
 } from "./dto/company.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import {
@@ -972,5 +976,87 @@ export class CompanyController {
     @CurrentBusiness() business: CurrentBusinessData
   ): Promise<{ success: boolean; message: string }> {
     return this.companyService.resetCompanySteps(business.businessId);
+  }
+
+  // ==================== CLIENT CREDENTIALS AND WEBHOOK ROUTES ====================
+
+  @Get("credentials")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Get company credentials",
+    description:
+      "Get company webhook URL, client ID, and client key for the authenticated company",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Company credentials retrieved successfully",
+    type: CompanyCredentialsResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Company not found",
+    type: ErrorResponseDto,
+  })
+  async getCompanyCredentials(
+    @CurrentBusiness() business: CurrentBusinessData
+  ): Promise<CompanyCredentialsResponseDto> {
+    return this.companyService.getCompanyCredentials(business.businessId);
+  }
+
+  @Patch("webhook-url")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Update webhook URL",
+    description: "Update the webhook URL for the authenticated company",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Webhook URL updated successfully",
+    type: UpdateWebhookUrlResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Validation error or update failed",
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Company not found",
+    type: ErrorResponseDto,
+  })
+  async updateWebhookUrl(
+    @CurrentBusiness() business: CurrentBusinessData,
+    @Body() updateWebhookUrlDto: UpdateWebhookUrlDto
+  ): Promise<UpdateWebhookUrlResponseDto> {
+    return this.companyService.updateWebhookUrl(
+      business.businessId,
+      updateWebhookUrlDto
+    );
+  }
+
+  @Post("regenerate-client-key")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Regenerate client key",
+    description:
+      "Generate a new client key for the authenticated company. The old key will be invalidated.",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Client key regenerated successfully",
+    type: RegenerateClientKeyResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Company not found",
+    type: ErrorResponseDto,
+  })
+  async regenerateClientKey(
+    @CurrentBusiness() business: CurrentBusinessData
+  ): Promise<RegenerateClientKeyResponseDto> {
+    return this.companyService.regenerateClientKey(business.businessId);
   }
 }
