@@ -1031,6 +1031,8 @@ export class CompanyController {
     @CurrentBusiness() business: CurrentBusinessData,
     @Body() updateWebhookUrlDto: UpdateWebhookUrlDto
   ): Promise<UpdateWebhookUrlResponseDto> {
+    console.log("business : ", business);
+    console.log("updateWebhookUrlDto : ", updateWebhookUrlDto);
     return this.companyService.updateWebhookUrl(
       business.businessId,
       updateWebhookUrlDto
