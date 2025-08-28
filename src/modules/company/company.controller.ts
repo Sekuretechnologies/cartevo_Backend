@@ -1033,10 +1033,7 @@ export class CompanyController {
     @Body() updateWebhookUrlDto: UpdateWebhookUrlDto
   ): Promise<UpdateWebhookUrlResponseDto> {
     // Validate that at least one field is provided
-    if (
-      !updateWebhookUrlDto.webhook_url &&
-      updateWebhookUrlDto.webhook_is_active === undefined
-    ) {
+    if (!updateWebhookUrlDto.webhook_url) {
       throw new BadRequestException(
         "At least field webhook_url must be provided"
       );
