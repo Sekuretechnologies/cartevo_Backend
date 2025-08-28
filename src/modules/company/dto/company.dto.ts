@@ -2064,6 +2064,7 @@ export class CompanyCredentialsResponseDto {
 
   @ApiProperty()
   data: {
+    webhook_is_active: boolean;
     webhook_url: string | null;
     client_id: string;
     client_key: string;

@@ -18,6 +18,7 @@ model Company {
   client_id     String?   @unique @map("client_id")
   client_key    String?   @map("client_key")
   webhook_url    String?   @map("webhook_url")
+  webhook_is_active      Boolean  @default(true) @map("webhook_is_active")
   // card_price    Decimal  @default(5.00) @map("card_price") @db.Decimal(10, 2)
   // card_fund_rate Decimal  @default(1.02) @map("card_fund_rate") @db.Decimal(5, 4)
   is_active      Boolean  @default(true) @map("is_active")

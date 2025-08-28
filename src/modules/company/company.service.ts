@@ -2152,6 +2152,7 @@ export class CompanyService {
         message: "Company credentials retrieved successfully",
         data: {
           webhook_url: company.webhook_url,
+          webhook_is_active: company.webhook_is_active,
           client_id: company.client_id,
           client_key: company.client_key, // Return actual client_key for authenticated requests
         },
