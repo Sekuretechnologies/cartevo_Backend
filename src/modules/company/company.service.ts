@@ -158,7 +158,7 @@ export class CompanyService {
           company_id: company.id,
         }),
         WalletModel.create({
-          balance: 2000,
+          balance: 0,
           active: true,
           currency: "USD",
           country: "USA",
