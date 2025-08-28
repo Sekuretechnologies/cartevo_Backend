@@ -2150,11 +2150,13 @@ export class CompanyService {
       return {
         success: true,
         message: "Company credentials retrieved successfully",
-        company_id: company.id,
-        webhook_url: company.webhook_url,
-        client_id: company.client_id,
-        client_key: company.client_key, // Return actual client_key for authenticated requests
-        updated_at: company.updated_at,
+        data: {
+          webhook_url: company.webhook_url,
+          client_id: company.client_id,
+          client_key: company.client_key, // Return actual client_key for authenticated requests
+        },
+        // company_id: company.id,
+        // updated_at: company.updated_at,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {

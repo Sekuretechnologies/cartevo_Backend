@@ -2059,20 +2059,18 @@ export class CompanyCredentialsResponseDto {
   @ApiProperty()
   message: string;
 
-  @ApiProperty()
-  company_id: string;
+  // @ApiProperty()
+  // company_id: string;
 
   @ApiProperty()
-  webhook_url: string | null;
+  data: {
+    webhook_url: string | null;
+    client_id: string;
+    client_key: string;
+  };
 
-  @ApiProperty()
-  client_id: string;
-
-  @ApiProperty()
-  client_key: string;
-
-  @ApiProperty()
-  updated_at: Date;
+  // @ApiProperty()
+  // updated_at: Date;
 }
 
 // Update Webhook URL DTO
