@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { UserController, AuthController } from "./user.controller";
 import { UserService } from "./user.service";
 import { EmailService } from "../../services/email.service";
+import { TokenBlacklistService } from "../../services/token-blacklist.service";
 
 @Module({
   imports: [
@@ -13,14 +14,14 @@ import { EmailService } from "../../services/email.service";
         // secret: configService.get<string>('JWT_SECRET'),
         secret: process.env.JWT_SECRET,
         signOptions: {
-          expiresIn: configService.get<string>("JWT_EXPIRES_IN") || "24h",
+          expiresIn: configService.get<string>("JWT_EXPIRES_IN") || "1h",
         },
       }),
       inject: [ConfigService],
     }),
   ],
   controllers: [UserController, AuthController],
-  providers: [UserService, EmailService],
-  exports: [UserService],
+  providers: [UserService, EmailService, TokenBlacklistService],
+  exports: [UserService, TokenBlacklistService],
 })
 export class UserModule {}

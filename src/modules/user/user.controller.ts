@@ -8,6 +8,8 @@ import {
   Param,
   UseGuards,
   Patch,
+  Headers,
+  BadRequestException,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -28,6 +30,7 @@ import {
   LoginSuccessResponseDto,
   UpdateKycStatusDto,
   UpdateKycStatusResponseDto,
+  LogoutResponseDto,
 } from "./dto/user.dto";
 import { JwtAuthGuard } from "@/modules/auth/guards/jwt-auth.guard";
 import { OwnerGuard } from "@/modules/common/guards/owner.guard";
@@ -274,5 +277,41 @@ export class AuthController {
     @Body() verifyOtpDto: VerifyOtpDto
   ): Promise<LoginSuccessResponseDto> {
     return this.userService.verifyOtp(verifyOtpDto);
+  }
+
+  @Post("logout")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "User logout",
+    description: "Logout user by invalidating their access token",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Logout successful",
+    type: LogoutResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Unauthorized - Invalid or missing token",
+  })
+  async logout(@Headers() headers: any): Promise<LogoutResponseDto> {
+    // Extract token from Authorization header
+    const authHeader = headers.authorization || headers.Authorization;
+    if (!authHeader) {
+      throw new BadRequestException("No authorization header provided");
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    if (!token || token === authHeader) {
+      throw new BadRequestException("Invalid authorization header format");
+    }
+
+    const result = await this.userService.logout(token);
+    return {
+      success: result.success,
+      message: result.message,
+      logged_out_at: result.logged_out_at,
+    };
   }
 }

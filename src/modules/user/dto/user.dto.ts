@@ -172,6 +172,20 @@ export class UserResponseDto {
   updated_at: Date;
 }
 
+// Logout Response DTO
+export class LogoutResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty()
+  message: string;
+
+  @ApiProperty({
+    description: "Timestamp when the token was invalidated",
+  })
+  logged_out_at: Date;
+}
+
 export class CreateUserResponseDto {
   @ApiProperty()
   success: boolean;

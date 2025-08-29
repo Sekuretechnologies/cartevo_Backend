@@ -30,6 +30,7 @@ import {
   CompanyModel,
 } from "@/models";
 import { EmailService } from "../../services/email.service";
+import { TokenBlacklistService } from "../../services/token-blacklist.service";
 import { OnboardingStepModel } from "@/models/prisma";
 
 @Injectable()
@@ -37,7 +38,8 @@ export class UserService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private emailService: EmailService
+    private emailService: EmailService,
+    private tokenBlacklistService: TokenBlacklistService
   ) {}
 
   async createUser(
@@ -221,7 +223,7 @@ export class UserService {
       throw new UnauthorizedException("Invalid credentials");
     }
 
-    // Generate JWT token
+    // Generate JWT token with expiry
     const payload = {
       sub: user.id,
       email: user.email,
@@ -229,7 +231,10 @@ export class UserService {
       roles: user.userCompanyRoles?.map((ucr: any) => ucr.role.name),
     };
 
-    const accessToken = this.jwtService.sign(payload);
+    // Set token expiry to 24 hours (86400 seconds)
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: "1h", // You can also use '1d', '7d', '30d', or specific seconds like '86400'
+    });
     let redirectTo = "dashboard";
     let redirectMessage = "Login successful";
 
@@ -324,7 +329,7 @@ export class UserService {
       otp_expires: null,
     });
 
-    // Generate JWT token
+    // Generate JWT token with expiry
     const payload = {
       sub: user.id,
       email: user.email,
@@ -332,7 +337,10 @@ export class UserService {
       roles: user.userCompanyRoles?.map((ucr: any) => ucr.role.name),
     };
 
-    const accessToken = this.jwtService.sign(payload);
+    // Set token expiry to 24 hours (86400 seconds)
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: "1h", // You can also use '1d', '7d', '30d', or specific seconds like '86400'
+    });
 
     console.log("payload :: ", payload);
     console.log("accessToken :: ", accessToken);
@@ -745,5 +753,46 @@ export class UserService {
       created_at: user.createdAt,
       updated_at: user.updatedAt,
     };
+  }
+
+  /**
+   * Logout user by blacklisting their token
+   * @param token - JWT token to blacklist
+   * @returns LogoutResponseDto
+   */
+  async logout(
+    token: string
+  ): Promise<{ success: boolean; message: string; logged_out_at: Date }> {
+    try {
+      // Decode token to get expiry information for auto-cleanup
+      let expiryTime: Date | undefined;
+      try {
+        const decoded = this.jwtService.decode(token) as any;
+        if (decoded && decoded.exp) {
+          expiryTime = new Date(decoded.exp * 1000); // Convert from seconds to milliseconds
+        }
+      } catch (decodeError) {
+        // If we can't decode the token, we'll still blacklist it but without auto-cleanup
+        console.warn(
+          "Could not decode token for expiry time:",
+          decodeError.message
+        );
+      }
+
+      // Add token to blacklist
+      this.tokenBlacklistService.addToBlacklist(token, expiryTime);
+
+      return {
+        success: true,
+        message: "Successfully logged out",
+        logged_out_at: new Date(),
+      };
+    } catch (error) {
+      throw new BadRequestException({
+        success: false,
+        message: "Error during logout",
+        error: error.message,
+      });
+    }
   }
 }
