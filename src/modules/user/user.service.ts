@@ -30,6 +30,7 @@ import {
   CompanyModel,
 } from "@/models";
 import { EmailService } from "../../services/email.service";
+import { OnboardingStepModel } from "@/models/prisma";
 
 @Injectable()
 export class UserService {
@@ -232,6 +233,21 @@ export class UserService {
     let redirectTo = "dashboard";
     let redirectMessage = "Login successful";
 
+    // -------------------------------------------------
+    const result = await OnboardingStepModel.get({
+      company_id: user.company.id,
+    });
+    if (result.error) {
+      throw new BadRequestException(result.error.message);
+    }
+    const steps = result.output;
+    const totalCount: number = steps.length;
+    // Count by status
+    const completedCount: number = steps.filter(
+      (step: any) => step.status === "COMPLETED"
+    ).length;
+    // -------------------------------------------------
+
     return {
       success: true,
       message: redirectMessage,
@@ -241,6 +257,7 @@ export class UserService {
         id: user.company.id,
         name: user.company.name,
         country: user.company.country,
+        is_onboarding_completed: totalCount === completedCount,
       },
       redirect_to: redirectTo,
     };
@@ -323,6 +340,21 @@ export class UserService {
     let redirectTo = "dashboard";
     let redirectMessage = "Login successful";
 
+    // -------------------------------------------------
+    const result = await OnboardingStepModel.get({
+      company_id: user.company.id,
+    });
+    if (result.error) {
+      throw new BadRequestException(result.error.message);
+    }
+    const steps = result.output;
+    const totalCount: number = steps.length;
+    // Count by status
+    const completedCount: number = steps.filter(
+      (step: any) => step.status === "COMPLETED"
+    ).length;
+    // -------------------------------------------------
+
     // // Check if user needs to complete step 2
     // if (user.step === 1) {
     //   redirectTo = "step2";
@@ -377,6 +409,7 @@ export class UserService {
         id: user.company.id,
         name: user.company.name,
         country: user.company.country,
+        is_onboarding_completed: completedCount === totalCount,
       },
       redirect_to: redirectTo,
     };
@@ -702,9 +735,10 @@ export class UserService {
 
     return {
       id: user.id,
-      full_name: user.fullName,
+      first_name: user.first_name,
+      last_name: user.last_name,
       email: user.email,
-      company_id: user.company_id,
+      company_id: user.company?.id,
       status: user.status,
       step: user.step,
       role: userRole,

@@ -145,7 +145,10 @@ export class UserResponseDto {
   id: string;
 
   @ApiProperty()
-  full_name?: string;
+  first_name?: string;
+
+  @ApiProperty()
+  last_name?: string;
 
   @ApiProperty()
   email: string;
@@ -212,6 +215,7 @@ export class LoginSuccessResponseDto {
     id: string;
     name: string;
     country: string;
+    is_onboarding_completed: boolean;
   };
 
   @ApiProperty({
