@@ -1,4 +1,4 @@
-// src/models/prisma/walletModel.ts
+// src/models/prisma/walletPhoneNumberModel.ts
 import { FilterObject } from "@/types";
 import { setMethodFilter } from "@/utils/shared/common";
 import fnOutput from "@/utils/shared/fnOutputHandler";
@@ -7,90 +7,92 @@ import { buildPrismaQuery } from "prisma/functions";
 
 const prisma = new PrismaClient();
 
-export interface WalletModelInterface {
+export interface WalletPhoneNumberModelInterface {
   getOne(filters: FilterObject): Promise<any>;
   get(filters?: FilterObject): Promise<any>;
-  create(inputWallet: Prisma.WalletUncheckedCreateInput): Promise<any>;
-  update(identifier: string | any, walletData: any): Promise<any>;
+  create(inputData: Prisma.WalletPhoneNumberUncheckedCreateInput): Promise<any>;
+  update(identifier: string | any, data: any): Promise<any>;
   delete(identifier: string | any): Promise<any>;
 }
 
-class WalletModel {
+class WalletPhoneNumberModel {
   static async getOne(filters: FilterObject) {
     try {
-      const result = await prisma.wallet.findFirst(
-        buildPrismaQuery({
-          filters,
-          include: {
-            phoneNumbers: true,
-          },
-        })
+      const result = await prisma.walletPhoneNumber.findFirst(
+        buildPrismaQuery({ filters })
       );
       if (!result) {
         return fnOutput.error({
-          message: "Wallet not found",
-          error: { message: "Wallet not found" },
+          message: "Wallet phone number not found",
+          error: { message: "Wallet phone number not found" },
         });
       }
       return fnOutput.success({ output: result });
     } catch (error: any) {
       return fnOutput.error({
-        message: "Error fetching wallet: " + error.message,
-        error: { message: "Error fetching wallet: " + error.message },
+        message: "Error fetching wallet phone number: " + error.message,
+        error: {
+          message: "Error fetching wallet phone number: " + error.message,
+        },
       });
     }
   }
 
   static async get(filters?: FilterObject) {
     try {
-      const result = await prisma.wallet.findMany(
-        buildPrismaQuery({
-          filters,
-          include: {
-            phoneNumbers: true,
-          },
-        })
+      const result = await prisma.walletPhoneNumber.findMany(
+        buildPrismaQuery({ filters })
       );
       return fnOutput.success({ output: result });
     } catch (error: any) {
       return fnOutput.error({
-        message: "Error fetching wallets: " + error.message,
-        error: { message: "Error fetching wallets: " + error.message },
+        message: "Error fetching wallet phone numbers: " + error.message,
+        error: {
+          message: "Error fetching wallet phone numbers: " + error.message,
+        },
       });
     }
   }
 
-  static async create(inputWallet: Prisma.WalletUncheckedCreateInput) {
+  static async create(inputData: Prisma.WalletPhoneNumberUncheckedCreateInput) {
     try {
-      const wallet = await prisma.wallet.create({ data: inputWallet });
-      return fnOutput.success({ code: 201, output: wallet });
+      const walletPhoneNumber = await prisma.walletPhoneNumber.create({
+        data: inputData,
+      });
+      return fnOutput.success({ code: 201, output: walletPhoneNumber });
     } catch (error: any) {
       return fnOutput.error({
-        message: "Error creating wallet: " + error.message,
-        error: { message: "Error creating wallet: " + error.message },
+        message: "Error creating wallet phone number: " + error.message,
+        error: {
+          message: "Error creating wallet phone number: " + error.message,
+        },
       });
     }
   }
 
-  static async update(identifier: string | any, walletData: any) {
+  static async update(identifier: string | any, data: any) {
     try {
       const { key, value } = setMethodFilter(identifier);
-      const where = { [key]: value } as Prisma.WalletWhereUniqueInput;
+      const where = {
+        [key]: value,
+      } as Prisma.WalletPhoneNumberWhereUniqueInput;
       if (!where[key]) {
         return fnOutput.error({
           message: "Invalid identifier provided",
           error: { message: "Invalid identifier provided" },
         });
       }
-      const updatedWallet = await prisma.wallet.update({
+      const updatedWalletPhoneNumber = await prisma.walletPhoneNumber.update({
         where,
-        data: walletData,
+        data,
       });
-      return fnOutput.success({ code: 204, output: updatedWallet });
+      return fnOutput.success({ code: 204, output: updatedWalletPhoneNumber });
     } catch (error: any) {
       return fnOutput.error({
-        message: "Error updating wallet: " + error.message,
-        error: { message: "Error updating wallet: " + error.message },
+        message: "Error updating wallet phone number: " + error.message,
+        error: {
+          message: "Error updating wallet phone number: " + error.message,
+        },
       });
     }
   }
@@ -98,19 +100,25 @@ class WalletModel {
   static async delete(identifier: string | any) {
     try {
       const { key, value } = setMethodFilter(identifier);
-      const where = { [key]: value } as Prisma.WalletWhereUniqueInput;
+      const where = {
+        [key]: value,
+      } as Prisma.WalletPhoneNumberWhereUniqueInput;
       if (!where[key]) {
         return fnOutput.error({
           message: "Invalid identifier provided",
           error: { message: "Invalid identifier provided" },
         });
       }
-      const deletedWallet = await prisma.wallet.delete({ where });
-      return fnOutput.success({ output: deletedWallet });
+      const deletedWalletPhoneNumber = await prisma.walletPhoneNumber.delete({
+        where,
+      });
+      return fnOutput.success({ output: deletedWalletPhoneNumber });
     } catch (error: any) {
       return fnOutput.error({
-        message: "Error deleting wallet: " + error.message,
-        error: { message: "Error deleting wallet: " + error.message },
+        message: "Error deleting wallet phone number: " + error.message,
+        error: {
+          message: "Error deleting wallet phone number: " + error.message,
+        },
       });
     }
   }
@@ -134,4 +142,4 @@ class WalletModel {
   }
 }
 
-export default WalletModel;
+export default WalletPhoneNumberModel;
