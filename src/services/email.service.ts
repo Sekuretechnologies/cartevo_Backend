@@ -102,6 +102,30 @@ export class EmailService {
     }
   }
 
+  async sendEmail(options: {
+    to: string;
+    subject: string;
+    html: string;
+    text?: string;
+  }): Promise<boolean> {
+    try {
+      const mailOptions = {
+        from: this.configService.get("FROM_EMAIL") || "contact@getsekure.com",
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+        text: options.text || "",
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log("Email sent successfully:", result.messageId);
+      return true;
+    } catch (error) {
+      console.error("Error sending email:", error);
+      throw new BadRequestException("Failed to send email");
+    }
+  }
+
   private getOtpEmailTemplate(otp: string, userName?: string): string {
     return `
       <!DOCTYPE html>
