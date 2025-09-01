@@ -261,4 +261,34 @@ export class EmailService {
       </html>
     `;
   }
+
+  async resetPasswordEmail(
+    email: string,
+    resetLink: string,
+    userName?: string
+  ): Promise<boolean> {
+    try {
+      const mailOptions = {
+        from: this.configService.get("FROM_EMAIL") || "contact@getsekure.com",
+        to: email,
+        subject: "Réinitialisation de votre mot de passe",
+        html: `
+        <p>Bonjour, ${userName}</p>
+        <p>Vous avez demandé à réinitialiser votre mot de passe.</p>
+        <p>Cliquez sur le lien ci-dessous pour choisir un nouveau mot de passe :</p>
+        <a href="${resetLink}">Réinitialiser mon mot de passe</a>
+        <p>Ce lien expirera dans 15 minutes.</p>
+        <p>Si vous n’avez pas demandé cette réinitialisation, ignorez simplement cet email.</p>
+         <p>© 2025 CARTEVO. Tous droits réservés.</p>
+      `,
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log("resetLink email sent successfully:", result.messageId);
+      return true;
+    } catch (error) {
+      console.error("Error sending resetLink email:", error);
+      throw new BadRequestException("Failed to send ResetLink email");
+    }
+  }
 }

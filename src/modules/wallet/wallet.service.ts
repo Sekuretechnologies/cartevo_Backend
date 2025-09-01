@@ -7,7 +7,6 @@ import {
 import WalletModel from "@/models/prisma/walletModel";
 import WalletPhoneOperatorModel from "@/models/prisma/walletPhoneOperatorModel";
 import fnOutput from "@/utils/shared/fnOutputHandler";
-
 export interface IWalletCreate {
   company_id: string;
   currency: string;
@@ -142,4 +141,5 @@ export class WalletService {
   async getWalletBalance(walletId: string) {
     return getWalletBalance(walletId);
   }
+
 }
