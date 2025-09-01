@@ -3,11 +3,11 @@ import fnOutput from "@/utils/shared/fnOutputHandler";
 import WalletModel from "@/models/prisma/walletModel";
 import TransactionModel from "@/models/prisma/transactionModel";
 import TransactionFeeModel from "@/models/prisma/transactionFeeModel";
-import { initiateAfribapayCollect } from "@/utils/wallet/afribapay";
+import { initiateAfribapayPayout } from "@/utils/wallet/afribapay";
 import { v4 as uuidv4 } from "uuid";
 
 /** ================================================================ */
-export interface IWalletFunding {
+export interface IWalletWithdrawal {
   walletId: string;
   amount: number;
   currency: string;
@@ -21,7 +21,7 @@ export interface IWalletFunding {
 }
 
 /** ================================================================ */
-const validateFundingRequest = (data: IWalletFunding) => {
+const validateWithdrawalRequest = (data: IWalletWithdrawal) => {
   const {
     walletId,
     amount,
@@ -49,7 +49,7 @@ const validateFundingRequest = (data: IWalletFunding) => {
   if (amount > 500000) {
     return fnOutput.error({
       code: "BAD_ENTRY",
-      error: { message: "Maximum funding amount is 500,000" },
+      error: { message: "Maximum withdrawal amount is 500,000" },
     });
   }
 
@@ -148,8 +148,43 @@ const getWalletDetails = async (walletId: string) => {
 };
 
 /** ================================================================ */
-const createFundingTransaction = async (
-  data: IWalletFunding,
+const checkWalletBalance = async (
+  wallet: any,
+  amount: number,
+  feeAmount: number = 0
+) => {
+  const totalDeduction = amount + feeAmount;
+
+  if (wallet.balance < totalDeduction) {
+    return fnOutput.error({
+      code: "BAD_ENTRY",
+      error: {
+        message: `Insufficient wallet balance. Required: ${totalDeduction} ${wallet.currency}, Available: ${wallet.balance} ${wallet.currency}`,
+      },
+    });
+  }
+
+  return fnOutput.success({ output: true });
+};
+
+/** ================================================================ */
+const updateWalletBalance = async (walletId: string, newBalance: number) => {
+  const updateResult = await WalletModel.update(walletId, {
+    balance: newBalance,
+  });
+
+  if (updateResult.error) {
+    return fnOutput.error({
+      error: { message: "Failed to update wallet balance" },
+    });
+  }
+
+  return fnOutput.success({ output: updateResult.output });
+};
+
+/** ================================================================ */
+const createWithdrawalTransaction = async (
+  data: IWalletWithdrawal,
   wallet: any,
   orderId?: string,
   feeInfo?: any
@@ -165,13 +200,16 @@ const createFundingTransaction = async (
     walletId,
   } = data;
 
-  // Calculate net amount after fee deduction
+  // Calculate fee and total deduction (amount + fee)
   const feeAmount = feeInfo?.feeAmount || 0;
-  const netAmount = amount - feeAmount;
+  const totalDeduction = amount + feeAmount;
+
+  // Calculate new balance (decrease immediately for withdrawal)
+  const newBalance = wallet.balance - totalDeduction;
 
   const transactionData = {
     category: "WALLET",
-    type: "FUND",
+    type: "WITHDRAW",
     amount: amount,
     currency: currency,
     wallet_id: walletId,
@@ -182,12 +220,12 @@ const createFundingTransaction = async (
     provider: provider,
     phone_number: phone,
     status: "PENDING",
-    description: `Wallet funding via ${provider}`,
+    description: `Wallet withdrawal via ${provider}`,
     wallet_balance_before: wallet.balance,
-    wallet_balance_after: wallet.balance, // Will be updated after successful payment
+    wallet_balance_after: newBalance, // Balance decreased immediately
     fee_amount: feeAmount,
     fee_id: feeInfo?.feeId || null,
-    net_amount: netAmount,
+    net_amount: amount, // The amount user receives (excluding fee)
   };
 
   const transactionResult = await TransactionModel.create(transactionData);
@@ -201,20 +239,23 @@ const createFundingTransaction = async (
 };
 
 /** ================================================================ */
-const processAfribapayFunding = async (data: IWalletFunding, wallet: any) => {
+const processAfribapayWithdrawal = async (
+  data: IWalletWithdrawal,
+  wallet: any
+) => {
   const { amount, phone, operator, orderId } = data;
 
   if (!phone) {
     return fnOutput.error({
       code: "BAD_ENTRY",
-      error: { message: "Phone number is required for Afribapay funding" },
+      error: { message: "Phone number is required for Afribapay withdrawal" },
     });
   }
 
   if (!operator) {
     return fnOutput.error({
       code: "BAD_ENTRY",
-      error: { message: "Operator is required for Afribapay funding" },
+      error: { message: "Operator is required for Afribapay withdrawal" },
     });
   }
 
@@ -230,13 +271,13 @@ const processAfribapayFunding = async (data: IWalletFunding, wallet: any) => {
       countryPhoneCode: countryPhoneCode,
     };
 
-    const afribapayResult = await initiateAfribapayCollect(afribapayData);
+    const afribapayResult = await initiateAfribapayPayout(afribapayData);
 
     if (afribapayResult.status !== 200) {
       return fnOutput.error({
         error: {
           message:
-            "Afribapay funding failed: " +
+            "Afribapay withdrawal failed: " +
             ((afribapayResult.data as any)?.message || "Unknown error"),
         },
       });
@@ -250,16 +291,16 @@ const processAfribapayFunding = async (data: IWalletFunding, wallet: any) => {
     });
   } catch (error: any) {
     return fnOutput.error({
-      error: { message: "Afribapay funding error: " + error.message },
+      error: { message: "Afribapay withdrawal error: " + error.message },
     });
   }
 };
 
 /** ================================================================ */
-export const fundWallet = async (data: IWalletFunding) => {
+export const withdrawFromWallet = async (data: IWalletWithdrawal) => {
   try {
     // Validate input
-    const validation = validateFundingRequest(data);
+    const validation = validateWithdrawalRequest(data);
     if (validation.error) {
       return validation;
     }
@@ -295,7 +336,7 @@ export const fundWallet = async (data: IWalletFunding) => {
     const feeResult = await calculateTransactionFee(
       companyId,
       amount,
-      "FUND",
+      "WITHDRAW",
       "WALLET",
       wallet.country_iso_code || "CM",
       currency
@@ -307,12 +348,22 @@ export const fundWallet = async (data: IWalletFunding) => {
 
     const feeInfo = feeResult.output;
 
+    // Check sufficient balance (including fees)
+    const balanceCheck = await checkWalletBalance(
+      wallet,
+      amount,
+      feeInfo.feeAmount
+    );
+    if (balanceCheck.error) {
+      return balanceCheck;
+    }
+
     // Process payment based on provider first
     let paymentResult;
 
     switch (provider.toLowerCase()) {
       case "afribapay":
-        paymentResult = await processAfribapayFunding(data, wallet);
+        paymentResult = await processAfribapayWithdrawal(data, wallet);
         break;
 
       default:
@@ -326,14 +377,26 @@ export const fundWallet = async (data: IWalletFunding) => {
       return paymentResult;
     }
 
-    // Only create transaction record if payment initiation was successful
-    const transactionResult = await createFundingTransaction(
+    // Calculate new balance (decrease immediately for withdrawal including fees)
+    const totalDeduction = amount + feeInfo.feeAmount;
+    const newBalance = wallet.balance - totalDeduction;
+
+    // Update wallet balance immediately on successful Afribapay response
+    const balanceUpdate = await updateWalletBalance(walletId, newBalance);
+    if (balanceUpdate.error) {
+      return balanceUpdate;
+    }
+
+    // Create transaction record with decreased balance
+    const transactionResult = await createWithdrawalTransaction(
       data,
-      wallet,
+      { ...wallet, balance: newBalance }, // Use updated balance
       paymentResult.output.orderId,
       feeInfo
     );
     if (transactionResult.error) {
+      // If transaction creation fails, we should refund the balance
+      await updateWalletBalance(walletId, wallet.balance);
       return transactionResult;
     }
 
@@ -352,44 +415,20 @@ export const fundWallet = async (data: IWalletFunding) => {
         transaction: transaction,
         paymentResult: paymentResult.output,
         feeInfo: feeInfo,
+        newBalance: newBalance,
+        totalDeducted: totalDeduction,
       },
     });
   } catch (error: any) {
     return fnOutput.error({
-      error: { message: "Wallet funding failed: " + error.message },
+      error: { message: "Wallet withdrawal failed: " + error.message },
     });
   }
 };
 
 /** ================================================================ */
-export const getWalletBalance = async (walletId: string) => {
-  try {
-    const walletResult = await WalletModel.getOne({ id: walletId });
-    if (walletResult.error) {
-      return walletResult;
-    }
-
-    const wallet = walletResult.output;
-
-    return fnOutput.success({
-      output: {
-        walletId: wallet.id,
-        balance: wallet.balance,
-        currency: wallet.currency,
-        country: wallet.country,
-      },
-    });
-  } catch (error: any) {
-    return fnOutput.error({
-      error: { message: "Failed to get wallet balance: " + error.message },
-    });
-  }
+const walletWithdrawalService = {
+  withdrawFromWallet,
 };
 
-/** ================================================================ */
-const walletFundingService = {
-  fundWallet,
-  getWalletBalance,
-};
-
-export default walletFundingService;
+export default walletWithdrawalService;

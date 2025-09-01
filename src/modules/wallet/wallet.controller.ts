@@ -10,6 +10,10 @@ import {
 } from "@nestjs/common";
 import { WalletService } from "./wallet.service";
 import { IWalletFunding } from "@/services/wallet/walletFunding.service";
+import {
+  IWalletWithdrawal,
+  withdrawFromWallet,
+} from "@/services/wallet/walletWithdrawal.service";
 
 export interface IWalletCreate {
   company_id: string;
@@ -57,6 +61,11 @@ export class WalletController {
   @Post("fund")
   async fundWallet(@Body() data: IWalletFunding) {
     return this.walletService.fundWallet(data);
+  }
+
+  @Post("withdraw")
+  async withdrawFromWallet(@Body() data: IWalletWithdrawal) {
+    return withdrawFromWallet(data);
   }
 
   @Get("balance/:walletId")
