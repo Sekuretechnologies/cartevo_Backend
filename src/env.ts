@@ -43,12 +43,12 @@ const env = cleanEnv(process.env, {
   /** ------------------------*/
   // CDF_TO_XAF_RATE: num(), // 1CDF = 0.20XAF ==> 1XAF = 5CDF
   /** ------------------------*/
-  // AFRIBAPAY_API_COLLECT_URL: str(),
-  // AFRIBAPAY_API_PAYOUT_URL: str(),
-  // AFRIBAPAY_API_AGENT_ID: str(),
-  // AFRIBAPAY_API_KEY: str(),
-  // AFRIBAPAY_API_USER: str(),
-  // AFRIBAPAY_API_MERCHANT: str(),
+  AFRIBAPAY_API_COLLECT_URL: str(),
+  AFRIBAPAY_API_PAYOUT_URL: str(),
+  AFRIBAPAY_API_AGENT_ID: str(),
+  AFRIBAPAY_API_KEY: str(),
+  AFRIBAPAY_API_USER: str(),
+  AFRIBAPAY_API_MERCHANT: str(),
   /** ------------------------*/
   /** Sudo Card Provider */
   SUDO_BASE_URL: str(),

@@ -158,12 +158,14 @@ model Wallet {
   currency        String
   country         String
   country_iso_code  String   @map("country_iso_code")
+  country_phone_code String? @map("country_phone_code")
   company_id       String   @map("company_id")
   created_at       DateTime @default(now()) @map("created_at")
   updated_at       DateTime @updatedAt @map("updated_at")
 
   company Company @relation(fields: [company_id], references: [id])
   transactions Transaction[]
+  phoneNumbers WalletPhoneNumber[]
 
   @@unique([company_id, currency], name: "company_id_currency")
   @@map("wallets")
@@ -273,7 +275,7 @@ model Transaction {
   category            String          @map("category")
   type                String          @map("type")
   mcc                 String?         @map("mcc")
-  mid                 String?          @map("mid")  
+  mid                 String?          @map("mid")
   merchant            Json?          @map("merchant")
   card_id             String?          @map("card_id")
   wallet_id          String?          @map("wallet_id")
@@ -281,6 +283,8 @@ model Transaction {
   company_id          String             @map("company_id")
   order_id            String?         @map("order_id")
   provider            String?         @map("provider")
+  phone_number        String?         @map("phone_number")
+  operator            String?         @map("operator")
   status              String          @default("PENDING") @map("status")
   description         String?         @map("description")
   reason              String?         @map("reason")
@@ -413,4 +417,37 @@ enum StepStatus {
   IN_PROGRESS
   COMPLETED
   FAILED
+}
+
+model WalletPhoneNumber {
+  id                String   @id @default(uuid())
+  wallet_id         String   @map("wallet_id")
+  country_iso_code  String   @map("country_iso_code")
+  country_phone_code String  @map("country_phone_code")
+  currency          String
+  phone_number      String   @map("phone_number")
+  operator          String
+  created_at        DateTime @default(now()) @map("created_at")
+  updated_at        DateTime @updatedAt @map("updated_at")
+
+  wallet Wallet @relation(fields: [wallet_id], references: [id], onDelete: Cascade)
+
+  @@unique([wallet_id, phone_number])
+  @@map("wallet_phone_numbers")
+}
+
+model WalletPhoneOperator {
+  id                String   @id @default(uuid())
+  country_iso_code  String   @map("country_iso_code")
+  country_phone_code String  @map("country_phone_code")
+  currency          String
+  operator_code     String   @map("operator_code")
+  operator_name     String   @map("operator_name")
+  otp_required      Boolean  @default(false) @map("otp_required")
+  ussd_code         String?  @map("ussd_code")
+  created_at        DateTime @default(now()) @map("created_at")
+  updated_at        DateTime @updatedAt @map("updated_at")
+
+  @@unique([country_iso_code, currency, operator_code])
+  @@map("wallet_phone_operators")
 }
