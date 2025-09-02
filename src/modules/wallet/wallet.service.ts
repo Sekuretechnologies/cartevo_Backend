@@ -11,7 +11,7 @@ export interface IWalletCreate {
   currency: string;
   country: string;
   country_iso_code: string;
-  country_phone_code?: string;
+  country_phone_code: string;
 }
 
 // { currency: string; country_iso_code: string }
@@ -155,7 +155,7 @@ export class WalletService {
     }
   }
 
-  async fundWallet(companyId: string, data: IWalletFunding) {
+  async fundWallet(data: IWalletFunding) {
     return fundWallet(data);
   }
 

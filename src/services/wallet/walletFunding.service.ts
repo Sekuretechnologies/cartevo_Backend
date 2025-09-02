@@ -17,20 +17,13 @@ export interface IWalletFunding {
   email?: string;
   orderId?: string;
   companyId: string;
-  customerId: string;
+  userId: string;
 }
 
 /** ================================================================ */
 const validateFundingRequest = (data: IWalletFunding) => {
-  const {
-    walletId,
-    amount,
-    currency,
-    provider,
-    operator,
-    companyId,
-    customerId,
-  } = data;
+  const { walletId, amount, currency, provider, operator, companyId, userId } =
+    data;
 
   if (!walletId) {
     return fnOutput.error({
@@ -81,10 +74,10 @@ const validateFundingRequest = (data: IWalletFunding) => {
     });
   }
 
-  if (!customerId) {
+  if (!userId) {
     return fnOutput.error({
       code: "BAD_ENTRY",
-      error: { message: "Customer ID is required" },
+      error: { message: "User ID is required" },
     });
   }
 
@@ -161,7 +154,7 @@ const createFundingTransaction = async (
     provider,
     phone,
     companyId,
-    customerId,
+    userId,
     walletId,
   } = data;
 
@@ -175,14 +168,14 @@ const createFundingTransaction = async (
     amount: amount,
     currency: currency,
     wallet_id: walletId,
-    customer_id: customerId,
+    user_id: userId,
     company_id: companyId,
     order_id: orderId || uuidv4(),
     operator: operator,
     provider: provider,
     phone_number: phone,
     status: "PENDING",
-    description: `Wallet funding via ${provider}`,
+    description: `Wallet funding of ${amount} ${currency} via ${operator}. Phone: ${phone}`,
     wallet_balance_before: wallet.balance,
     wallet_balance_after: wallet.balance, // Will be updated after successful payment
     fee_amount: feeAmount,
@@ -264,8 +257,7 @@ export const fundWallet = async (data: IWalletFunding) => {
       return validation;
     }
 
-    const { walletId, amount, currency, provider, companyId, customerId } =
-      data;
+    const { walletId, amount, currency, provider, companyId, userId } = data;
 
     // Get wallet details
     const walletResult = await getWalletDetails(walletId);

@@ -21,6 +21,10 @@ import {
   CurrentBusiness,
   CurrentBusinessData,
 } from "../common/decorators/current-business.decorator";
+import {
+  CurrentUser,
+  CurrentUserData,
+} from "../common/decorators/current-user.decorator";
 
 // export interface IWalletCreate {
 //   company_id: string;
@@ -81,12 +85,28 @@ export class WalletController {
     return this.walletService.deleteWallet(business.businessId, id);
   }
 
-  @Post("fund")
+  @Put("fund/:id")
   async fundWallet(
     @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
+    @Param("id") walletId: string,
     @Body() data: IWalletFunding
   ) {
-    return this.walletService.fundWallet(business.businessId, data);
+    console.log("Current user:", user.userId, user.email);
+    console.log("Current business:", business.businessId);
+    const fundData: IWalletFunding = {
+      walletId: walletId,
+      companyId: business.businessId,
+      userId: user.userId,
+      amount: data.amount,
+      currency: data.currency,
+      provider: "afribapay",
+      operator: data.operator || "mtn",
+      phone: data.phone,
+      // email: "",
+      // orderId: "",
+    };
+    return this.walletService.fundWallet(fundData);
   }
 
   @Post("withdraw")

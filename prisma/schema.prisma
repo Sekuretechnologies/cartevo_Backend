@@ -24,7 +24,7 @@ model Company {
   is_active      Boolean  @default(true) @map("is_active")
   step          Int      @default(1) // 1 = personal info completed, 2 = business info completed
   kyb_status    KybStatus @default(NONE) @map("kyb_status") // KYB (Know Your Business) status
-  
+  access_level                String?  @map("access_level")
   // Business information fields (Step 2)
   business_name         String?  @map("business_name")
   business_phone_number String?  @map("business_phone_number")
@@ -121,6 +121,7 @@ model User {
 
   company          Company           @relation(fields: [company_id], references: [id])
   userCompanyRoles UserCompanyRole[]
+  transactions Transaction[]
 
   @@map("users")
 }
@@ -279,7 +280,8 @@ model Transaction {
   merchant            Json?          @map("merchant")
   card_id             String?          @map("card_id")
   wallet_id          String?          @map("wallet_id")
-  customer_id         String          @map("customer_id")
+  customer_id         String?          @map("customer_id")
+  user_id             String?          @map("user_id")
   company_id          String             @map("company_id")
   order_id            String?         @map("order_id")
   provider            String?         @map("provider")
@@ -292,15 +294,16 @@ model Transaction {
   card_balance_after   Decimal?         @map("card_balance_after") @db.Decimal(15, 2)
   wallet_balance_before Decimal?         @map("wallet_balance_before") @db.Decimal(15, 2)
   wallet_balance_after  Decimal?         @map("wallet_balance_after") @db.Decimal(15, 2)
-  amount              Decimal         @db.Decimal(15, 2)
-  currency            String          @map("currency")
+  amount              Decimal          @db.Decimal(15, 2)
+  currency            String           @map("currency")
   reference           String?
   created_at           DateTime        @default(now()) @map("created_at")
   updated_at           DateTime        @default(now()) @map("updated_at")
 
   card Card? @relation(fields: [card_id], references: [id])
   wallet Wallet? @relation(fields: [wallet_id], references: [id])
-  customer Customer @relation(fields: [customer_id], references: [id])
+  user User? @relation(fields: [user_id], references: [id])
+  customer Customer? @relation(fields: [customer_id], references: [id])
   company Company @relation(fields: [company_id], references: [id])
 
   notifications Notification[]
@@ -343,6 +346,19 @@ model Notification {
 }
 
 model CustomerLogs {
+  id                  String   @id @default(uuid())
+  created_at          DateTime @default(now())
+  log_json            Json?
+  log_txt             String?
+  action              String?
+  company_id          String?
+  customer_id         String?
+  transaction_id      String?
+  status              String?
+  customer_phone_number String?
+}
+
+model UserLogs {
   id                  String   @id @default(uuid())
   created_at          DateTime @default(now())
   log_json            Json?
