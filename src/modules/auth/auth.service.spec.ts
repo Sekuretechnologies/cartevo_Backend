@@ -90,6 +90,7 @@ describe("AuthService", () => {
         incorporation_certificate: "incorporation_cert.pdf",
         business_proof_of_address: "business_address_proof.pdf",
         memart: "Test Memart",
+        access_level: "basic",
       };
 
       jest
@@ -158,6 +159,7 @@ describe("AuthService", () => {
         incorporation_certificate: "incorporation_cert.pdf",
         business_proof_of_address: "business_address_proof.pdf",
         memart: "Test Memart",
+        access_level: "basic",
       };
 
       jest
