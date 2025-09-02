@@ -72,19 +72,18 @@ export class AuthService {
     }
   }
 
-  async forgotPassword(id: string, email: string) {
+  async forgotPassword(email: string) {
     try {
       const user = await this.prisma.user.findUnique({
-        where: { id },
+        where: { email },
       });
 
-      if (!user || user.email !== email) {
+      if (!user) {
         throw new NotFoundException("User not found");
       }
 
       // generate JWt token
       const payload = {
-        sub: user.id,
         email: user.email,
       };
 
@@ -94,20 +93,27 @@ export class AuthService {
         expiresIn: "15m",
       });
 
-      const resetLink = `https://yourfrontend.com/reset-password?token=${token}&id=${user.id}`;
+      const frontUrl = process.env.FRONTEND_URL || "localhost:3000";
 
-      //envoie du mail contenant le lien de reinitialisation
+      const resetLink = `${frontUrl}/reset-password?token=${token}`;
+
+      console.log("resetLink", resetLink);
+
+      const linkExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+      envoie du mail contenant le lien de reinitialisation
       await this.emailService.resetPasswordEmail(
         email,
         resetLink,
         user.first_name
       );
 
-      // mise a jour du token dans la base de donnee
+      // mise a jour du token et de sa duree de validitee dans la base de donnee
       await this.prisma.user.update({
-        where: { id },
+        where: { email },
         data: {
           otp: token,
+          otp_expires: linkExpiresAt,
         },
       });
 
@@ -124,19 +130,35 @@ export class AuthService {
     }
   }
 
-  async resetPassword(id: string, token: string, newPassword: string) {
+  async resetPassword(token: string, newPassword: string) {
     try {
+      let decoded: { email: string };
+      try {
+        decoded = this.jwtService.verify(token, {
+          secret: process.env.JWT_SECRET,
+        }) as any;
+      } catch (err) {
+        if (err.name === "TokenExpiredError") {
+          throw new UnauthorizedException("Token has expired");
+        }
+        throw new UnauthorizedException("Invalid token");
+      }
+
       const user = await this.prisma.user.findUnique({
-        where: { id },
+        where: { email: decoded.email },
       });
 
       if (!user) {
         throw new NotFoundException("User not found");
       }
 
+      if (user.otp_expires < new Date()) {
+        throw new UnauthorizedException("Token has expired");
+      }
+
       // verification du token
       if (user.otp !== token) {
-        throw new UnauthorizedException("Invalid or expired token");
+        throw new UnauthorizedException("Invalid token");
       }
 
       // hashage du nouveau mot de passe
@@ -144,10 +166,11 @@ export class AuthService {
 
       // mise a jour du mot de passe dans la base de donnee
       await this.prisma.user.update({
-        where: { id },
+        where: { email: decoded.email },
         data: {
           password: hashedPassword,
           otp: null,
+          otp_expires: null,
         },
       });
 
