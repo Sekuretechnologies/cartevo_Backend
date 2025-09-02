@@ -8,7 +8,7 @@ const getOrGenerateAfribapayToken = async (): Promise<string> => {
   let token = await tokenCache.getAfribapayToken("afribapayToken");
   if (!token) {
     const responseData: any = await generateAfribapayToken();
-    token = responseData.access_token;
+    token = responseData.data.access_token;
     if (!token) {
       throw new Error(
         "Failed to obtain access token from Afribapay API. Response: " +
@@ -55,7 +55,7 @@ export const generateAfribapayToken = async () => {
 
     const responseData: any = response.data;
     // Cache the token for 1 hour (3600 seconds)
-    let token = responseData?.access_token || responseData?.token;
+    let token = responseData?.data.access_token || responseData?.data.token;
     if (response.data && token) {
       await tokenCache.setAfribapayToken("afribapayToken", token, 3600);
     }
