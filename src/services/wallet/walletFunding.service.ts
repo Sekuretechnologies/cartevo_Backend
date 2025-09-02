@@ -160,7 +160,7 @@ const createFundingTransaction = async (
 
   // Calculate net amount after fee deduction
   const feeAmount = feeInfo?.feeAmount || 0;
-  const netAmount = amount - feeAmount;
+  const grossAmount = amount + feeAmount;
 
   const transactionData = {
     category: "WALLET",
@@ -180,7 +180,8 @@ const createFundingTransaction = async (
     wallet_balance_after: wallet.balance, // Will be updated after successful payment
     fee_amount: feeAmount,
     fee_id: feeInfo?.feeId || null,
-    net_amount: netAmount,
+    net_amount: amount,
+    amount_with_fee: grossAmount,
   };
 
   const transactionResult = await TransactionModel.create(transactionData);

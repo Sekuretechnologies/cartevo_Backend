@@ -296,6 +296,10 @@ model Transaction {
   wallet_balance_after  Decimal?         @map("wallet_balance_after") @db.Decimal(15, 2)
   amount              Decimal          @db.Decimal(15, 2)
   currency            String           @map("currency")
+  fee_amount          Decimal?         @db.Decimal(15, 2) @map("fee_amount")
+  fee_id              String?          @map("fee_id")
+  net_amount          Decimal?         @db.Decimal(15, 2) @map("net_amount")
+  amount_with_fee     Decimal?         @db.Decimal(15, 2) @map("amount_with_fee")
   reference           String?
   created_at           DateTime        @default(now()) @map("created_at")
   updated_at           DateTime        @default(now()) @map("updated_at")
