@@ -228,23 +228,25 @@ const processAfribapayFunding = async (data: IWalletFunding, wallet: any) => {
       countryPhoneCode: countryPhoneCode,
     };
 
-    const afribapayResult: any = await initiateAfribapayCollect(afribapayData);
+    const afribapayResponse: any = await initiateAfribapayCollect(
+      afribapayData
+    );
 
-    if (afribapayResult.status !== 200) {
+    if (afribapayResponse.status !== 200) {
       return fnOutput.error({
         error: {
           message:
             "Afribapay funding failed: " +
-            ((afribapayResult.data as any)?.message || "Unknown error"),
+            ((afribapayResponse.data as any)?.message || "Unknown error"),
         },
       });
     }
 
-    console.log("afribapayResult :: ", afribapayResult);
+    console.log("afribapayResponse.data :: ", afribapayResponse.data);
 
     return fnOutput.success({
       output: {
-        providerResponse: afribapayResult?.data?.data,
+        providerResponse: afribapayResponse?.data?.data,
         orderId: afribapayData.orderId,
       },
     });

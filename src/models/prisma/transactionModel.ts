@@ -21,7 +21,14 @@ class TransactionModel {
   static async getOne(filters: FilterObject, include: IncludeObject = {}) {
     try {
       const result = await prisma.transaction.findFirst(
-        buildPrismaQuery({ filters, include })
+        buildPrismaQuery({
+          filters,
+          include: {
+            wallet: true,
+            user: true,
+            customer: true,
+          },
+        })
       );
       if (!result) {
         return fnOutput.error({
@@ -41,7 +48,14 @@ class TransactionModel {
   static async get(filters?: FilterObject) {
     try {
       const result = await prisma.transaction.findMany(
-        buildPrismaQuery({ filters })
+        buildPrismaQuery({
+          filters,
+          include: {
+            wallet: true,
+            user: true,
+            customer: true,
+          },
+        })
       );
       return fnOutput.success({ output: result });
     } catch (error: any) {

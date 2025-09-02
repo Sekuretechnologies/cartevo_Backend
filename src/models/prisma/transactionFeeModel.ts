@@ -244,8 +244,10 @@ class TransactionFeeModel {
         currency
       );
 
+      console.log("feeResult --------------- :: ", feeResult);
+
       if (feeResult.error) {
-        return feeResult;
+        throw feeResult.error;
       }
 
       const fee = feeResult.output;
@@ -261,6 +263,18 @@ class TransactionFeeModel {
       if (fee.fee_fixed) {
         calculatedFee += parseFloat(fee.fee_fixed.toString());
       }
+
+      console.log("calculateFee  Result --------------- :: ", {
+        feeAmount: calculatedFee,
+        feeType: fee.type,
+        feeValue: parseFloat(fee.value.toString()),
+        feeFixed: fee.fee_fixed ? parseFloat(fee.fee_fixed.toString()) : 0,
+        feePercentage: fee.fee_percentage
+          ? parseFloat(fee.fee_percentage.toString())
+          : 0,
+        feeId: fee.id,
+        description: fee.description,
+      });
 
       return fnOutput.success({
         output: {
