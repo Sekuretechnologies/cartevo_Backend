@@ -145,8 +145,7 @@ export const initiateAfribapayCollect = async ({
       currency,
       order_id: orderId,
       merchant_key: env.AFRIBAPAY_API_MERCHANT,
-      notify_url:
-        "https://apigetsekure.com/api/v2/webhook/transactions/wallet/update-afribapay-transaction-status",
+      notify_url: "https://cartevo.co/api/v1/webhook/afribapay",
       // reference_id: 'ref-Banana-House',
       // lang: 'fr',
       // return_url: 'https://example.com/success',

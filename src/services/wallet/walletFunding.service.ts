@@ -235,6 +235,8 @@ const processAfribapayFunding = async (data: IWalletFunding, wallet: any) => {
       });
     }
 
+    console.log("afribapayResult :: ", afribapayResult);
+
     return fnOutput.success({
       output: {
         providerResponse: afribapayResult.data,
@@ -242,6 +244,15 @@ const processAfribapayFunding = async (data: IWalletFunding, wallet: any) => {
       },
     });
   } catch (error: any) {
+    console.log(`initiateAfribapayCollect error:`);
+    console.log("------------------------------------------");
+    console.log("error.message :: ", error.message);
+    console.log("------------------------------------------");
+    console.log("error?.response?.data :: ", error?.response?.data);
+    console.log("------------------------------------------");
+    // console.log("error :: ", error);
+    // console.log("------------------------------------------");
+    // console.log("initiateAfribapayCollect config :: ", afribapayResult);
     return fnOutput.error({
       error: { message: "Afribapay funding error: " + error.message },
     });
