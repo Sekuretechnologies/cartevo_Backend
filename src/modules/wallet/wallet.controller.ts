@@ -39,7 +39,7 @@ export interface IWalletUpdate {
 @ApiTags("Wallets")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller("wallet")
+@Controller("wallets")
 export class WalletController {
   constructor(private readonly walletService: WalletService) {}
 
