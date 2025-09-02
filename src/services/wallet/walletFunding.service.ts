@@ -342,14 +342,15 @@ export const fundWallet = async (
       paymentResult.output.orderId,
       feeInfo
     );
-    if (transactionResult.error) {
-      return transactionResult;
-    }
 
     console.log(
       "createFundingTransaction --------------------- :: ",
       transactionResult
     );
+
+    if (transactionResult.error) {
+      return transactionResult;
+    }
 
     const transaction = transactionResult.output;
 
