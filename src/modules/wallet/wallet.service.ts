@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import {
   fundWallet,
   getWalletBalance,
@@ -39,8 +39,12 @@ export class WalletService {
       console.log("----------------------------------");
 
       const result = await WalletModel.create(walletData);
-      return result;
+      const wallet = result.output;
+      return { data: wallet };
     } catch (error: any) {
+      throw new BadRequestException(
+        "Failed to create wallet: " + error.message
+      );
       return fnOutput.error({
         error: { message: "Failed to create wallet: " + error.message },
       });
@@ -70,11 +74,12 @@ export class WalletService {
         })
       );
 
-      return fnOutput.success({ output: walletsWithOperators });
+      return { data: walletsWithOperators };
     } catch (error: any) {
-      return fnOutput.error({
-        error: { message: "Failed to get wallets: " + error.message },
-      });
+      throw new BadRequestException("Failed to get wallets: " + error.message);
+      // return fnOutput.error({
+      //   error: { message: "Failed to get wallets: " + error.message },
+      // });
     }
   }
 
