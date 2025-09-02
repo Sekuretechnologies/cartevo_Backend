@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+} from "@nestjs/common";
 import {
   fundWallet,
   getWalletBalance,
@@ -6,7 +11,7 @@ import {
 } from "@/services/wallet/walletFunding.service";
 import WalletModel from "@/models/prisma/walletModel";
 import WalletPhoneOperatorModel from "@/models/prisma/walletPhoneOperatorModel";
-import fnOutput from "@/utils/shared/fnOutputHandler";
+import fnOutput, { OutputProps } from "@/utils/shared/fnOutputHandler";
 export interface IWalletCreate {
   currency: string;
   country: string;
@@ -156,7 +161,15 @@ export class WalletService {
   }
 
   async fundWallet(data: IWalletFunding) {
-    return fundWallet(data);
+    const dataResult: OutputProps = await fundWallet(data);
+    if (dataResult?.error) {
+      throw new HttpException(
+        "Transaction not found",
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+
+    return { data: dataResult.output };
   }
 
   async getWalletBalance(companyId: string, walletId: string) {

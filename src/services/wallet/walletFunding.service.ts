@@ -1,5 +1,5 @@
 import env from "@/env";
-import fnOutput from "@/utils/shared/fnOutputHandler";
+import fnOutput, { OutputProps } from "@/utils/shared/fnOutputHandler";
 import WalletModel from "@/models/prisma/walletModel";
 import TransactionModel from "@/models/prisma/transactionModel";
 import TransactionFeeModel from "@/models/prisma/transactionFeeModel";
@@ -260,7 +260,9 @@ const processAfribapayFunding = async (data: IWalletFunding, wallet: any) => {
 };
 
 /** ================================================================ */
-export const fundWallet = async (data: IWalletFunding) => {
+export const fundWallet = async (
+  data: IWalletFunding
+): Promise<OutputProps> => {
   try {
     // Validate input
     const validation = validateFundingRequest(data);
