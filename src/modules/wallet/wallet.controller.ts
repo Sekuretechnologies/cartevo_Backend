@@ -88,16 +88,16 @@ export class WalletController {
   @Post("fund")
   async fundWallet(
     @CurrentBusiness() business: CurrentBusinessData,
-    @CurrentUser() user: CurrentUserData,
+    // @CurrentUser() user: CurrentUserData,
     // @Param("id") walletId: string,
     @Body() data: IWalletFunding
   ) {
-    console.log("Current user:", user.userId, user.email);
+    console.log("Current user:", data.userId);
     console.log("Current business:", business.businessId);
     const fundData: IWalletFunding = {
       walletId: data.walletId,
       companyId: business.businessId,
-      userId: user.userId,
+      userId: data.userId,
       amount: data.amount,
       currency: data.currency,
       provider: "afribapay",
