@@ -223,7 +223,7 @@ const processAfribapayFunding = async (data: IWalletFunding, wallet: any) => {
       countryPhoneCode: countryPhoneCode,
     };
 
-    const afribapayResult = await initiateAfribapayCollect(afribapayData);
+    const afribapayResult: any = await initiateAfribapayCollect(afribapayData);
 
     if (afribapayResult.status !== 200) {
       return fnOutput.error({
@@ -239,7 +239,7 @@ const processAfribapayFunding = async (data: IWalletFunding, wallet: any) => {
 
     return fnOutput.success({
       output: {
-        providerResponse: afribapayResult.data,
+        providerResponse: afribapayResult?.data?.data,
         orderId: afribapayData.orderId,
       },
     });
@@ -312,8 +312,10 @@ export const fundWallet = async (
 
     const feeInfo = feeResult.output;
 
+    console.log("feeInfo ----------------- :: ", feeInfo);
+
     // Process payment based on provider first
-    let paymentResult;
+    let paymentResult: any = {};
 
     switch (provider.toLowerCase()) {
       case "afribapay":
@@ -326,6 +328,8 @@ export const fundWallet = async (
           error: { message: "Unsupported payment provider" },
         });
     }
+
+    console.log("paymentResult --------------------- :: ", paymentResult);
 
     if (paymentResult.error) {
       return paymentResult;
@@ -341,6 +345,11 @@ export const fundWallet = async (
     if (transactionResult.error) {
       return transactionResult;
     }
+
+    console.log(
+      "createFundingTransaction --------------------- :: ",
+      transactionResult
+    );
 
     const transaction = transactionResult.output;
 
