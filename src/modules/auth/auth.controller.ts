@@ -42,8 +42,8 @@ export class AuthController {
     description: "Password reset email sent successfully.",
   })
   @ApiResponse({ status: 404, description: "User not found." })
-  async forgotPassword(@Body() body: { id: string; email: string }) {
-    return this.authService.forgotPassword(body.id, body.email);
+  async forgotPassword(@Body() body: { email: string }) {
+    return this.authService.forgotPassword(body.email);
   }
 
   @Post("reset-password")
@@ -52,13 +52,7 @@ export class AuthController {
     summary: "Reset password",
     description: "Reset a user's password using a valid token.",
   })
-  async resetPassword(
-    @Body() datas: { id: string; token: string; newPassword: string }
-  ) {
-    return this.authService.resetPassword(
-      datas.id,
-      datas.token,
-      datas.newPassword
-    );
+  async resetPassword(@Body() datas: { token: string; newPassword: string }) {
+    return this.authService.resetPassword(datas.token, datas.newPassword);
   }
 }
