@@ -189,8 +189,9 @@ export class UserService {
     };
   }
 
-  async login(loginDto: LoginDto): Promise<LoginSuccessResponseDto> {
+  async login(loginDto: LoginDto): Promise<AuthResponseDto> {
     // AuthResponseDto
+    // LoginSuccessResponseDto
 
     // Find active user
     const userResult = await UserModel.getOne(
@@ -251,42 +252,46 @@ export class UserService {
     const completedCount: number = steps.filter(
       (step: any) => step.status === "COMPLETED"
     ).length;
+
     // -------------------------------------------------
-
-    return {
-      success: true,
-      message: redirectMessage,
-      access_token: accessToken,
-      user: await this.mapToResponseDto(user),
-      company: {
-        id: user.company.id,
-        name: user.company.name,
-        country: user.company.country,
-        is_onboarding_completed: totalCount === completedCount,
-      },
-      redirect_to: redirectTo,
-    };
-
-    // // Generate and store OTP
-    // const otp = this.generateOTP();
-    // const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-    // const otpUpdateResult = await UserModel.update(user.id, {
-    //   otp,
-    //   otp_expires: otpExpires,
-    // });
-    // if (otpUpdateResult.error) {
-    //   throw new BadRequestException(otpUpdateResult.error.message);
-    // }
-
-    // // Send OTP email
-    // await this.emailService.sendOtpEmail(user.email, otp, user.full_name);
 
     // return {
     //   success: true,
-    //   message: `OTP sent to ${user.email}. Please verify to complete login.`,
-    //   requires_otp: true,
+    //   message: redirectMessage,
+    //   access_token: accessToken,
+    //   user: await this.mapToResponseDto(user),
+    //   company: {
+    //     id: user.company.id,
+    //     name: user.company.name,
+    //     country: user.company.country,
+    //     is_onboarding_completed: totalCount === completedCount,
+    //   },
+    //   redirect_to: redirectTo,
     // };
+
+    // -------------------------------------------------
+
+    // Generate and store OTP
+    const otp = this.generateOTP();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    const otpUpdateResult = await UserModel.update(user.id, {
+      otp,
+      otp_expires: otpExpires,
+    });
+    if (otpUpdateResult.error) {
+      throw new BadRequestException(otpUpdateResult.error.message);
+    }
+
+    // Send OTP email
+    await this.emailService.sendOtpEmail(user.email, otp, user.full_name);
+
+    return {
+      success: true,
+      message: `OTP sent to ${user.email}. Please verify to complete login.`,
+      requires_otp: true,
+    };
+    // -------------------------------------------------
   }
 
   async verifyOtp(
@@ -407,6 +412,8 @@ export class UserService {
     //   redirectMessage =
     //     "Your account is under review. Please wait for KYC/KYB completion.";
     // }
+
+    // -------------------------------------------------
 
     return {
       success: true,
