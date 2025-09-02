@@ -85,17 +85,17 @@ export class WalletController {
     return this.walletService.deleteWallet(business.businessId, id);
   }
 
-  @Put("fund/:id")
+  @Post("fund")
   async fundWallet(
     @CurrentBusiness() business: CurrentBusinessData,
     @CurrentUser() user: CurrentUserData,
-    @Param("id") walletId: string,
+    // @Param("id") walletId: string,
     @Body() data: IWalletFunding
   ) {
     console.log("Current user:", user.userId, user.email);
     console.log("Current business:", business.businessId);
     const fundData: IWalletFunding = {
-      walletId: walletId,
+      walletId: data.walletId,
       companyId: business.businessId,
       userId: user.userId,
       amount: data.amount,
