@@ -8,12 +8,13 @@ import WalletModel from "@/models/prisma/walletModel";
 import WalletPhoneOperatorModel from "@/models/prisma/walletPhoneOperatorModel";
 import fnOutput from "@/utils/shared/fnOutputHandler";
 export interface IWalletCreate {
-  company_id: string;
   currency: string;
   country: string;
   country_iso_code: string;
   country_phone_code?: string;
 }
+
+// { currency: string; country_iso_code: string }
 
 export interface IWalletUpdate {
   balance?: number;
@@ -23,12 +24,13 @@ export interface IWalletUpdate {
 
 @Injectable()
 export class WalletService {
-  async createWallet(data: IWalletCreate) {
+  async createWallet(companyId: string, data: IWalletCreate) {
     try {
       const walletData = {
         ...data,
         balance: 0,
         active: true,
+        company_id: companyId,
       };
 
       const result = await WalletModel.create(walletData);
@@ -71,9 +73,9 @@ export class WalletService {
     }
   }
 
-  async getWalletById(id: string) {
+  async getWalletById(companyId: string, id: string) {
     try {
-      const wallet = await WalletModel.getOne({ id });
+      const wallet = await WalletModel.getOne({ id, company_id: companyId });
 
       if (wallet.error) {
         return wallet;
@@ -98,9 +100,15 @@ export class WalletService {
     }
   }
 
-  async updateWallet(id: string, data: IWalletUpdate) {
+  async updateWallet(companyId: string, id: string, data: IWalletUpdate) {
     try {
-      const result = await WalletModel.update(id, data);
+      const result = await WalletModel.update(
+        {
+          id,
+          company_id: companyId,
+        },
+        data
+      );
       return result;
     } catch (error: any) {
       return fnOutput.error({
@@ -109,9 +117,12 @@ export class WalletService {
     }
   }
 
-  async deleteWallet(id: string) {
+  async deleteWallet(companyId: string, id: string) {
     try {
-      const result = await WalletModel.delete(id);
+      const result = await WalletModel.delete({
+        id,
+        company_id: companyId,
+      });
       return result;
     } catch (error: any) {
       return fnOutput.error({
@@ -134,12 +145,11 @@ export class WalletService {
     }
   }
 
-  async fundWallet(data: IWalletFunding) {
+  async fundWallet(companyId: string, data: IWalletFunding) {
     return fundWallet(data);
   }
 
-  async getWalletBalance(walletId: string) {
+  async getWalletBalance(companyId: string, walletId: string) {
     return getWalletBalance(walletId);
   }
-
 }
