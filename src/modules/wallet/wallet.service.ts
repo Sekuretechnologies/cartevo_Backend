@@ -32,6 +32,11 @@ export class WalletService {
         active: true,
         company_id: companyId,
       };
+      console.log("createWallet ----------------------------------");
+
+      console.log("walletData :: ", walletData);
+
+      console.log("----------------------------------");
 
       const result = await WalletModel.create(walletData);
       return result;
