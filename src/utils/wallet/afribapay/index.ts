@@ -7,12 +7,12 @@ import fnOutput from "@/utils/shared/fnOutputHandler";
 const getOrGenerateAfribapayToken = async (): Promise<string> => {
   let token = await tokenCache.getAfribapayToken("afribapayToken");
   if (!token) {
-    const response = await generateAfribapayToken();
-    token = (response.data as any).access_token || (response.data as any).token;
+    const responseData: any = await generateAfribapayToken();
+    token = responseData.access_token;
     if (!token) {
       throw new Error(
         "Failed to obtain access token from Afribapay API. Response: " +
-          JSON.stringify(response.data)
+          JSON.stringify(responseData)
       );
     }
   }
@@ -53,16 +53,16 @@ export const generateAfribapayToken = async () => {
 
     console.log("generateAfribapayToken response :: ", response.data);
 
+    const responseData: any = response.data;
     // Cache the token for 1 hour (3600 seconds)
-    let token =
-      (response.data as any).access_token || (response.data as any).token;
+    let token = responseData?.access_token || responseData?.token;
     if (response.data && token) {
       await tokenCache.setAfribapayToken("afribapayToken", token, 3600);
     }
 
     console.log("########################################");
 
-    return response;
+    return responseData;
   } catch (error: any) {
     console.log("generateAfribapayToken error:");
     console.log("------------------------------------------");
