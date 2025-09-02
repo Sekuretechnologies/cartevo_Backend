@@ -191,6 +191,7 @@ export class UserService {
 
   async login(loginDto: LoginDto): Promise<LoginSuccessResponseDto> {
     // AuthResponseDto
+    // LoginSuccessResponseDto
 
     // Find active user
     const userResult = await UserModel.getOne(
@@ -251,6 +252,7 @@ export class UserService {
     const completedCount: number = steps.filter(
       (step: any) => step.status === "COMPLETED"
     ).length;
+
     // -------------------------------------------------
 
     return {
@@ -266,6 +268,8 @@ export class UserService {
       },
       redirect_to: redirectTo,
     };
+
+    // -------------------------------------------------
 
     // // Generate and store OTP
     // const otp = this.generateOTP();
@@ -287,6 +291,7 @@ export class UserService {
     //   message: `OTP sent to ${user.email}. Please verify to complete login.`,
     //   requires_otp: true,
     // };
+    // -------------------------------------------------
   }
 
   async verifyOtp(
@@ -407,6 +412,8 @@ export class UserService {
     //   redirectMessage =
     //     "Your account is under review. Please wait for KYC/KYB completion.";
     // }
+
+    // -------------------------------------------------
 
     return {
       success: true,

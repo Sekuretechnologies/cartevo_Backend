@@ -101,7 +101,7 @@ export class AuthService {
 
       const linkExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
-      envoie du mail contenant le lien de reinitialisation
+      // envoie du mail contenant le lien de reinitialisation
       await this.emailService.resetPasswordEmail(
         email,
         resetLink,
