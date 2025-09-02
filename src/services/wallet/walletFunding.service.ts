@@ -186,7 +186,11 @@ const createFundingTransaction = async (
   const transactionResult = await TransactionModel.create(transactionData);
   if (transactionResult.error) {
     return fnOutput.error({
-      error: { message: "Failed to create transaction record" },
+      error: {
+        message:
+          "Failed to create transaction record : " +
+          transactionResult.error?.message,
+      },
     });
   }
 
@@ -332,7 +336,7 @@ export const fundWallet = async (
     console.log("paymentResult --------------------- :: ", paymentResult);
 
     if (paymentResult.error) {
-      return paymentResult;
+      throw paymentResult.error;
     }
 
     // Only create transaction record if payment initiation was successful
@@ -349,7 +353,7 @@ export const fundWallet = async (
     );
 
     if (transactionResult.error) {
-      return transactionResult;
+      throw transactionResult.error;
     }
 
     const transaction = transactionResult.output;
