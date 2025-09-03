@@ -392,7 +392,7 @@ export const fundWallet = async (
           (phoneRecord: any) => phoneRecord.phone_number === data.phone
         );
 
-        if (!phoneExists) {
+        if (!phoneExists && existingPhoneNumbers.output <= 3) {
           // Create new wallet phone number record
           const phoneData = {
             wallet_id: data.walletId,
