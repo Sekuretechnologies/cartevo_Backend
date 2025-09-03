@@ -187,6 +187,14 @@ class TransactionFeeModel {
     countryIsoCode: string,
     currency: string
   ) {
+    console.log("getTransactionFee :: ", {
+      company_id: companyId,
+      transaction_type: transactionType.toUpperCase(),
+      transaction_category: transactionCategory.toUpperCase(),
+      country_iso_code: countryIsoCode.toUpperCase(),
+      currency: currency.toUpperCase(),
+    });
+
     try {
       const result = await prisma.transactionFee.findFirst({
         where: {
@@ -195,15 +203,15 @@ class TransactionFeeModel {
           transaction_category: transactionCategory.toUpperCase(),
           country_iso_code: countryIsoCode.toUpperCase(),
           currency: currency.toUpperCase(),
-          active: true,
+          // active: true,
         },
       });
 
       if (!result) {
         return fnOutput.error({
-          message: `Transaction fee not found for ${transactionType} - ${transactionCategory} in ${countryIsoCode} (${currency})`,
+          message: `Transaction fee not found for ${transactionCategory} - ${transactionType} in ${countryIsoCode} (${currency})`,
           error: {
-            message: `Transaction fee not found for ${transactionType} - ${transactionCategory} in ${countryIsoCode} (${currency})`,
+            message: `Transaction fee not found for ${transactionCategory} - ${transactionType} in ${countryIsoCode} (${currency})`,
           },
         });
       }
