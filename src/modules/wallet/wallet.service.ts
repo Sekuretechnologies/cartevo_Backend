@@ -1,4 +1,9 @@
-import { Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+} from "@nestjs/common";
 import {
   fundWallet,
   getWalletBalance,
@@ -6,14 +11,15 @@ import {
 } from "@/services/wallet/walletFunding.service";
 import WalletModel from "@/models/prisma/walletModel";
 import WalletPhoneOperatorModel from "@/models/prisma/walletPhoneOperatorModel";
-import fnOutput from "@/utils/shared/fnOutputHandler";
+import fnOutput, { OutputProps } from "@/utils/shared/fnOutputHandler";
 export interface IWalletCreate {
-  company_id: string;
   currency: string;
   country: string;
   country_iso_code: string;
-  country_phone_code?: string;
+  country_phone_code: string;
 }
+
+// { currency: string; country_iso_code: string }
 
 export interface IWalletUpdate {
   balance?: number;
@@ -23,17 +29,27 @@ export interface IWalletUpdate {
 
 @Injectable()
 export class WalletService {
-  async createWallet(data: IWalletCreate) {
+  async createWallet(companyId: string, data: IWalletCreate) {
     try {
       const walletData = {
         ...data,
         balance: 0,
         active: true,
+        company_id: companyId,
       };
+      console.log("createWallet ----------------------------------");
+
+      console.log("walletData :: ", walletData);
+
+      console.log("----------------------------------");
 
       const result = await WalletModel.create(walletData);
-      return result;
+      const wallet = result.output;
+      return { data: wallet };
     } catch (error: any) {
+      throw new BadRequestException(
+        "Failed to create wallet: " + error.message
+      );
       return fnOutput.error({
         error: { message: "Failed to create wallet: " + error.message },
       });
@@ -63,17 +79,18 @@ export class WalletService {
         })
       );
 
-      return fnOutput.success({ output: walletsWithOperators });
+      return { data: walletsWithOperators };
     } catch (error: any) {
-      return fnOutput.error({
-        error: { message: "Failed to get wallets: " + error.message },
-      });
+      throw new BadRequestException("Failed to get wallets: " + error.message);
+      // return fnOutput.error({
+      //   error: { message: "Failed to get wallets: " + error.message },
+      // });
     }
   }
 
-  async getWalletById(id: string) {
+  async getWalletById(companyId: string, id: string) {
     try {
-      const wallet = await WalletModel.getOne({ id });
+      const wallet = await WalletModel.getOne({ id, company_id: companyId });
 
       if (wallet.error) {
         return wallet;
@@ -98,9 +115,15 @@ export class WalletService {
     }
   }
 
-  async updateWallet(id: string, data: IWalletUpdate) {
+  async updateWallet(companyId: string, id: string, data: IWalletUpdate) {
     try {
-      const result = await WalletModel.update(id, data);
+      const result = await WalletModel.update(
+        {
+          id,
+          company_id: companyId,
+        },
+        data
+      );
       return result;
     } catch (error: any) {
       return fnOutput.error({
@@ -109,9 +132,12 @@ export class WalletService {
     }
   }
 
-  async deleteWallet(id: string) {
+  async deleteWallet(companyId: string, id: string) {
     try {
-      const result = await WalletModel.delete(id);
+      const result = await WalletModel.delete({
+        id,
+        company_id: companyId,
+      });
       return result;
     } catch (error: any) {
       return fnOutput.error({
@@ -135,11 +161,18 @@ export class WalletService {
   }
 
   async fundWallet(data: IWalletFunding) {
-    return fundWallet(data);
+    const dataResult: OutputProps = await fundWallet(data);
+    if (dataResult?.error) {
+      throw new HttpException(
+        dataResult?.error?.message,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+
+    return { data: dataResult.output };
   }
 
-  async getWalletBalance(walletId: string) {
+  async getWalletBalance(companyId: string, walletId: string) {
     return getWalletBalance(walletId);
   }
-
 }

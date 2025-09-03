@@ -7,8 +7,14 @@ import fnOutput from "@/utils/shared/fnOutputHandler";
 const getOrGenerateAfribapayToken = async (): Promise<string> => {
   let token = await tokenCache.getAfribapayToken("afribapayToken");
   if (!token) {
-    const response = await generateAfribapayToken();
-    token = (response.data as any).access_token;
+    const responseData: any = await generateAfribapayToken();
+    token = responseData.data.access_token;
+    if (!token) {
+      throw new Error(
+        "Failed to obtain access token from Afribapay API. Response: " +
+          JSON.stringify(responseData)
+      );
+    }
   }
   return token;
 };
@@ -37,24 +43,35 @@ export const generateAfribapayToken = async () => {
         `${env.AFRIBAPAY_API_USER}:${env.AFRIBAPAY_API_KEY}`
       ).toString("base64")}`,
     },
+    data: {},
   };
 
   console.log("generateAfribapayToken config :: ", config);
 
-  const response = await axios(config);
+  try {
+    const response = await axios(config);
 
-  // Cache the token for 1 hour (3600 seconds)
-  if (response.data && (response.data as any).access_token) {
-    await tokenCache.setAfribapayToken(
-      "afribapayToken",
-      (response.data as any).access_token,
-      3600
-    );
+    console.log("generateAfribapayToken response :: ", response.data);
+
+    const responseData: any = response.data;
+    // Cache the token for 1 hour (3600 seconds)
+    let token = responseData?.data.access_token || responseData?.data.token;
+    if (response.data && token) {
+      await tokenCache.setAfribapayToken("afribapayToken", token, 3600);
+    }
+
+    console.log("########################################");
+
+    return responseData;
+  } catch (error: any) {
+    console.log("generateAfribapayToken error:");
+    console.log("------------------------------------------");
+    console.log("error.message :: ", error.message);
+    console.log("------------------------------------------");
+    console.log("error?.response?.data :: ", error?.response?.data);
+    console.log("------------------------------------------");
+    throw error;
   }
-
-  console.log("########################################");
-
-  return response;
 };
 
 /** ========================================================== */
@@ -94,8 +111,8 @@ export const checkAfribapayTransactionStatus = async (
     console.log("------------------------------------------");
     console.log("error?.response?.data :: ", error?.response?.data);
     console.log("------------------------------------------");
-    console.log("error :: ", error);
-    console.log("------------------------------------------");
+    // console.log("error :: ", error);
+    // console.log("------------------------------------------");
     // console.log(error);
     return fnOutput.error({
       error: {
@@ -124,41 +141,50 @@ export const initiateAfribapayCollect = async ({
   operator = "mtn",
   countryPhoneCode = "237",
 }: IAfribapayDeposit) => {
-  const token = await getOrGenerateAfribapayToken();
+  try {
+    const token = await getOrGenerateAfribapayToken();
 
-  console.log("initiateAfribapayCollect token :: ", token);
+    console.log("initiateAfribapayCollect token :: ", token);
 
-  const config = {
-    method: "post",
-    maxBodyLength: Infinity,
-    url: `${env.AFRIBAPAY_API_COLLECT_URL}/pay/payin`,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    const config = {
+      method: "post",
+      maxBodyLength: Infinity,
+      url: `${env.AFRIBAPAY_API_COLLECT_URL}/pay/payin`,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
 
-    data: {
-      operator,
-      country,
-      phone_number: `${countryPhoneCode}${phone}`,
-      amount,
-      currency,
-      order_id: orderId,
-      merchant_key: env.AFRIBAPAY_API_MERCHANT,
-      notify_url:
-        "https://apigetsekure.com/api/v2/webhook/transactions/wallet/update-afribapay-transaction-status",
-      // reference_id: 'ref-Banana-House',
-      // lang: 'fr',
-      // return_url: 'https://example.com/success',
-      // cancel_url: 'https://example.com/cancel',
-    },
-  };
+      data: {
+        operator,
+        country,
+        phone_number: `${countryPhoneCode}${phone}`,
+        amount,
+        currency,
+        order_id: orderId,
+        merchant_key: env.AFRIBAPAY_API_MERCHANT,
+        notify_url: "https://cartevo.co/api/v1/webhook/afribapay",
+        // reference_id: 'ref-Banana-House',
+        // lang: 'fr',
+        // return_url: 'https://example.com/success',
+        // cancel_url: 'https://example.com/cancel',
+      },
+    };
 
-  console.log("initiateAfribapayCollect config :: ", config);
+    console.log("initiateAfribapayCollect config :: ", config);
 
-  const response = await axios(config);
+    const response = await axios(config);
 
-  return response;
+    return response;
+  } catch (error: any) {
+    console.log("initiateAfribapayCollect error:");
+    console.log("------------------------------------------");
+    console.log("error.message :: ", error.message);
+    console.log("------------------------------------------");
+    console.log("error?.response?.data :: ", error?.response?.data);
+    console.log("------------------------------------------");
+    throw error;
+  }
 };
 
 /** ========================================================== */

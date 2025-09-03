@@ -1,9 +1,10 @@
 import env from "@/env";
-import fnOutput from "@/utils/shared/fnOutputHandler";
+import fnOutput, { OutputProps } from "@/utils/shared/fnOutputHandler";
 import WalletModel from "@/models/prisma/walletModel";
 import TransactionModel from "@/models/prisma/transactionModel";
 import TransactionFeeModel from "@/models/prisma/transactionFeeModel";
 import { initiateAfribapayCollect } from "@/utils/wallet/afribapay";
+import walletPhoneNumberService from "@/services/wallet/walletPhoneNumber.service";
 import { v4 as uuidv4 } from "uuid";
 
 /** ================================================================ */
@@ -17,20 +18,13 @@ export interface IWalletFunding {
   email?: string;
   orderId?: string;
   companyId: string;
-  customerId: string;
+  userId: string;
 }
 
 /** ================================================================ */
 const validateFundingRequest = (data: IWalletFunding) => {
-  const {
-    walletId,
-    amount,
-    currency,
-    provider,
-    operator,
-    companyId,
-    customerId,
-  } = data;
+  const { walletId, amount, currency, provider, operator, companyId, userId } =
+    data;
 
   if (!walletId) {
     return fnOutput.error({
@@ -81,10 +75,10 @@ const validateFundingRequest = (data: IWalletFunding) => {
     });
   }
 
-  if (!customerId) {
+  if (!userId) {
     return fnOutput.error({
       code: "BAD_ENTRY",
-      error: { message: "Customer ID is required" },
+      error: { message: "User ID is required" },
     });
   }
 
@@ -161,13 +155,13 @@ const createFundingTransaction = async (
     provider,
     phone,
     companyId,
-    customerId,
+    userId,
     walletId,
   } = data;
 
   // Calculate net amount after fee deduction
   const feeAmount = feeInfo?.feeAmount || 0;
-  const netAmount = amount - feeAmount;
+  const grossAmount = amount + feeAmount;
 
   const transactionData = {
     category: "WALLET",
@@ -175,25 +169,30 @@ const createFundingTransaction = async (
     amount: amount,
     currency: currency,
     wallet_id: walletId,
-    customer_id: customerId,
+    user_id: userId,
     company_id: companyId,
     order_id: orderId || uuidv4(),
     operator: operator,
     provider: provider,
     phone_number: phone,
     status: "PENDING",
-    description: `Wallet funding via ${provider}`,
+    description: `Wallet funding of ${amount} ${currency} via ${operator}. Phone: ${phone}`,
     wallet_balance_before: wallet.balance,
     wallet_balance_after: wallet.balance, // Will be updated after successful payment
     fee_amount: feeAmount,
     fee_id: feeInfo?.feeId || null,
-    net_amount: netAmount,
+    net_amount: amount,
+    amount_with_fee: grossAmount,
   };
 
   const transactionResult = await TransactionModel.create(transactionData);
   if (transactionResult.error) {
     return fnOutput.error({
-      error: { message: "Failed to create transaction record" },
+      error: {
+        message:
+          "Failed to create transaction record : " +
+          transactionResult.error?.message,
+      },
     });
   }
 
@@ -201,7 +200,11 @@ const createFundingTransaction = async (
 };
 
 /** ================================================================ */
-const processAfribapayFunding = async (data: IWalletFunding, wallet: any) => {
+const processAfribapayFunding = async (
+  data: IWalletFunding,
+  wallet: any,
+  feeAmount: number
+) => {
   const { amount, phone, operator, orderId } = data;
 
   if (!phone) {
@@ -223,40 +226,61 @@ const processAfribapayFunding = async (data: IWalletFunding, wallet: any) => {
     const countryPhoneCode = wallet.country_phone_code || "237";
 
     const afribapayData = {
-      amount: amount,
+      amount: Number(amount + feeAmount),
       phone: phone,
       orderId: orderId || uuidv4(),
       operator: operator,
       countryPhoneCode: countryPhoneCode,
     };
 
-    const afribapayResult = await initiateAfribapayCollect(afribapayData);
+    const afribapayResponse: any = await initiateAfribapayCollect(
+      afribapayData
+    );
 
-    if (afribapayResult.status !== 200) {
+    if (afribapayResponse.status !== 200) {
       return fnOutput.error({
         error: {
           message:
             "Afribapay funding failed: " +
-            ((afribapayResult.data as any)?.message || "Unknown error"),
+            ((afribapayResponse.data as any)?.message || "Unknown error"),
         },
       });
     }
 
+    console.log("afribapayResponse.data :: ", afribapayResponse.data);
+
     return fnOutput.success({
       output: {
-        providerResponse: afribapayResult.data,
+        providerResponse: afribapayResponse?.data?.data,
         orderId: afribapayData.orderId,
       },
     });
   } catch (error: any) {
+    console.log(`initiateAfribapayCollect error:`);
+    console.log("------------------------------------------");
+    console.log("error.message :: ", error.message);
+    console.log("------------------------------------------");
+    console.log("error?.response?.data :: ", error?.response?.data);
+    console.log("------------------------------------------");
+    // console.log("error :: ", error);
+    // console.log("------------------------------------------");
+    // console.log("initiateAfribapayCollect config :: ", afribapayResult);
     return fnOutput.error({
-      error: { message: "Afribapay funding error: " + error.message },
+      error: {
+        message:
+          "Funding error: " +
+          error.message +
+          " : " +
+          error?.response?.data?.error?.message,
+      },
     });
   }
 };
 
 /** ================================================================ */
-export const fundWallet = async (data: IWalletFunding) => {
+export const fundWallet = async (
+  data: IWalletFunding
+): Promise<OutputProps> => {
   try {
     // Validate input
     const validation = validateFundingRequest(data);
@@ -264,8 +288,7 @@ export const fundWallet = async (data: IWalletFunding) => {
       return validation;
     }
 
-    const { walletId, amount, currency, provider, companyId, customerId } =
-      data;
+    const { walletId, amount, currency, provider, companyId, userId } = data;
 
     // Get wallet details
     const walletResult = await getWalletDetails(walletId);
@@ -306,13 +329,16 @@ export const fundWallet = async (data: IWalletFunding) => {
     }
 
     const feeInfo = feeResult.output;
+    const feeAmount = feeInfo?.feeAmount || 0;
+
+    console.log("feeInfo ----------------- :: ", feeInfo);
 
     // Process payment based on provider first
-    let paymentResult;
+    let paymentResult: any = {};
 
     switch (provider.toLowerCase()) {
       case "afribapay":
-        paymentResult = await processAfribapayFunding(data, wallet);
+        paymentResult = await processAfribapayFunding(data, wallet, feeAmount);
         break;
 
       default:
@@ -322,8 +348,10 @@ export const fundWallet = async (data: IWalletFunding) => {
         });
     }
 
+    console.log("paymentResult --------------------- :: ", paymentResult);
+
     if (paymentResult.error) {
-      return paymentResult;
+      throw paymentResult.error;
     }
 
     // Only create transaction record if payment initiation was successful
@@ -333,8 +361,14 @@ export const fundWallet = async (data: IWalletFunding) => {
       paymentResult.output.orderId,
       feeInfo
     );
+
+    console.log(
+      "createFundingTransaction --------------------- :: ",
+      transactionResult
+    );
+
     if (transactionResult.error) {
-      return transactionResult;
+      throw transactionResult.error;
     }
 
     const transaction = transactionResult.output;
@@ -346,6 +380,42 @@ export const fundWallet = async (data: IWalletFunding) => {
         (paymentResult.output.providerResponse as any)?.id,
       status: "PENDING", // Keep as pending until webhook confirms
     });
+
+    // Save phone number for wallet if it doesn't exist already
+    if (data.phone) {
+      try {
+        // Check if phone number already exists for this wallet
+        const existingPhoneNumbers = await walletPhoneNumberService.getAll(
+          data.walletId
+        );
+        const phoneExists = existingPhoneNumbers.output?.some(
+          (phoneRecord: any) => phoneRecord.phone_number === data.phone
+        );
+
+        if (!phoneExists && existingPhoneNumbers.output <= 3) {
+          // Create new wallet phone number record
+          const phoneData = {
+            wallet_id: data.walletId,
+            country_iso_code: wallet.country_iso_code,
+            country_phone_code: wallet.country_phone_code || "237",
+            currency: wallet.currency,
+            phone_number: data.phone,
+            operator: data.operator,
+          };
+
+          await walletPhoneNumberService.create(phoneData);
+          console.log(
+            `Phone number ${data.phone} saved for wallet ${data.walletId}`
+          );
+        }
+      } catch (error: any) {
+        console.log(
+          `Failed to save phone number for wallet ${data.walletId}:`,
+          error.message
+        );
+        // Don't fail the entire operation if phone number saving fails
+      }
+    }
 
     return fnOutput.success({
       output: {

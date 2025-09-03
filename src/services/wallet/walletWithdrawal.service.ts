@@ -297,7 +297,10 @@ const processAfribapayWithdrawal = async (
 };
 
 /** ================================================================ */
-export const withdrawFromWallet = async (data: IWalletWithdrawal) => {
+export const withdrawFromWallet = async (
+  companyId: string,
+  data: IWalletWithdrawal
+) => {
   try {
     // Validate input
     const validation = validateWithdrawalRequest(data);

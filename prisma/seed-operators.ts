@@ -38,11 +38,19 @@ async function seedWalletPhoneOperators() {
   await prisma.walletPhoneOperator.deleteMany({});
   console.log("Cleared existing wallet phone operators");
 
-  // Create new operators
+  // Create new operators using upsert to handle duplicates
   for (const operator of operatorsToCreate) {
     try {
-      await prisma.walletPhoneOperator.create({
-        data: operator,
+      await prisma.walletPhoneOperator.upsert({
+        where: {
+          country_iso_code_currency_operator_code: {
+            country_iso_code: operator.country_iso_code,
+            currency: operator.currency,
+            operator_code: operator.operator_code,
+          },
+        },
+        update: operator,
+        create: operator,
       });
     } catch (error) {
       console.error("Error creating operator:", operator, error);
