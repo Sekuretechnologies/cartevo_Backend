@@ -57,10 +57,12 @@ export class WalletTransactionsService {
         })
       );
 
-      return {
-        ...transactions,
-        output: updatedTransactions,
-      };
+      // return {
+      //   ...transactions,
+      //   output: updatedTransactions,
+      // };
+
+      return { data: updatedTransactions };
     }
 
     return { data: transactions.output };
