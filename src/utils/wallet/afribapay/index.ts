@@ -111,8 +111,8 @@ export const checkAfribapayTransactionStatus = async (
     console.log("------------------------------------------");
     console.log("error?.response?.data :: ", error?.response?.data);
     console.log("------------------------------------------");
-    console.log("error :: ", error);
-    console.log("------------------------------------------");
+    // console.log("error :: ", error);
+    // console.log("------------------------------------------");
     // console.log(error);
     return fnOutput.error({
       error: {
