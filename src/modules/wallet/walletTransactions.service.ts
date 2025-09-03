@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import TransactionModel from "@/models/prisma/transactionModel";
 import { checkAndUpdatePendingWalletTransactionStatus } from "@/services/wallet/transactionStatus";
 
@@ -20,6 +20,13 @@ export class WalletTransactionsService {
       limit: limit ? parseInt(limit) : undefined,
       offset: offset ? parseInt(offset) : undefined,
     });
+
+    if (transactions?.error) {
+      throw new HttpException(
+        transactions?.error?.message,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
 
     if (transactions.output && Array.isArray(transactions.output)) {
       // Check and update PENDING transactions for afribapay provider
@@ -56,7 +63,7 @@ export class WalletTransactionsService {
       };
     }
 
-    return transactions;
+    return { data: transactions.output };
   }
 
   async getWalletTransactionById(id: string) {
