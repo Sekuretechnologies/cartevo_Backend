@@ -120,8 +120,8 @@ export const updateTransactionStatus = async (
       const wallet = walletResult.output;
 
       // Update wallet balance
-      const oldBalance = wallet.balance;
-      const newBalance = wallet.balance + transaction.amount;
+      const oldBalance = Number(wallet.balance);
+      const newBalance = Number(wallet.balance) + Number(transaction.amount);
 
       const walletUpdateResult = await WalletModel.update(wallet.id, {
         balance: newBalance,
@@ -284,11 +284,11 @@ export const updateTransactionStatus = async (
       const wallet = walletResult.output;
 
       // Refund both the amount and fee back to wallet
-      const feeAmount = transaction.fee_amount || 0;
-      const totalRefund = transaction.amount + feeAmount;
+      const feeAmount = Number(transaction.fee_amount) || 0;
+      const totalRefund = Number(transaction.amount) + feeAmount;
 
-      const oldBalance = wallet.balance;
-      const newBalance = wallet.balance + totalRefund;
+      const oldBalance = Number(wallet.balance);
+      const newBalance = Number(wallet.balance) + Number(totalRefund);
 
       const walletUpdateResult = await WalletModel.update(wallet.id, {
         balance: newBalance,
