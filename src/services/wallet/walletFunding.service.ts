@@ -199,7 +199,11 @@ const createFundingTransaction = async (
 };
 
 /** ================================================================ */
-const processAfribapayFunding = async (data: IWalletFunding, wallet: any) => {
+const processAfribapayFunding = async (
+  data: IWalletFunding,
+  wallet: any,
+  feeAmount: number
+) => {
   const { amount, phone, operator, orderId } = data;
 
   if (!phone) {
@@ -221,7 +225,7 @@ const processAfribapayFunding = async (data: IWalletFunding, wallet: any) => {
     const countryPhoneCode = wallet.country_phone_code || "237";
 
     const afribapayData = {
-      amount: amount,
+      amount: Number(amount + feeAmount),
       phone: phone,
       orderId: orderId || uuidv4(),
       operator: operator,
@@ -318,6 +322,7 @@ export const fundWallet = async (
     }
 
     const feeInfo = feeResult.output;
+    const feeAmount = feeInfo?.feeAmount || 0;
 
     console.log("feeInfo ----------------- :: ", feeInfo);
 
@@ -326,7 +331,7 @@ export const fundWallet = async (
 
     switch (provider.toLowerCase()) {
       case "afribapay":
-        paymentResult = await processAfribapayFunding(data, wallet);
+        paymentResult = await processAfribapayFunding(data, wallet, feeAmount);
         break;
 
       default:
