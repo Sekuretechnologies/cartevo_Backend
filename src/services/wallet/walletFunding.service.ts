@@ -265,7 +265,13 @@ const processAfribapayFunding = async (
     // console.log("------------------------------------------");
     // console.log("initiateAfribapayCollect config :: ", afribapayResult);
     return fnOutput.error({
-      error: { message: "Afribapay funding error: " + error.message },
+      error: {
+        message:
+          "Funding error: " +
+          error.message +
+          " : " +
+          error?.response?.data?.error?.message,
+      },
     });
   }
 };
