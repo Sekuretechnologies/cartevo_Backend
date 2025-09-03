@@ -1,6 +1,11 @@
-import { Controller, Get, Param, Query } from "@nestjs/common";
+import { Controller, Get, Param, Query, UseGuards } from "@nestjs/common";
+import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { WalletTransactionsService } from "./walletTransactions.service";
 
+@ApiTags("Wallet Transactions")
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller("wallet/transactions")
 export class WalletTransactionsController {
   constructor(

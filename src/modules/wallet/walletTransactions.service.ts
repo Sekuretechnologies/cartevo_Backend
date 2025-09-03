@@ -20,10 +20,13 @@ export class WalletTransactionsService {
     });
 
     if (transactions.output && Array.isArray(transactions.output)) {
-      // Check and update PENDING transactions
+      // Check and update PENDING transactions for afribapay provider
       const updatedTransactions = await Promise.all(
         transactions.output.map(async (transaction: any) => {
-          if (transaction.status === "PENDING") {
+          if (
+            transaction.status === "PENDING" &&
+            transaction.provider === "afribapay"
+          ) {
             try {
               const updateResult =
                 await checkAndUpdatePendingWalletTransactionStatus(
@@ -57,7 +60,11 @@ export class WalletTransactionsService {
   async getWalletTransactionById(id: string) {
     const transaction = await TransactionModel.getOne({ id });
 
-    if (transaction.output && transaction.output.status === "PENDING") {
+    if (
+      transaction.output &&
+      transaction.output.status === "PENDING" &&
+      transaction.output.provider === "afribapay"
+    ) {
       try {
         const updateResult = await checkAndUpdatePendingWalletTransactionStatus(
           transaction.output,
