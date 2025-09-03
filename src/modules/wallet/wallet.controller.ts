@@ -129,7 +129,7 @@ export class ExchangeRateDto {
     example: 0.85,
   })
   @IsNumber()
-  @Min(0.0001)
+  // @Min(0.0001)
   rate: number;
 
   @ApiProperty({

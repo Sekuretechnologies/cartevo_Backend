@@ -232,66 +232,61 @@ export class WalletService {
         .substr(2, 9)}`;
 
       // Use transaction to ensure atomicity
-      await TransactionModel.operation(async (prisma) => {
-        // Update source wallet balance
-        await prisma.wallet.update({
-          where: { id: data.sourceWallet.id },
-          data: {
-            balance:
-              sourceWallet.output.balance - data.sourceWallet.totalAmount,
-          },
-        });
+      // await TransactionModel.operation(async (prisma) => {
+      // Update source wallet balance
+      await WalletModel.update(
+        { id: data.sourceWallet.id },
+        {
+          balance: sourceWallet.output.balance - data.sourceWallet.totalAmount,
+        }
+      );
 
-        // Update destination wallet balance
-        await prisma.wallet.update({
-          where: { id: data.destinationWallet.id },
-          data: { balance: destinationWallet.output.balance + convertedAmount },
-        });
+      // Update destination wallet balance
+      await WalletModel.update(
+        { id: data.destinationWallet.id },
+        { balance: destinationWallet.output.balance + convertedAmount }
+      );
 
-        // Create debit transaction for source wallet
-        await prisma.transaction.create({
-          data: {
-            category: "WALLET_TRANSFER",
-            type: "DEBIT",
-            wallet_id: data.sourceWallet.id,
-            company_id: companyId,
-            status: "SUCCESS",
-            description: `Transfer to wallet ${data.destinationWallet.id}`,
-            reason: "Wallet to wallet transfer",
-            wallet_balance_before: sourceWallet.output.balance,
-            wallet_balance_after:
-              sourceWallet.output.balance - data.sourceWallet.totalAmount,
-            amount: data.sourceWallet.amount,
-            currency: data.sourceWallet.currency,
-            fee_amount: data.sourceWallet.feeAmount,
-            net_amount: data.sourceWallet.amount,
-            amount_with_fee: data.sourceWallet.totalAmount,
-            reference: reference,
-          },
-        });
-
-        // Create credit transaction for destination wallet
-        await prisma.transaction.create({
-          data: {
-            category: "WALLET_TRANSFER",
-            type: "CREDIT",
-            wallet_id: data.destinationWallet.id,
-            company_id: companyId,
-            status: "SUCCESS",
-            description: `Transfer from wallet ${data.sourceWallet.id}`,
-            reason: "Wallet to wallet transfer",
-            wallet_balance_before: destinationWallet.output.balance,
-            wallet_balance_after:
-              destinationWallet.output.balance + convertedAmount,
-            amount: convertedAmount,
-            currency: data.destinationWallet.currency,
-            fee_amount: 0,
-            net_amount: convertedAmount,
-            amount_with_fee: convertedAmount,
-            reference: reference,
-          },
-        });
+      // Create debit transaction for source wallet
+      await TransactionModel.create({
+        category: "WALLET_TRANSFER",
+        type: "DEBIT",
+        wallet_id: data.sourceWallet.id,
+        company_id: companyId,
+        status: "SUCCESS",
+        description: `Transfer to wallet ${data.destinationWallet.id}`,
+        reason: "Wallet to wallet transfer",
+        wallet_balance_before: sourceWallet.output.balance,
+        wallet_balance_after:
+          sourceWallet.output.balance - data.sourceWallet.totalAmount,
+        amount: data.sourceWallet.amount,
+        currency: data.sourceWallet.currency,
+        fee_amount: data.sourceWallet.feeAmount,
+        net_amount: data.sourceWallet.amount,
+        amount_with_fee: data.sourceWallet.totalAmount,
+        reference: reference,
       });
+
+      // Create credit transaction for destination wallet
+      await TransactionModel.create({
+        category: "WALLET_TRANSFER",
+        type: "CREDIT",
+        wallet_id: data.destinationWallet.id,
+        company_id: companyId,
+        status: "SUCCESS",
+        description: `Transfer from wallet ${data.sourceWallet.id}`,
+        reason: "Wallet to wallet transfer",
+        wallet_balance_before: destinationWallet.output.balance,
+        wallet_balance_after:
+          destinationWallet.output.balance + convertedAmount,
+        amount: convertedAmount,
+        currency: data.destinationWallet.currency,
+        fee_amount: 0,
+        net_amount: convertedAmount,
+        amount_with_fee: convertedAmount,
+        reference: reference,
+      });
+      // });
 
       return { data: { message: "Deposit successful", reference: reference } };
     } catch (error: any) {
