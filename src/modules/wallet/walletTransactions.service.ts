@@ -5,6 +5,7 @@ import { checkAndUpdatePendingWalletTransactionStatus } from "@/services/wallet/
 @Injectable()
 export class WalletTransactionsService {
   async getWalletTransactions(
+    companyId?: string,
     walletId?: string,
     customerId?: string,
     status?: string,
@@ -12,6 +13,7 @@ export class WalletTransactionsService {
     offset?: string
   ) {
     const transactions = await TransactionModel.get({
+      company_id: companyId,
       wallet_id: walletId,
       customer_id: customerId,
       status: status,

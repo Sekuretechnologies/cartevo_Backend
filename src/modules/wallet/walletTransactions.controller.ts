@@ -2,6 +2,10 @@ import { Controller, Get, Param, Query, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { WalletTransactionsService } from "./walletTransactions.service";
+import {
+  CurrentBusiness,
+  CurrentBusinessData,
+} from "../common/decorators/current-business.decorator";
 
 @ApiTags("Wallet Transactions")
 @ApiBearerAuth()
@@ -14,6 +18,7 @@ export class WalletTransactionsController {
 
   @Get()
   async getWalletTransactions(
+    @CurrentBusiness() business: CurrentBusinessData,
     @Query("walletId") walletId?: string,
     @Query("customerId") customerId?: string,
     @Query("status") status?: string,
@@ -21,6 +26,7 @@ export class WalletTransactionsController {
     @Query("offset") offset?: string
   ) {
     return this.walletTransactionsService.getWalletTransactions(
+      business.businessId,
       walletId,
       customerId,
       status,
