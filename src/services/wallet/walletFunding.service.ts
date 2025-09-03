@@ -4,6 +4,7 @@ import WalletModel from "@/models/prisma/walletModel";
 import TransactionModel from "@/models/prisma/transactionModel";
 import TransactionFeeModel from "@/models/prisma/transactionFeeModel";
 import { initiateAfribapayCollect } from "@/utils/wallet/afribapay";
+import walletPhoneNumberService from "@/services/wallet/walletPhoneNumber.service";
 import { v4 as uuidv4 } from "uuid";
 
 /** ================================================================ */
@@ -379,6 +380,42 @@ export const fundWallet = async (
         (paymentResult.output.providerResponse as any)?.id,
       status: "PENDING", // Keep as pending until webhook confirms
     });
+
+    // Save phone number for wallet if it doesn't exist already
+    if (data.phone) {
+      try {
+        // Check if phone number already exists for this wallet
+        const existingPhoneNumbers = await walletPhoneNumberService.getAll(
+          data.walletId
+        );
+        const phoneExists = existingPhoneNumbers.output?.some(
+          (phoneRecord: any) => phoneRecord.phone_number === data.phone
+        );
+
+        if (!phoneExists) {
+          // Create new wallet phone number record
+          const phoneData = {
+            wallet_id: data.walletId,
+            country_iso_code: wallet.country_iso_code,
+            country_phone_code: wallet.country_phone_code || "237",
+            currency: wallet.currency,
+            phone_number: data.phone,
+            operator: data.operator,
+          };
+
+          await walletPhoneNumberService.create(phoneData);
+          console.log(
+            `Phone number ${data.phone} saved for wallet ${data.walletId}`
+          );
+        }
+      } catch (error: any) {
+        console.log(
+          `Failed to save phone number for wallet ${data.walletId}:`,
+          error.message
+        );
+        // Don't fail the entire operation if phone number saving fails
+      }
+    }
 
     return fnOutput.success({
       output: {

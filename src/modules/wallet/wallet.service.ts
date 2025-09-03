@@ -164,7 +164,7 @@ export class WalletService {
     const dataResult: OutputProps = await fundWallet(data);
     if (dataResult?.error) {
       throw new HttpException(
-        dataResult?.error?.message || "Transaction not found",
+        dataResult?.error?.message,
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
