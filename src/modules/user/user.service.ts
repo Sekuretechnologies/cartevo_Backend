@@ -303,7 +303,7 @@ export class UserService {
       {
         email: verifyOtpDto.email,
         otp: verifyOtpDto.otp,
-        status: UserStatus.ACTIVE,
+        // status: UserStatus.ACTIVE,
       },
       {
         company: true,
