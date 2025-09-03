@@ -26,6 +26,46 @@ import {
   CurrentUserData,
 } from "../common/decorators/current-user.decorator";
 
+export interface DepositToWalletSubmitProps {
+  sourceWallet: {
+    id: string;
+    currency: string;
+    amount: number;
+    feeAmount: number;
+    totalAmount: number;
+  };
+  destinationWallet: {
+    id: string;
+    currency: string;
+    amount: number;
+  };
+  exchangeRate: {
+    rate: number;
+    fromCurrency: string;
+    toCurrency: string;
+  };
+}
+
+export class DepositToWalletDto {
+  sourceWallet: {
+    id: string;
+    currency: string;
+    amount: number;
+    feeAmount: number;
+    totalAmount: number;
+  };
+  destinationWallet: {
+    id: string;
+    currency: string;
+    amount: number;
+  };
+  exchangeRate: {
+    rate: number;
+    fromCurrency: string;
+    toCurrency: string;
+  };
+}
+
 // export interface IWalletCreate {
 //   company_id: string;
 //   currency: string;
@@ -115,6 +155,14 @@ export class WalletController {
     @Body() data: IWalletWithdrawal
   ) {
     return withdrawFromWallet(business.businessId, data);
+  }
+
+  @Post("deposit")
+  async depositToWallet(
+    @CurrentBusiness() business: CurrentBusinessData,
+    @Body() data: DepositToWalletDto
+  ) {
+    return this.walletService.depositToWallet(business.businessId, data);
   }
 
   @Get("balance/:walletId")
