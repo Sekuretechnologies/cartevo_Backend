@@ -183,16 +183,16 @@ class TransactionFeeModel {
   static async getTransactionFee(
     companyId: string,
     transactionType: string,
-    transactionCategory: string,
-    countryIsoCode: string,
-    currency: string
+    transactionCategory: string
+    // countryIsoCode: string,
+    // currency: string
   ) {
     console.log("getTransactionFee :: ", {
       company_id: companyId,
       transaction_type: transactionType.toUpperCase(),
       transaction_category: transactionCategory.toUpperCase(),
-      country_iso_code: countryIsoCode.toUpperCase(),
-      currency: currency.toUpperCase(),
+      // country_iso_code: countryIsoCode.toUpperCase(),
+      // currency: currency.toUpperCase(),
     });
 
     try {
@@ -201,17 +201,17 @@ class TransactionFeeModel {
           company_id: companyId,
           transaction_type: transactionType.toUpperCase(),
           transaction_category: transactionCategory.toUpperCase(),
-          country_iso_code: countryIsoCode.toUpperCase(),
-          currency: currency.toUpperCase(),
+          // country_iso_code: countryIsoCode.toUpperCase(),
+          // currency: currency.toUpperCase(),
           // active: true,
         },
       });
 
       if (!result) {
         return fnOutput.error({
-          message: `Transaction fee not found for ${transactionCategory} - ${transactionType} in ${countryIsoCode} (${currency})`,
+          message: `Transaction fee not found for ${transactionCategory} - ${transactionType}`,
           error: {
-            message: `Transaction fee not found for ${transactionCategory} - ${transactionType} in ${countryIsoCode} (${currency})`,
+            message: `Transaction fee not found for ${transactionCategory} - ${transactionType}`,
           },
         });
       }
@@ -247,9 +247,9 @@ class TransactionFeeModel {
       const feeResult = await this.getTransactionFee(
         companyId,
         transactionType,
-        transactionCategory,
-        countryIsoCode,
-        currency
+        transactionCategory
+        // countryIsoCode,
+        // currency
       );
 
       console.log("feeResult --------------- :: ", feeResult);
