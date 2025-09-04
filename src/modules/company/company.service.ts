@@ -69,6 +69,8 @@ import { FirebaseService } from "../../services/firebase.service";
 import { EmailService } from "../../services/email.service";
 import { UserStatus, StepStatus } from "@prisma/client";
 import { Console } from "console";
+import { countries as countryDataList } from "country-data";
+import { getCountryPhonePrefix } from "@/utils/shared/common";
 
 @Injectable()
 export class CompanyService {
@@ -148,7 +150,15 @@ export class CompanyService {
       });
       if (ucrResult.error)
         throw new BadRequestException(ucrResult.error.message);
+
       // Step 9: Create default wallets for the company
+
+      // Get phone code from country-data library
+      const iso2 = "US";
+      const countryPhoneCode = getCountryPhonePrefix(
+        (countryDataList as any)[iso2]?.countryCallingCodes || []
+      );
+
       const walletsResult = await Promise.all([
         WalletModel.create({
           balance: 0,
@@ -156,6 +166,7 @@ export class CompanyService {
           currency: createDto.business_country_currency || "",
           country: createDto.business_country || "",
           country_iso_code: createDto.business_country_iso_code || "",
+          country_phone_code: createDto.business_country_phone_code,
           company_id: company.id,
         }),
         WalletModel.create({
@@ -164,6 +175,7 @@ export class CompanyService {
           currency: "USD",
           country: "USA",
           country_iso_code: "US",
+          country_phone_code: countryPhoneCode,
           company_id: company.id,
         }),
       ]);

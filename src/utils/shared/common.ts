@@ -618,25 +618,7 @@ export function sanitizeName(text: string, uppercase = false) {
     .join(" "); // Rejoin the words into a single string
 }
 
-// export function sanitizeTextInput0(text:string) {
-//   const com_acento = 'áàãâäéèêëíìîïóòõôöúùûüçÁÀÃÂÄÉÈÊËÍÌÎÏÓÒÕÖÔÚÙÛÜÇ<,>´`-,~';
-//   const sem_acento = 'aaaaaeeeeiiiiooooouuuucAAAAAEEEEIIIIOOOOOUUUUC          ';
-//   const regex = /^[a-zA-Z0-9[,.'-]*$/;
-
-//   let textResult =  text.split('').map(char => {
-//       const charIdx = com_acento.indexOf(char)
-//       if (charIdx !== -1) {
-//       return sem_acento[charIdx]
-//     }
-//     return char
-//   }).join('')
-
-//   // Test the text against the regular expression
-//   let isValidText = regex.test(textResult);
-
-//   if(!isValidText) {
-//     textResult = text.replace(/[^a-zA-Z0-9[,.'-]]/g, ''); // Remove any disallowed characters
-//   }
-
-//   return textResult;
-// }
+export function getCountryPhonePrefix(value: string[]): string {
+  const prefix: string = value?.[0]?.slice(1) || "";
+  return prefix;
+}

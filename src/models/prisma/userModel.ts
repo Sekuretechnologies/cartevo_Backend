@@ -1,6 +1,10 @@
 // src/models/UserModel.ts
 import { FilterObject, IncludeObject } from "@/types";
-import { sanitizeTextInput, setMethodFilter } from "@/utils/shared/common";
+import {
+  sanitizeName,
+  sanitizeTextInput,
+  setMethodFilter,
+} from "@/utils/shared/common";
 import fnOutput from "@/utils/shared/fnOutputHandler";
 import { Prisma, PrismaClient } from "@prisma/client";
 import * as bcrypt from "bcrypt";
@@ -113,6 +117,13 @@ class UserModel {
         userData.address = sanitizeTextInput(inputUser.address);
       }
 
+      if (inputUser.first_name) {
+        userData.first_name = sanitizeName(inputUser.first_name);
+      }
+      if (inputUser.last_name) {
+        userData.last_name = sanitizeName(inputUser.last_name);
+      }
+
       const user = await prisma.user.create({
         data: userData,
       });
@@ -147,6 +158,12 @@ class UserModel {
       }
       if (userData.address) {
         updatedUserData.address = sanitizeTextInput(userData.address);
+      }
+      if (userData.first_name) {
+        userData.first_name = sanitizeName(userData.first_name);
+      }
+      if (userData.last_name) {
+        userData.last_name = sanitizeName(userData.last_name);
       }
 
       const updatedUser = await prisma.user.update({

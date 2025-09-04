@@ -1,6 +1,10 @@
 // src/models/prisma/companyModel.ts
 import { FilterObject } from "@/types";
-import { sanitizeTextInput, setMethodFilter } from "@/utils/shared/common";
+import {
+  sanitizeName,
+  sanitizeTextInput,
+  setMethodFilter,
+} from "@/utils/shared/common";
 import fnOutput from "@/utils/shared/fnOutputHandler";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { buildPrismaQuery } from "prisma/functions";
@@ -54,7 +58,7 @@ class CompanyModel {
     try {
       const companyData = { ...inputCompany };
       if (inputCompany.name) {
-        companyData.name = sanitizeTextInput(inputCompany.name);
+        companyData.name = sanitizeName(inputCompany.name);
       }
       if (inputCompany.country) {
         companyData.country = sanitizeTextInput(inputCompany.country);
@@ -86,7 +90,7 @@ class CompanyModel {
         ...companyData,
       };
       if (companyData.name) {
-        updatedCompanyData.name = sanitizeTextInput(companyData.name);
+        updatedCompanyData.name = sanitizeName(companyData.name);
       }
       if (companyData.country) {
         updatedCompanyData.country = sanitizeTextInput(companyData.country);
