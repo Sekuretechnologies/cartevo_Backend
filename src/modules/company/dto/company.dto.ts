@@ -1113,6 +1113,43 @@ export class CompleteKybDto {
   })
   @IsOptional()
   proof_of_address: any;
+  //--------------------------------------------------------
+
+  @ApiProperty({
+    description: "Business type (optional)",
+    example: "Technology",
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  business_type?: string;
+
+  @ApiProperty({
+    description: "Country of operation (optional)",
+    example: "Cameroon",
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  country_of_operation?: string;
+
+  @ApiProperty({
+    description: "Business email (optional)",
+    example: "business@company.com",
+    required: false,
+  })
+  @IsOptional()
+  @IsEmail()
+  business_email?: string;
+
+  @ApiProperty({
+    description: "Business registration number (optional)",
+    example: "RC123456",
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  business_registration_number?: string;
 }
 
 // KYB Completion Response DTO
