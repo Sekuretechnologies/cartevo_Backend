@@ -980,6 +980,15 @@ export class CompleteKycDto {
   @MinLength(2)
   nationality: string;
 
+  @ApiProperty({
+    description: "User email address",
+    example: "john.doe@example.com",
+    required: false,
+  })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
   // @ApiProperty({
   //   description: "User address",
   //   example: "123 Main Street, Yaoundé",
