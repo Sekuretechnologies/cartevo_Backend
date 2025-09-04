@@ -198,54 +198,54 @@ export class WalletController {
 
   @Post()
   async createWallet(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Body() data: IWalletCreate
   ) {
-    return this.walletService.createWallet(business.businessId, data);
+    return this.walletService.createWallet(user.companyId, data);
   }
 
   @Get()
-  async getAllWallets(@CurrentBusiness() business: CurrentBusinessData) {
-    return this.walletService.getAllWallets(business.businessId);
+  async getAllWallets(@CurrentUser() user: CurrentUserData) {
+    return this.walletService.getAllWallets(user.companyId);
   }
 
   @Get(":id")
   async getWalletById(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Param("id") id: string
   ) {
-    return this.walletService.getWalletById(business.businessId, id);
+    return this.walletService.getWalletById(user.companyId, id);
   }
 
   @Put(":id")
   async updateWallet(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Param("id") id: string,
     @Body() data: IWalletUpdate
   ) {
-    return this.walletService.updateWallet(business.businessId, id, data);
+    return this.walletService.updateWallet(user.companyId, id, data);
   }
 
   @Delete(":id")
   async deleteWallet(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Param("id") id: string
   ) {
-    return this.walletService.deleteWallet(business.businessId, id);
+    return this.walletService.deleteWallet(user.companyId, id);
   }
 
   @Post("fund")
   async fundWallet(
-    @CurrentBusiness() business: CurrentBusinessData,
-    // @CurrentUser() user: CurrentUserData,
-    // @Param("id") walletId: string,
+    @CurrentUser() user: CurrentUserData,
     @Body() data: IWalletFunding
   ) {
+    console.log("Token type:", user.type);
     console.log("Current user:", data.userId);
-    console.log("Current business:", business.businessId);
+    console.log("Current company/business ID:", user.companyId);
+
     const fundData: IWalletFunding = {
       walletId: data.walletId,
-      companyId: business.businessId,
+      companyId: user.companyId,
       userId: data.userId,
       amount: data.amount,
       currency: data.currency,
@@ -260,25 +260,25 @@ export class WalletController {
 
   @Post("withdraw")
   async withdrawFromWallet(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Body() data: IWalletWithdrawal
   ) {
-    return withdrawFromWallet(business.businessId, data);
+    return withdrawFromWallet(user.companyId, data);
   }
 
   @Post("deposit")
   async depositToWallet(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Body() data: DepositToWalletDto
   ) {
-    return this.walletService.depositToWallet(business.businessId, data);
+    return this.walletService.depositToWallet(user.companyId, data);
   }
 
   @Get("balance/:walletId")
   async getWalletBalance(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Param("walletId") walletId: string
   ) {
-    return this.walletService.getWalletBalance(business.businessId, walletId);
+    return this.walletService.getWalletBalance(user.companyId, walletId);
   }
 }

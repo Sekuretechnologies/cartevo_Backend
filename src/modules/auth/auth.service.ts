@@ -25,7 +25,7 @@ export class AuthService {
     authDto: AuthTokenRequestDto
   ): Promise<AuthTokenResponseDto> {
     const companyResult = await CompanyModel.getOne({
-      id: authDto.client_id,
+      client_id: authDto.client_id,
       is_active: true,
     });
     const company = companyResult.output;
@@ -45,7 +45,7 @@ export class AuthService {
 
     const payload = {
       sub: company.id,
-      businessId: company.id,
+      companyId: company.id,
       clientId: company.client_id,
     };
 

@@ -16,9 +16,9 @@ import {
 } from "./dto/card.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import {
-  CurrentBusiness,
-  CurrentBusinessData,
-} from "../common/decorators/current-business.decorator";
+  CurrentUser,
+  CurrentUserData,
+} from "../common/decorators/current-user.decorator";
 import { SuccessResponseDto } from "../common/dto/response.dto";
 
 @ApiTags("Cards")
@@ -48,7 +48,7 @@ export class CardController {
     description: "Insufficient wallet balance to create card",
   })
   async create(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Body() createCardDto: CreateCardDto
   ): Promise<CreateCardResponseDto> {
     return this.cardService.createCard(createCardDto);
@@ -74,12 +74,12 @@ export class CardController {
     description: "Card not found",
   })
   async fundCard(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Param("id") cardId: string,
     @Body() fundDto: FundCardDto
   ): Promise<SuccessResponseDto> {
     const result = await this.cardService.fundCard(
-      business.businessId,
+      user.companyId,
       cardId,
       fundDto.amount
     );
@@ -108,12 +108,12 @@ export class CardController {
     description: "Card not found",
   })
   async withdrawFromCard(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Param("id") cardId: string,
     @Body() withdrawDto: WithdrawCardDto
   ): Promise<SuccessResponseDto> {
     const result = await this.cardService.withdrawFromCard(
-      business.businessId,
+      user.companyId,
       cardId,
       withdrawDto.amount
     );
@@ -142,13 +142,10 @@ export class CardController {
     description: "Card is already frozen",
   })
   async freezeCard(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Param("id") cardId: string
   ): Promise<SuccessResponseDto> {
-    const result = await this.cardService.freezeCard(
-      business.businessId,
-      cardId
-    );
+    const result = await this.cardService.freezeCard(user.companyId, cardId);
     return {
       success: result.success,
       message: result.message,
@@ -174,13 +171,10 @@ export class CardController {
     description: "Card is not frozen",
   })
   async unfreezeCard(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Param("id") cardId: string
   ): Promise<SuccessResponseDto> {
-    const result = await this.cardService.unfreezeCard(
-      business.businessId,
-      cardId
-    );
+    const result = await this.cardService.unfreezeCard(user.companyId, cardId);
     return {
       success: result.success,
       message: result.message,
@@ -227,9 +221,9 @@ export class CardController {
     type: [CardResponseDto],
   })
   async findAll(
-    @CurrentBusiness() business: CurrentBusinessData
+    @CurrentUser() user: CurrentUserData
   ): Promise<CardResponseDto[]> {
-    return this.cardService.findAllByCompany(business.businessId);
+    return this.cardService.findAllByCompany(user.companyId);
   }
 
   @Get(":id")
@@ -247,10 +241,10 @@ export class CardController {
     description: "Card not found",
   })
   async findOne(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Param("id") cardId: string
   ): Promise<CardResponseDto> {
-    return this.cardService.findOne(business.businessId, cardId);
+    return this.cardService.findOne(user.companyId, cardId);
   }
 
   @Get(":id/transactions")
@@ -268,9 +262,9 @@ export class CardController {
     description: "Card not found",
   })
   async getCardTransactions(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Param("id") cardId: string
   ): Promise<TransactionResponseDto[]> {
-    return this.cardService.getTransactions(business.businessId, cardId);
+    return this.cardService.getTransactions(user.companyId, cardId);
   }
 }

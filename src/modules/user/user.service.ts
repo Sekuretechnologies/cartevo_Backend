@@ -338,7 +338,7 @@ export class UserService {
     const payload = {
       sub: user.id,
       email: user.email,
-      company_id: user.company.id,
+      companyId: user.company.id,
       roles: user.userCompanyRoles?.map((ucr: any) => ucr.role.name),
     };
 

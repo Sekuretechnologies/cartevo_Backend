@@ -20,9 +20,9 @@ import { CustomerService } from "./customer.service";
 import { CreateCustomerDto, CustomerResponseDto } from "./dto/customer.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import {
-  CurrentBusiness,
-  CurrentBusinessData,
-} from "../common/decorators/current-business.decorator";
+  CurrentUser,
+  CurrentUserData,
+} from "../common/decorators/current-user.decorator";
 import { FileFieldsInterceptor } from "@nestjs/platform-express";
 
 @ApiTags("Customers")
@@ -54,7 +54,7 @@ export class CustomerController {
     description: "Customer with this email or ID already exists",
   })
   async create(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Body() createCustomerDto: CreateCustomerDto,
     @UploadedFiles()
     files: {
@@ -63,7 +63,7 @@ export class CustomerController {
     }
   ): Promise<CustomerResponseDto> {
     return this.customerService.create(
-      business.businessId,
+      user.companyId,
       createCustomerDto,
       files
     );
@@ -87,7 +87,7 @@ export class CustomerController {
     type: CustomerResponseDto,
   })
   async update(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Param("id") customerId: string,
     @Body() createCustomerDto: CreateCustomerDto,
     @UploadedFiles()
@@ -97,7 +97,7 @@ export class CustomerController {
     }
   ): Promise<CustomerResponseDto> {
     return this.customerService.update(
-      business.businessId,
+      user.companyId,
       customerId,
       createCustomerDto
     );
@@ -114,9 +114,9 @@ export class CustomerController {
     type: [CustomerResponseDto],
   })
   async findAll(
-    @CurrentBusiness() business: CurrentBusinessData
+    @CurrentUser() user: CurrentUserData
   ): Promise<{ data: any[] }> {
-    return this.customerService.findAllByCompany(business.businessId);
+    return this.customerService.findAllByCompany(user.companyId);
   }
 
   // @Get("")
@@ -152,10 +152,10 @@ export class CustomerController {
     description: "Customer not found",
   })
   async findOne(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Param("id") id: string
   ): Promise<{ data: any }> {
-    return this.customerService.findOne(business.businessId, id);
+    return this.customerService.findOne(user.companyId, id);
   }
 
   @Get(":id/cards")
@@ -173,10 +173,10 @@ export class CustomerController {
     description: "Customer cards not found",
   })
   async findCustomerCards(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Param("id") id: string
   ): Promise<{ data: any[] }> {
-    return this.customerService.findCustomerCards(business.businessId, id);
+    return this.customerService.findCustomerCards(user.companyId, id);
   }
 
   @Get(":id/transactions")
@@ -194,12 +194,9 @@ export class CustomerController {
     description: "Customer transactions not found",
   })
   async findCustomerTransactions(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Param("id") id: string
   ): Promise<{ data: any[] }> {
-    return this.customerService.findCustomerTransactions(
-      business.businessId,
-      id
-    );
+    return this.customerService.findCustomerTransactions(user.companyId, id);
   }
 }
