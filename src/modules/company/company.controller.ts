@@ -611,7 +611,7 @@ export class CompanyController {
     FileFieldsInterceptor([
       { name: "share_holding_document", maxCount: 1 },
       { name: "incorporation_certificate", maxCount: 1 },
-      { name: "business_proof_of_address", maxCount: 1 },
+      { name: "proof_of_address", maxCount: 1 },
     ])
   )
   @ApiConsumes("multipart/form-data")
@@ -637,7 +637,7 @@ export class CompanyController {
   })
   async completeKyb(
     @CurrentUser() user: CurrentUserData,
-    @Body() completeKybDto: any, // CompleteKybDto,
+    @Body() completeKybDto: CompleteKybDto,
     @UploadedFiles()
     files: {
       share_holding_document?: any[];
