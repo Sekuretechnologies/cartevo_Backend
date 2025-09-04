@@ -66,18 +66,15 @@ export class WalletService {
       console.log("----------------------------------");
 
       const result = await WalletModel.create(walletData);
-      if (result.error) {
-        throw result.error;
-      }
       const wallet = result.output;
       return { data: wallet };
     } catch (error: any) {
       throw new BadRequestException(
         "Failed to create wallet: " + error.message
       );
-      // return fnOutput.error({
-      //   error: { message: "Failed to create wallet: " + error.message },
-      // });
+      return fnOutput.error({
+        error: { message: "Failed to create wallet: " + error.message },
+      });
     }
   }
 
