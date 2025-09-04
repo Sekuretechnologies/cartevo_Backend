@@ -642,7 +642,7 @@ export class CompanyController {
     files: {
       share_holding_document?: any[];
       incorporation_certificate?: any[];
-      business_proof_of_address?: any[];
+      proof_of_address?: any[];
     }
   ): Promise<CompleteKybResponseDto> {
     return this.companyService.completeKyb(

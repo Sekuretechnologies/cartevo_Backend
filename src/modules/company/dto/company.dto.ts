@@ -1097,11 +1097,22 @@ export class CompleteKybDto {
   incorporation_certificate: any;
 
   @ApiProperty({
-    description: "Business proof of address file",
+    description: "Company ID (optional - for backward compatibility)",
+    example: "f7c4ee3b-53d4-46fb-a652-ba108da4cd21",
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  company_id?: string;
+
+  @ApiProperty({
+    description: "Proof of address file (alternative field name)",
     type: "string",
     format: "binary",
+    required: false,
   })
-  business_proof_of_address: any;
+  @IsOptional()
+  proof_of_address?: any;
 }
 
 // KYB Completion Response DTO

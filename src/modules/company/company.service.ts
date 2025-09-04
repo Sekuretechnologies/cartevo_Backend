@@ -1423,7 +1423,7 @@ export class CompanyService {
     files?: {
       share_holding_document?: any[];
       incorporation_certificate?: any[];
-      business_proof_of_address?: any[];
+      proof_of_address?: any[];
     }
   ): Promise<CompleteKybResponseDto> {
     try {
@@ -1460,8 +1460,8 @@ export class CompanyService {
         );
       }
 
-      if (files?.business_proof_of_address?.[0]) {
-        const file = files.business_proof_of_address[0];
+      if (files?.proof_of_address?.[0]) {
+        const file = files.proof_of_address[0];
         businessProofOfAddressUrl = await this.firebaseService.uploadFile(
           file.buffer,
           `business_address_${Date.now()}.${file.originalname
