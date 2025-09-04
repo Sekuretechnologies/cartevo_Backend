@@ -1112,7 +1112,7 @@ export class CompleteKybDto {
     required: false,
   })
   @IsOptional()
-  proof_of_address?: any;
+  proof_of_address: any;
 }
 
 // KYB Completion Response DTO
