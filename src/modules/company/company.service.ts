@@ -1479,6 +1479,7 @@ export class CompanyService {
         tax_id_number: kybData.tax_id_number,
         business_website: kybData.business_website,
         business_description: kybData.business_description,
+        business_registration_number: kybData.business_registration_number,
         source_of_funds: kybData.source_of_funds,
         share_holding_document: shareHoldingDocumentUrl,
         incorporation_certificate: incorporationCertificateUrl,

@@ -1113,8 +1113,8 @@ export class CompleteKybDto {
   })
   @IsOptional()
   proof_of_address: any;
-  //--------------------------------------------------------
 
+  //--------------------------------------------------------
   @ApiProperty({
     description: "Business type (optional)",
     example: "Technology",
