@@ -80,6 +80,10 @@ import {
   CurrentBusiness,
   CurrentBusinessData,
 } from "../common/decorators/current-business.decorator";
+import {
+  CurrentUser,
+  CurrentUserData,
+} from "../common/decorators/current-user.decorator";
 
 @ApiTags("Company")
 @Controller("company")
@@ -210,9 +214,9 @@ export class CompanyController {
     type: [WalletResponseDto],
   })
   async getCompanyWallets(
-    @CurrentBusiness() business: CurrentBusinessData
+    @CurrentUser() user: CurrentUserData
   ): Promise<{ data: WalletResponseDto[] }> {
-    return this.companyService.getCompanyBalance(business.businessId);
+    return this.companyService.getCompanyBalance(user.companyId);
   }
 
   @Get("transactions")
@@ -228,9 +232,9 @@ export class CompanyController {
     type: [TransactionResponseDto],
   })
   async getCompanyTransactions(
-    @CurrentBusiness() business: CurrentBusinessData
+    @CurrentUser() user: CurrentUserData
   ): Promise<{ data: TransactionResponseDto[] }> {
-    return this.companyService.getCompanyTransactions(business.businessId);
+    return this.companyService.getCompanyTransactions(user.companyId);
   }
 
   @Get("admin")
@@ -306,11 +310,11 @@ export class CompanyController {
     type: ErrorResponseDto,
   })
   async createExchangeRate(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Body() createExchangeRateDto: CreateExchangeRateDto
   ): Promise<any> {
     return this.companyService.createExchangeRate(
-      business.businessId,
+      user.companyId,
       createExchangeRateDto
     );
   }
@@ -328,9 +332,9 @@ export class CompanyController {
     type: [ExchangeRateResponseDto],
   })
   async getCompanyExchangeRates(
-    @CurrentBusiness() business: CurrentBusinessData
+    @CurrentUser() user: CurrentUserData
   ): Promise<any> {
-    return this.companyService.getCompanyExchangeRates(business.businessId);
+    return this.companyService.getCompanyExchangeRates(user.companyId);
   }
 
   @Patch("exchange-rates/:exchangeRateId")
@@ -407,11 +411,11 @@ export class CompanyController {
     type: ErrorResponseDto,
   })
   async convertCurrency(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Body() currencyConversionDto: CurrencyConversionDto
   ): Promise<any> {
     return this.companyService.convertCurrency(
-      business.businessId,
+      user.companyId,
       currencyConversionDto.amount,
       currencyConversionDto.fromCurrency,
       currencyConversionDto.toCurrency
@@ -438,11 +442,11 @@ export class CompanyController {
     type: ErrorResponseDto,
   })
   async createTransactionFee(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Body() createTransactionFeeDto: CreateTransactionFeeDto
   ): Promise<any> {
     return this.companyService.createTransactionFee(
-      business.businessId,
+      user.companyId,
       createTransactionFeeDto
     );
   }
@@ -460,9 +464,9 @@ export class CompanyController {
     type: [TransactionFeeResponseDto],
   })
   async getCompanyTransactionFees(
-    @CurrentBusiness() business: CurrentBusinessData
+    @CurrentUser() user: CurrentUserData
   ): Promise<any> {
-    return this.companyService.getCompanyTransactionFees(business.businessId);
+    return this.companyService.getCompanyTransactionFees(user.companyId);
   }
 
   @Patch("transaction-fees/:feeId")
@@ -537,11 +541,11 @@ export class CompanyController {
     type: ErrorResponseDto,
   })
   async calculateTransactionFee(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Body() calculateTransactionFeeDto: CalculateTransactionFeeDto
   ): Promise<any> {
     return this.companyService.calculateTransactionFee(
-      business.businessId,
+      user.companyId,
       calculateTransactionFeeDto.amount,
       calculateTransactionFeeDto.transactionType,
       calculateTransactionFeeDto.transactionCategory,
@@ -584,7 +588,7 @@ export class CompanyController {
     type: ErrorResponseDto,
   })
   async completeKyc(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Body() completeKycDto: CompleteKycDto,
     @UploadedFiles()
     files: {
@@ -594,7 +598,7 @@ export class CompanyController {
     }
   ): Promise<CompleteKycResponseDto> {
     return this.companyService.completeKyc(
-      business.businessId, // We'll get the user ID from the company context
+      user.companyId, // We'll get the user ID from the company context
       completeKycDto,
       files
     );
@@ -632,7 +636,7 @@ export class CompanyController {
     type: ErrorResponseDto,
   })
   async completeKyb(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Body() completeKybDto: CompleteKybDto,
     @UploadedFiles()
     files: {
@@ -642,7 +646,7 @@ export class CompanyController {
     }
   ): Promise<CompleteKybResponseDto> {
     return this.companyService.completeKyb(
-      business.businessId,
+      user.companyId,
       completeKybDto,
       files
     );
@@ -671,13 +675,10 @@ export class CompanyController {
     type: ErrorResponseDto,
   })
   async addBankingInfo(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Body() bankingInfoDto: BankingInfoDto
   ): Promise<BankingInfoResponseDto> {
-    return this.companyService.addBankingInfo(
-      business.businessId,
-      bankingInfoDto
-    );
+    return this.companyService.addBankingInfo(user.companyId, bankingInfoDto);
   }
 
   @Post("onboarding/profile")
@@ -703,11 +704,11 @@ export class CompanyController {
     type: ErrorResponseDto,
   })
   async completeProfile(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Body() completeProfileDto: CompleteProfileDto
   ): Promise<CompleteProfileResponseDto> {
     return this.companyService.completeProfile(
-      business.businessId, // We'll get the user ID from the company context
+      user.companyId, // We'll get the user ID from the company context
       completeProfileDto
     );
   }
@@ -731,22 +732,9 @@ export class CompanyController {
     type: ErrorResponseDto,
   })
   async getOnboardingStatus(
-    @CurrentBusiness() business: CurrentBusinessData
+    @CurrentUser() user: CurrentUserData
   ): Promise<OnboardingStatusDto> {
-    // Find the user associated with this company
-    const userResult = await UserModel.getOne({
-      company_id: business.businessId,
-    });
-    if (userResult.error || !userResult.output) {
-      throw new NotFoundException("User not found for this company");
-    }
-
-    const user = userResult.output;
-
-    return this.companyService.getOnboardingStatus(
-      business.businessId,
-      user.id
-    );
+    return this.companyService.getOnboardingStatus(user.companyId, user.userId);
   }
 
   // ==================== ONBOARDING STEP CONTROLLERS ====================
@@ -769,10 +757,10 @@ export class CompanyController {
   })
   async initializeOnboardingSteps(
     @Body() initData: InitializeOnboardingStepsDto,
-    @CurrentBusiness() business: CurrentBusinessData
+    @CurrentUser() user: CurrentUserData
   ): Promise<InitializeOnboardingStepsResponseDto> {
     // Override company_id with authenticated company ID
-    initData.company_id = business.businessId;
+    initData.company_id = user.companyId;
     return this.companyService.initializeOnboardingSteps(initData);
   }
 
@@ -794,11 +782,11 @@ export class CompanyController {
     type: ErrorResponseDto,
   })
   async getOnboardingSteps(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Query("status") status?: string
   ): Promise<{ data: GetOnboardingStepsResponseDto }> {
     return this.companyService.getCompanyOnboardingSteps(
-      business.businessId,
+      user.companyId,
       status
     );
   }
@@ -821,7 +809,7 @@ export class CompanyController {
   })
   async getOnboardingStep(
     @Param("stepId") stepId: string,
-    @CurrentBusiness() business: CurrentBusinessData
+    @CurrentUser() user: CurrentUserData
   ): Promise<OnboardingStepResponseDto> {
     return this.companyService.getOnboardingStep(stepId);
   }
@@ -850,7 +838,7 @@ export class CompanyController {
   async updateStepStatus(
     @Param("stepId") stepId: string,
     @Body() statusData: UpdateStepStatusDto,
-    @CurrentBusiness() business: CurrentBusinessData
+    @CurrentUser() user: CurrentUserData
   ): Promise<UpdateStepStatusResponseDto> {
     return this.companyService.updateStepStatus(stepId, statusData.status);
   }
@@ -878,7 +866,7 @@ export class CompanyController {
   })
   async startStep(
     @Param("stepId") stepId: string,
-    @CurrentBusiness() business: CurrentBusinessData
+    @CurrentUser() user: CurrentUserData
   ): Promise<UpdateStepStatusResponseDto> {
     return this.companyService.startStep(stepId);
   }
@@ -906,7 +894,7 @@ export class CompanyController {
   })
   async completeStep(
     @Param("stepId") stepId: string,
-    @CurrentBusiness() business: CurrentBusinessData
+    @CurrentUser() user: CurrentUserData
   ): Promise<UpdateStepStatusResponseDto> {
     return this.companyService.completeStep(stepId);
   }
@@ -928,9 +916,9 @@ export class CompanyController {
     type: ErrorResponseDto,
   })
   async getNextPendingStep(
-    @CurrentBusiness() business: CurrentBusinessData
+    @CurrentUser() user: CurrentUserData
   ): Promise<OnboardingStepResponseDto | null> {
-    return this.companyService.getNextPendingStep(business.businessId);
+    return this.companyService.getNextPendingStep(user.companyId);
   }
 
   @Delete("onboarding-steps/:stepId")
@@ -956,7 +944,7 @@ export class CompanyController {
   })
   async deleteOnboardingStep(
     @Param("stepId") stepId: string,
-    @CurrentBusiness() business: CurrentBusinessData
+    @CurrentUser() user: CurrentUserData
   ): Promise<{ success: boolean; message: string }> {
     return this.companyService.deleteOnboardingStep(stepId);
   }
@@ -978,9 +966,9 @@ export class CompanyController {
     type: ErrorResponseDto,
   })
   async resetOnboardingSteps(
-    @CurrentBusiness() business: CurrentBusinessData
+    @CurrentUser() user: CurrentUserData
   ): Promise<{ success: boolean; message: string }> {
-    return this.companyService.resetCompanySteps(business.businessId);
+    return this.companyService.resetCompanySteps(user.companyId);
   }
 
   // ==================== CLIENT CREDENTIALS AND WEBHOOK ROUTES ====================
@@ -1004,9 +992,9 @@ export class CompanyController {
     type: ErrorResponseDto,
   })
   async getCompanyCredentials(
-    @CurrentBusiness() business: CurrentBusinessData
+    @CurrentUser() user: CurrentUserData
   ): Promise<CompanyCredentialsResponseDto> {
-    return this.companyService.getCompanyCredentials(business.businessId);
+    return this.companyService.getCompanyCredentials(user.companyId);
   }
 
   @Put("webhook")
@@ -1032,7 +1020,7 @@ export class CompanyController {
     type: ErrorResponseDto,
   })
   async updateWebhookUrl(
-    @CurrentBusiness() business: CurrentBusinessData,
+    @CurrentUser() user: CurrentUserData,
     @Body() updateWebhookUrlDto: UpdateWebhookUrlDto,
     @Req() request: Request,
     @Headers() headers: any
@@ -1049,7 +1037,7 @@ export class CompanyController {
     }
 
     return this.companyService.updateWebhookUrl(
-      business.businessId,
+      user.companyId,
       updateWebhookUrlDto
     );
   }
@@ -1073,8 +1061,8 @@ export class CompanyController {
     type: ErrorResponseDto,
   })
   async regenerateClientKey(
-    @CurrentBusiness() business: CurrentBusinessData
+    @CurrentUser() user: CurrentUserData
   ): Promise<RegenerateClientKeyResponseDto> {
-    return this.companyService.regenerateClientKey(business.businessId);
+    return this.companyService.regenerateClientKey(user.companyId);
   }
 }
