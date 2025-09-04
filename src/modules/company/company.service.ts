@@ -1390,12 +1390,29 @@ export class CompanyService {
         // Don't throw error to prevent main operation from failing
       }
 
+      // -------------------------------------------------
+      const result = await OnboardingStepModel.get({
+        company_id: companyId,
+      });
+      if (result.error) {
+        console.error("Error getting onboarding steps:", result.error.message);
+      }
+      const steps = result.output;
+      const totalCount: number = steps.length;
+      // Count by status
+      const completedCount: number = steps.filter(
+        (step: any) => step.status === "COMPLETED"
+      ).length;
+
+      // ------------------------------------------------
+
       return {
         success: true,
         message: "KYC information submitted successfully. Awaiting review.",
         user_id: user.id,
-        kyc_status: "PENDING",
-        next_step: "kyb_completion",
+        onboarding_is_completed: totalCount === completedCount,
+        // kyc_status: "PENDING",
+        // next_step: "kyb_completion",
         completed_at: new Date(),
       };
     } catch (error) {
@@ -1514,12 +1531,29 @@ export class CompanyService {
         // Don't throw error to prevent main operation from failing
       }
 
+      // -------------------------------------------------
+      const result = await OnboardingStepModel.get({
+        company_id: companyId,
+      });
+      if (result.error) {
+        console.error("Error getting onboarding steps:", result.error.message);
+      }
+      const steps = result.output;
+      const totalCount: number = steps.length;
+      // Count by status
+      const completedCount: number = steps.filter(
+        (step: any) => step.status === "COMPLETED"
+      ).length;
+
+      // -------------------------------------------------
+
       return {
         success: true,
         message: "KYB information submitted successfully. Awaiting review.",
         company_id: company.id,
-        kyb_status: "PENDING",
-        next_step: "banking_info",
+        onboarding_is_completed: totalCount === completedCount,
+        // kyb_status: "PENDING",
+        // next_step: "banking_info",
         completed_at: new Date(),
       };
     } catch (error) {

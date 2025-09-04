@@ -229,7 +229,7 @@ export class LoginSuccessResponseDto {
     id: string;
     name: string;
     country: string;
-    is_onboarding_completed: boolean;
+    onboarding_is_completed: boolean;
   };
 
   @ApiProperty({

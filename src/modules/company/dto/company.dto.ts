@@ -1012,10 +1012,12 @@ export class CompleteKycResponseDto {
   user_id: string;
 
   @ApiProperty()
-  kyc_status: "NONE" | "PENDING" | "APPROVED" | "REJECTED";
+  onboarding_is_completed: boolean;
 
-  @ApiProperty()
-  next_step: string;
+  // kyc_status: "NONE" | "PENDING" | "APPROVED" | "REJECTED";
+
+  // @ApiProperty()
+  // next_step: string;
 
   @ApiProperty()
   completed_at: Date;
@@ -1164,10 +1166,13 @@ export class CompleteKybResponseDto {
   company_id: string;
 
   @ApiProperty()
-  kyb_status: "NONE" | "PENDING" | "APPROVED" | "REJECTED";
+  onboarding_is_completed: boolean;
 
-  @ApiProperty()
-  next_step: string;
+  // @ApiProperty()
+  // kyb_status: "NONE" | "PENDING" | "APPROVED" | "REJECTED";
+
+  // @ApiProperty()
+  // next_step: string;
 
   @ApiProperty()
   completed_at: Date;

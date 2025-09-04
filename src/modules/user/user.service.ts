@@ -424,7 +424,7 @@ export class UserService {
         id: user.company.id,
         name: user.company.name,
         country: user.company.country,
-        is_onboarding_completed: completedCount === totalCount,
+        onboarding_is_completed: completedCount === totalCount,
       },
       redirect_to: redirectTo,
     };
