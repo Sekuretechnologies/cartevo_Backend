@@ -637,7 +637,7 @@ export class CompanyController {
   })
   async completeKyb(
     @CurrentUser() user: CurrentUserData,
-    @Body() completeKybDto: CompleteKybDto,
+    @Body() completeKybDto: any, // CompleteKybDto,
     @UploadedFiles()
     files: {
       share_holding_document?: any[];
