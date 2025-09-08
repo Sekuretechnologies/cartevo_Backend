@@ -74,11 +74,11 @@ export class UserService {
       (ucr) => ucr.role.name === "owner"
     );
 
-    console.log("isOwner :: ", isOwner);
-
     if (!isOwner) {
       throw new ForbiddenException("Only owners can create users");
     }
+
+    console.log("isOwner :: ", isOwner);
 
     // Check if user with email already exists in this company
     const existingUserResult = await UserModel.getOne(
@@ -89,10 +89,12 @@ export class UserService {
         },
       }
     );
-    if (existingUserResult.error) {
-      throw new UnauthorizedException(existingUserResult.error.message);
-    }
+    // if (existingUserResult.error) {
+    //   throw new UnauthorizedException(existingUserResult.error.message);
+    // }
     const existingUser = existingUserResult.output;
+
+    console.log("existingUser :: ", existingUser);
 
     if (existingUser) {
       throw new BadRequestException(
@@ -103,60 +105,71 @@ export class UserService {
     // Generate invitation code
     const invitationCode = this.generateInvitationCode();
 
-    return await UserModel.operation(async (prisma) => {
-      // Create pending user
-      const newUserResult = await UserModel.create({
-        email: createUserDto.email,
-        company_id: ownerUser.company_id,
-        status: UserStatus.PENDING,
-        invitation_code: invitationCode,
-      });
-      if (newUserResult.error) {
-        throw new BadRequestException(newUserResult.error.message);
-      }
-      const newUser = newUserResult.output;
+    console.log("invitationCode :: ", invitationCode);
 
-      // Get the role
-      let roleResult = await RoleModel.getOne({ name: createUserDto.role });
-      if (roleResult.error) {
-        throw new BadRequestException(roleResult.error.message);
-      }
-      let role = roleResult.output;
-
-      if (!role) {
-        const roleCreateResult = await RoleModel.create({
-          name: createUserDto.role,
-        });
-        if (roleCreateResult.error) {
-          throw new BadRequestException(roleCreateResult.error.message);
-        }
-        role = roleCreateResult.output;
-      }
-
-      // Create user-company-role association
-      const userCompanyRoleResult = await UserCompanyRoleModel.create({
-        user_id: newUser.id,
-        company_id: ownerUser.company_id,
-        role_id: role.id,
-      });
-      if (userCompanyRoleResult.error) {
-        throw new BadRequestException(userCompanyRoleResult.error.message);
-      }
-
-      // Send invitation email
-      await this.emailService.sendInvitationEmail(
-        createUserDto.email,
-        invitationCode,
-        ownerUser.company?.name || "Your Company"
-      );
-
-      return {
-        success: true,
-        message: "User invitation sent successfully",
-        user: await this.mapToResponseDto(newUser, createUserDto.role),
-        invitation_code: invitationCode, // For demo purposes, normally only sent via email
-      };
+    // return await UserModel.operation(async (prisma) => {
+    // Create pending user
+    const newUserResult = await UserModel.create({
+      email: createUserDto.email,
+      company_id: ownerUser.company_id,
+      status: UserStatus.PENDING,
+      invitation_code: invitationCode,
     });
+    if (newUserResult.error) {
+      throw new BadRequestException(newUserResult.error.message);
+    }
+    const newUser = newUserResult.output;
+
+    console.log("newUser :: ", newUser);
+
+    // Get the role
+    let roleResult = await RoleModel.getOne({ name: createUserDto.role });
+    if (roleResult.error) {
+      throw new BadRequestException(roleResult.error.message);
+    }
+    let role = roleResult.output;
+
+    if (!role) {
+      const roleCreateResult = await RoleModel.create({
+        name: createUserDto.role,
+      });
+      if (roleCreateResult.error) {
+        throw new BadRequestException(roleCreateResult.error.message);
+      }
+      role = roleCreateResult.output;
+    }
+
+    console.log("role :: ", role);
+
+    // Create user-company-role association
+    const userCompanyRoleResult = await UserCompanyRoleModel.create({
+      user_id: newUser.id,
+      company_id: ownerUser.company_id,
+      role_id: role.id,
+    });
+    if (userCompanyRoleResult.error) {
+      throw new BadRequestException(userCompanyRoleResult.error.message);
+    }
+
+    console.log(
+      "userCompanyRoleResult.output :: ",
+      userCompanyRoleResult.output
+    );
+
+    // Send invitation email
+    await this.emailService.sendInvitationEmail(
+      createUserDto.email,
+      invitationCode,
+      ownerUser.company?.name || "Your Company"
+    );
+
+    return {
+      success: true,
+      message: "User invitation sent successfully",
+      user: await this.mapToResponseDto(newUser, createUserDto.role),
+      invitation_code: invitationCode, // For demo purposes, normally only sent via email
+    };
+    // });
   }
 
   async registerUser(
