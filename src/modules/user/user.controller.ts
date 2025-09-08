@@ -47,7 +47,8 @@ export class UserController {
 
   @Post()
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, OwnerGuard)
+  // @UseGuards(JwtAuthGuard, OwnerGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: "Create user (Owner only)",
     description:
