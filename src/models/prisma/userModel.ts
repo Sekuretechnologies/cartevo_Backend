@@ -104,15 +104,15 @@ class UserModel {
     hashedPassword?: any
   ) {
     try {
-      let password = "";
-      if (!hashedPassword) {
-        password = await bcrypt.hash(inputUser.password, 12);
-      } else {
-        password = hashedPassword;
-      }
-
       const userData = { ...inputUser };
-      userData.password = password;
+
+      // Only hash password if it's provided and no hashedPassword is given
+      if (!hashedPassword && inputUser.password) {
+        userData.password = await bcrypt.hash(inputUser.password, 12);
+      } else if (hashedPassword) {
+        userData.password = hashedPassword;
+      }
+      // If neither password nor hashedPassword is provided, leave password undefined
       if (inputUser.address) {
         userData.address = sanitizeTextInput(inputUser.address);
       }
