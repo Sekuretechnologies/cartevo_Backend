@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
 import { ConfigModule, ConfigService } from "@nestjs/config";
-import { UserController, AuthController } from "./user.controller";
+import { UserController } from "./user.controller";
 import { UserService } from "./user.service";
 import { EmailService } from "../../services/email.service";
 import { TokenBlacklistService } from "../../services/token-blacklist.service";
@@ -20,7 +20,7 @@ import { TokenBlacklistService } from "../../services/token-blacklist.service";
       inject: [ConfigService],
     }),
   ],
-  controllers: [UserController, AuthController],
+  controllers: [UserController],
   providers: [UserService, EmailService, TokenBlacklistService],
   exports: [UserService, TokenBlacklistService],
 })

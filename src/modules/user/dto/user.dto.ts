@@ -209,6 +209,18 @@ export class AuthResponseDto {
 
   @ApiProperty()
   requires_otp: boolean;
+
+  @ApiProperty({
+    description:
+      "List of companies for user to choose from when multiple companies exist",
+    required: false,
+    type: [Object],
+  })
+  companies?: Array<{
+    id: string;
+    name: string;
+    country: string;
+  }>;
 }
 
 export class LoginSuccessResponseDto {

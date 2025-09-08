@@ -89,7 +89,7 @@ model User {
   full_name       String?    @map("full_name")
   first_name     String?    @map("first_name")
   last_name      String?    @map("last_name")
-  email          String     @unique
+  email          String
   address        String?
   password       String?
   company_id      String     @map("company_id")
@@ -99,7 +99,7 @@ model User {
   invitation_code String?    @unique @map("invitation_code")
   otp            String?
   otp_expires     DateTime?  @map("otp_expires")
-  
+
   // Personal information fields (Step 1)
   role_in_company    String?    @map("role_in_company")
   phone_number       String?    @map("phone_number")
@@ -115,7 +115,7 @@ model User {
   street             String?
   postal_code        String?    @map("postal_code")
   proof_of_address   String?    @map("proof_of_address")
-  
+
   created_at      DateTime   @default(now()) @map("created_at")
   updated_at      DateTime   @updatedAt @map("updated_at")
 
@@ -123,6 +123,7 @@ model User {
   userCompanyRoles UserCompanyRole[]
   transactions Transaction[]
 
+  @@unique([company_id, email])
   @@map("users")
 }
 
