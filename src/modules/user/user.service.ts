@@ -56,14 +56,21 @@ export class UserService {
         },
       }
     );
+
     if (ownerUserResult.error) {
       throw new UnauthorizedException(ownerUserResult.error.message);
     }
     const ownerUser = ownerUserResult.output;
 
+    console.log(
+      "userCompanyRoles:",
+      JSON.stringify(ownerUser.userCompanyRoles, null, 2)
+    );
+
     if (!ownerUser) {
-      throw new UnauthorizedException("User not found");
+      throw new UnauthorizedException("User not ");
     }
+    console.log("Owneruser", ownerUser);
 
     const isOwner = ownerUser.userCompanyRoles.some(
       (ucr) => ucr.role.name === "owner"
@@ -317,7 +324,7 @@ export class UserService {
       "user.otpExpires < new Date() :: ",
       user.otp_expires < new Date()
     );
-    console.log("user :: ", user);
+    // console.log("user :: ", user);
 
     if (!user || !user.otp_expires || user.otp_expires < new Date()) {
       throw new UnauthorizedException("Invalid or expired OTP");

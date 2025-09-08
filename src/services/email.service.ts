@@ -12,14 +12,15 @@ export class EmailService {
 
   private initializeTransporter() {
     try {
-      const apiKey = this.configService.get("POSTMARK_API_TOKEN");
+      // const apiKey = this.configService.get("MAILTRAP_API_TOKEN");
       this.transporter = nodemailer.createTransport({
-        host: this.configService.get("POSTMARK_HOST") || "smtp.postmarkapp.com",
-        port: parseInt(this.configService.get("POSTMARK_PORT") || "25"),
+        host:
+          this.configService.get("MAILTRAP_HOST") || "live.smtp.mailtrap.io",
+        port: parseInt(this.configService.get("MAILTRAP_PORT") || "25"),
         secure: false, // true for 465, false for other ports
         auth: {
-          user: apiKey, // this.configService.get("POSTMARK_USERNAME"),
-          pass: apiKey, // this.configService.get("POSTMARK_PASSWORD"),
+          user: this.configService.get("MAILTRAP_USERNAME"),
+          pass: this.configService.get("MAILTRAP_PASSWORD"),
         },
       });
     } catch (error) {
@@ -273,13 +274,28 @@ export class EmailService {
         to: email,
         subject: "Réinitialisation de votre mot de passe",
         html: `
-        <p>Bonjour, ${userName}</p>
         <p>Vous avez demandé à réinitialiser votre mot de passe.</p>
-        <p>Cliquez sur le lien ci-dessous pour choisir un nouveau mot de passe :</p>
-        <a href="${resetLink}">Réinitialiser mon mot de passe</a>
-        <p>Ce lien expirera dans 15 minutes.</p>
-        <p>Si vous n’avez pas demandé cette réinitialisation, ignorez simplement cet email.</p>
-         <p>© 2025 CARTEVO. Tous droits réservés.</p>
+  <p>Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe :</p>
+  <p>
+    <a href="${resetLink}"
+      style="
+        display: inline-block;
+        padding: 12px 20px;
+        background-color: #1F66FF;
+        color: #ffffff;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: bold;
+      "
+    >
+      Réinitialiser mon mot de passe
+    </a>
+  </p>
+  <p>Si le bouton ne fonctionne pas, copiez-collez ce lien dans votre navigateur :</p>
+  <p><a href="${resetLink}">${resetLink}</a></p>
+  <p>Ce lien expirera dans 15 minutes.</p>
+  <p>Si vous n’avez pas demandé cette réinitialisation, ignorez simplement cet email.</p>
+  <p>© 2025 CARTEVO. Tous droits réservés.</p>
       `,
       };
 
@@ -290,5 +306,557 @@ export class EmailService {
       console.error("Error sending resetLink email:", error);
       throw new BadRequestException("Failed to send ResetLink email");
     }
+  }
+
+  async sendWalletFundingSuccessEmail(
+    customerEmail: string,
+    customerName: string,
+    companyName: string,
+    transactionAmount: number,
+    transactionCurrency: string,
+    newBalance: number,
+    transactionId: string
+  ): Promise<boolean> {
+    try {
+      const mailOptions = {
+        from: this.configService.get("FROM_EMAIL") || "contact@getsekure.com",
+        to: customerEmail,
+        subject: `Wallet Funding Successful - ${companyName}`,
+        html: this.getWalletFundingSuccessTemplate(
+          customerName,
+          companyName,
+          transactionAmount,
+          transactionCurrency,
+          newBalance,
+          transactionId
+        ),
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log(
+        "Wallet funding success email sent successfully:",
+        result.messageId
+      );
+      return true;
+    } catch (error) {
+      console.error("Error sending wallet funding success email:", error);
+      throw new BadRequestException(
+        "Failed to send wallet funding success email"
+      );
+    }
+  }
+
+  async sendWalletFundingFailureEmail(
+    customerEmail: string,
+    customerName: string,
+    companyName: string,
+    transactionAmount: number,
+    transactionCurrency: string,
+    status: string,
+    transactionId: string
+  ): Promise<boolean> {
+    try {
+      const mailOptions = {
+        from: this.configService.get("FROM_EMAIL") || "contact@getsekure.com",
+        to: customerEmail,
+        subject: `Wallet Funding Failed - ${companyName}`,
+        html: this.getWalletFundingFailureTemplate(
+          customerName,
+          companyName,
+          transactionAmount,
+          transactionCurrency,
+          status,
+          transactionId
+        ),
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log(
+        "Wallet funding failure email sent successfully:",
+        result.messageId
+      );
+      return true;
+    } catch (error) {
+      console.error("Error sending wallet funding failure email:", error);
+      throw new BadRequestException(
+        "Failed to send wallet funding failure email"
+      );
+    }
+  }
+
+  async sendWalletWithdrawalSuccessEmail(
+    customerEmail: string,
+    customerName: string,
+    companyName: string,
+    transactionAmount: number,
+    transactionCurrency: string,
+    transactionId: string
+  ): Promise<boolean> {
+    try {
+      const mailOptions = {
+        from: this.configService.get("FROM_EMAIL") || "contact@getsekure.com",
+        to: customerEmail,
+        subject: `Wallet Withdrawal Successful - ${companyName}`,
+        html: this.getWalletWithdrawalSuccessTemplate(
+          customerName,
+          companyName,
+          transactionAmount,
+          transactionCurrency,
+          transactionId
+        ),
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log(
+        "Wallet withdrawal success email sent successfully:",
+        result.messageId
+      );
+      return true;
+    } catch (error) {
+      console.error("Error sending wallet withdrawal success email:", error);
+      throw new BadRequestException(
+        "Failed to send wallet withdrawal success email"
+      );
+    }
+  }
+
+  async sendWalletWithdrawalFailureEmail(
+    customerEmail: string,
+    customerName: string,
+    companyName: string,
+    transactionAmount: number,
+    transactionCurrency: string,
+    status: string,
+    transactionId: string
+  ): Promise<boolean> {
+    try {
+      const mailOptions = {
+        from: this.configService.get("FROM_EMAIL") || "contact@getsekure.com",
+        to: customerEmail,
+        subject: `Wallet Withdrawal Failed - ${companyName}`,
+        html: this.getWalletWithdrawalFailureTemplate(
+          customerName,
+          companyName,
+          transactionAmount,
+          transactionCurrency,
+          status,
+          transactionId
+        ),
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log(
+        "Wallet withdrawal failure email sent successfully:",
+        result.messageId
+      );
+      return true;
+    } catch (error) {
+      console.error("Error sending wallet withdrawal failure email:", error);
+      throw new BadRequestException(
+        "Failed to send wallet withdrawal failure email"
+      );
+    }
+  }
+
+  async sendWalletFundingSuccessToCompanyEmail(
+    companyEmail: string,
+    companyName: string,
+    customerName: string,
+    customerEmail: string,
+    transactionAmount: number,
+    transactionCurrency: string,
+    newBalance: number,
+    transactionId: string
+  ): Promise<boolean> {
+    try {
+      const mailOptions = {
+        from: this.configService.get("FROM_EMAIL") || "contact@getsekure.com",
+        to: companyEmail,
+        subject: `Customer Wallet Funded - ${customerName}`,
+        html: this.getWalletFundingSuccessToCompanyTemplate(
+          companyName,
+          customerName,
+          customerEmail,
+          transactionAmount,
+          transactionCurrency,
+          newBalance,
+          transactionId
+        ),
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log(
+        "Wallet funding success to company email sent successfully:",
+        result.messageId
+      );
+      return true;
+    } catch (error) {
+      console.error(
+        "Error sending wallet funding success to company email:",
+        error
+      );
+      throw new BadRequestException(
+        "Failed to send wallet funding success to company email"
+      );
+    }
+  }
+
+  async sendWalletFundingFailureToCompanyEmail(
+    companyEmail: string,
+    companyName: string,
+    customerName: string,
+    customerEmail: string,
+    transactionAmount: number,
+    transactionCurrency: string,
+    status: string,
+    transactionId: string
+  ): Promise<boolean> {
+    try {
+      const mailOptions = {
+        from: this.configService.get("FROM_EMAIL") || "contact@getsekure.com",
+        to: companyEmail,
+        subject: `Customer Wallet Funding Failed - ${customerName}`,
+        html: this.getWalletFundingFailureToCompanyTemplate(
+          companyName,
+          customerName,
+          customerEmail,
+          transactionAmount,
+          transactionCurrency,
+          status,
+          transactionId
+        ),
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log(
+        "Wallet funding failure to company email sent successfully:",
+        result.messageId
+      );
+      return true;
+    } catch (error) {
+      console.error(
+        "Error sending wallet funding failure to company email:",
+        error
+      );
+      throw new BadRequestException(
+        "Failed to send wallet funding failure to company email"
+      );
+    }
+  }
+
+  async sendWalletWithdrawalSuccessToCompanyEmail(
+    companyEmail: string,
+    companyName: string,
+    customerName: string,
+    customerEmail: string,
+    transactionAmount: number,
+    transactionCurrency: string,
+    transactionId: string
+  ): Promise<boolean> {
+    try {
+      const mailOptions = {
+        from: this.configService.get("FROM_EMAIL") || "contact@getsekure.com",
+        to: companyEmail,
+        subject: `Customer Wallet Withdrawal - ${customerName}`,
+        html: this.getWalletWithdrawalSuccessToCompanyTemplate(
+          companyName,
+          customerName,
+          customerEmail,
+          transactionAmount,
+          transactionCurrency,
+          transactionId
+        ),
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log(
+        "Wallet withdrawal success to company email sent successfully:",
+        result.messageId
+      );
+      return true;
+    } catch (error) {
+      console.error(
+        "Error sending wallet withdrawal success to company email:",
+        error
+      );
+      throw new BadRequestException(
+        "Failed to send wallet withdrawal success to company email"
+      );
+    }
+  }
+
+  async sendWalletWithdrawalFailureToCompanyEmail(
+    companyEmail: string,
+    companyName: string,
+    customerName: string,
+    customerEmail: string,
+    transactionAmount: number,
+    transactionCurrency: string,
+    status: string,
+    transactionId: string
+  ): Promise<boolean> {
+    try {
+      const mailOptions = {
+        from: this.configService.get("FROM_EMAIL") || "contact@getsekure.com",
+        to: companyEmail,
+        subject: `Customer Wallet Withdrawal Failed - ${customerName}`,
+        html: this.getWalletWithdrawalFailureToCompanyTemplate(
+          companyName,
+          customerName,
+          customerEmail,
+          transactionAmount,
+          transactionCurrency,
+          status,
+          transactionId
+        ),
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log(
+        "Wallet withdrawal failure to company email sent successfully:",
+        result.messageId
+      );
+      return true;
+    } catch (error) {
+      console.error(
+        "Error sending wallet withdrawal failure to company email:",
+        error
+      );
+      throw new BadRequestException(
+        "Failed to send wallet withdrawal failure to company email"
+      );
+    }
+  }
+
+  private getWalletFundingSuccessTemplate(
+    customerName: string,
+    companyName: string,
+    amount: number,
+    currency: string,
+    newBalance: number,
+    transactionId: string
+  ): string {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #28a745;">Wallet Funding Successful! 🎉</h2>
+        <p>Dear ${customerName},</p>
+        <p>Great news! Your wallet has been successfully funded.</p>
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+          <h3>Transaction Details:</h3>
+          <ul style="list-style: none; padding: 0;">
+            <li><strong>Amount:</strong> ${amount} ${currency}</li>
+            <li><strong>New Balance:</strong> ${newBalance} ${currency}</li>
+            <li><strong>Transaction ID:</strong> ${transactionId}</li>
+            <li><strong>Company:</strong> ${companyName}</li>
+          </ul>
+        </div>
+        <p>Your funds are now available for use. Thank you for choosing ${companyName}!</p>
+        <p>If you have any questions, please don't hesitate to contact our support team.</p>
+        <p>Best regards,<br>The ${companyName} Team</p>
+      </div>
+    `;
+  }
+
+  private getWalletFundingFailureTemplate(
+    customerName: string,
+    companyName: string,
+    amount: number,
+    currency: string,
+    status: string,
+    transactionId: string
+  ): string {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #dc3545;">Wallet Funding Failed</h2>
+        <p>Dear ${customerName},</p>
+        <p>We regret to inform you that your wallet funding attempt was unsuccessful.</p>
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+          <h3>Transaction Details:</h3>
+          <ul style="list-style: none; padding: 0;">
+            <li><strong>Amount:</strong> ${amount} ${currency}</li>
+            <li><strong>Status:</strong> ${status}</li>
+            <li><strong>Transaction ID:</strong> ${transactionId}</li>
+            <li><strong>Company:</strong> ${companyName}</li>
+          </ul>
+        </div>
+        <p>Please try again or contact our support team for assistance.</p>
+        <p>If you have any questions, please don't hesitate to contact our support team.</p>
+        <p>Best regards,<br>The ${companyName} Team</p>
+      </div>
+    `;
+  }
+
+  private getWalletWithdrawalSuccessTemplate(
+    customerName: string,
+    companyName: string,
+    amount: number,
+    currency: string,
+    transactionId: string
+  ): string {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #28a745;">Wallet Withdrawal Successful! 🎉</h2>
+        <p>Dear ${customerName},</p>
+        <p>Great news! Your withdrawal has been processed successfully.</p>
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+          <h3>Transaction Details:</h3>
+          <ul style="list-style: none; padding: 0;">
+            <li><strong>Amount:</strong> ${amount} ${currency}</li>
+            <li><strong>Transaction ID:</strong> ${transactionId}</li>
+            <li><strong>Company:</strong> ${companyName}</li>
+          </ul>
+        </div>
+        <p>Your withdrawal request has been completed. Thank you for using ${companyName}!</p>
+        <p>If you have any questions, please don't hesitate to contact our support team.</p>
+        <p>Best regards,<br>The ${companyName} Team</p>
+      </div>
+    `;
+  }
+
+  private getWalletWithdrawalFailureTemplate(
+    customerName: string,
+    companyName: string,
+    amount: number,
+    currency: string,
+    status: string,
+    transactionId: string
+  ): string {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #dc3545;">Wallet Withdrawal Failed</h2>
+        <p>Dear ${customerName},</p>
+        <p>We regret to inform you that your withdrawal attempt was unsuccessful.</p>
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+          <h3>Transaction Details:</h3>
+          <ul style="list-style: none; padding: 0;">
+            <li><strong>Amount:</strong> ${amount} ${currency}</li>
+            <li><strong>Status:</strong> ${status}</li>
+            <li><strong>Transaction ID:</strong> ${transactionId}</li>
+            <li><strong>Company:</strong> ${companyName}</li>
+          </ul>
+        </div>
+        <p>The amount has been refunded back to your wallet. Please try again or contact our support team for assistance.</p>
+        <p>If you have any questions, please don't hesitate to contact our support team.</p>
+        <p>Best regards,<br>The ${companyName} Team</p>
+      </div>
+    `;
+  }
+
+  private getWalletFundingSuccessToCompanyTemplate(
+    companyName: string,
+    customerName: string,
+    customerEmail: string,
+    amount: number,
+    currency: string,
+    newBalance: number,
+    transactionId: string
+  ): string {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #28a745;">Customer Wallet Funding Notification</h2>
+        <p>Dear ${companyName} Team,</p>
+        <p>A customer has successfully funded their wallet.</p>
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+          <h3>Transaction Details:</h3>
+          <ul style="list-style: none; padding: 0;">
+            <li><strong>Customer:</strong> ${customerName}</li>
+            <li><strong>Customer Email:</strong> ${customerEmail}</li>
+            <li><strong>Amount:</strong> ${amount} ${currency}</li>
+            <li><strong>New Balance:</strong> ${newBalance} ${currency}</li>
+            <li><strong>Transaction ID:</strong> ${transactionId}</li>
+          </ul>
+        </div>
+        <p>The transaction has been processed successfully and the customer's wallet has been updated.</p>
+        <p>Best regards,<br>The System</p>
+      </div>
+    `;
+  }
+
+  private getWalletFundingFailureToCompanyTemplate(
+    companyName: string,
+    customerName: string,
+    customerEmail: string,
+    amount: number,
+    currency: string,
+    status: string,
+    transactionId: string
+  ): string {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #dc3545;">Customer Wallet Funding Failed</h2>
+        <p>Dear ${companyName} Team,</p>
+        <p>A customer's wallet funding attempt has failed.</p>
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+          <h3>Transaction Details:</h3>
+          <ul style="list-style: none; padding: 0;">
+            <li><strong>Customer:</strong> ${customerName}</li>
+            <li><strong>Customer Email:</strong> ${customerEmail}</li>
+            <li><strong>Amount:</strong> ${amount} ${currency}</li>
+            <li><strong>Status:</strong> ${status}</li>
+            <li><strong>Transaction ID:</strong> ${transactionId}</li>
+          </ul>
+        </div>
+        <p>The transaction has failed. Please check the transaction details and assist the customer if needed.</p>
+        <p>Best regards,<br>The System</p>
+      </div>
+    `;
+  }
+
+  private getWalletWithdrawalSuccessToCompanyTemplate(
+    companyName: string,
+    customerName: string,
+    customerEmail: string,
+    amount: number,
+    currency: string,
+    transactionId: string
+  ): string {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #28a745;">Customer Wallet Withdrawal Notification</h2>
+        <p>Dear ${companyName} Team,</p>
+        <p>A customer has successfully withdrawn from their wallet.</p>
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+          <h3>Transaction Details:</h3>
+          <ul style="list-style: none; padding: 0;">
+            <li><strong>Customer:</strong> ${customerName}</li>
+            <li><strong>Customer Email:</strong> ${customerEmail}</li>
+            <li><strong>Amount:</strong> ${amount} ${currency}</li>
+            <li><strong>Transaction ID:</strong> ${transactionId}</li>
+          </ul>
+        </div>
+        <p>The withdrawal has been processed successfully.</p>
+        <p>Best regards,<br>The System</p>
+      </div>
+    `;
+  }
+
+  private getWalletWithdrawalFailureToCompanyTemplate(
+    companyName: string,
+    customerName: string,
+    customerEmail: string,
+    amount: number,
+    currency: string,
+    status: string,
+    transactionId: string
+  ): string {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #dc3545;">Customer Wallet Withdrawal Failed</h2>
+        <p>Dear ${companyName} Team,</p>
+        <p>A customer's withdrawal attempt has failed. The amount has been refunded to their wallet.</p>
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+          <h3>Transaction Details:</h3>
+          <ul style="list-style: none; padding: 0;">
+            <li><strong>Customer:</strong> ${customerName}</li>
+            <li><strong>Customer Email:</strong> ${customerEmail}</li>
+            <li><strong>Amount:</strong> ${amount} ${currency}</li>
+            <li><strong>Status:</strong> ${status}</li>
+            <li><strong>Transaction ID:</strong> ${transactionId}</li>
+          </ul>
+        </div>
+        <p>The transaction has failed and the amount has been refunded to the customer's wallet.</p>
+        <p>Best regards,<br>The System</p>
+      </div>
+    `;
   }
 }
