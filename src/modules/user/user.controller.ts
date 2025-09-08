@@ -71,6 +71,8 @@ export class UserController {
     @CurrentUser() currentUser: CurrentUserData,
     @Body() createUserDto: CreateUserDto
   ): Promise<CreateUserResponseDto> {
+    console.log("currentUser :: ", currentUser);
+
     return this.userService.createUser(currentUser.userId, createUserDto);
   }
 

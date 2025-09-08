@@ -56,6 +56,9 @@ export class UserService {
         },
       }
     );
+
+    console.log("ownerUserResult :: ", ownerUserResult);
+
     if (ownerUserResult.error) {
       throw new UnauthorizedException(ownerUserResult.error.message);
     }
