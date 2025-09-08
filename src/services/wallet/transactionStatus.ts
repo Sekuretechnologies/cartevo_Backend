@@ -28,9 +28,9 @@ export const checkAndUpdatePendingWalletTransactionStatus = async (
     // const wallet = walletResult.output;
 
     // - Using Afribapay
-    const reference = trx.order_id;
+    const reference = trx.reference;
 
-    console.log("checkTransactionStatus trx.order_id", trx.order_id);
+    console.log("checkTransactionStatus trx.order_id", trx.reference);
 
     let newStatus = "PENDING";
 

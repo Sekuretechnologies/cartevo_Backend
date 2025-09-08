@@ -36,7 +36,7 @@ export class EmailService {
   ): Promise<boolean> {
     try {
       const mailOptions = {
-        from: this.configService.get("FROM_EMAIL") || "contact@getsekure.com",
+        from: this.configService.get("FROM_EMAIL") || "noreply@cartevo.co",
         to: email,
         subject: "Code de vérification CARTEVO",
         html: this.getOtpEmailTemplate(otp, userName),
@@ -60,7 +60,7 @@ export class EmailService {
   ): Promise<boolean> {
     try {
       const mailOptions = {
-        from: this.configService.get("FROM_EMAIL") || "contact@getsekure.com",
+        from: this.configService.get("FROM_EMAIL") || "noreply@cartevo.co",
         to: email,
         subject: `Invitation à rejoindre ${companyName} sur CARTEVO`,
         html: this.getInvitationEmailTemplate(
@@ -87,7 +87,7 @@ export class EmailService {
   ): Promise<boolean> {
     try {
       const mailOptions = {
-        from: this.configService.get("FROM_EMAIL") || "contact@getsekure.com",
+        from: this.configService.get("FROM_EMAIL") || "noreply@cartevo.co",
         to: email,
         subject: `Bienvenue sur CARTEVO, ${userName}!`,
         html: this.getWelcomeEmailTemplate(userName, companyName),
@@ -111,7 +111,7 @@ export class EmailService {
   }): Promise<boolean> {
     try {
       const mailOptions = {
-        from: this.configService.get("FROM_EMAIL") || "contact@getsekure.com",
+        from: this.configService.get("FROM_EMAIL") || "noreply@cartevo.co",
         to: options.to,
         subject: options.subject,
         html: options.html,
@@ -270,7 +270,7 @@ export class EmailService {
   ): Promise<boolean> {
     try {
       const mailOptions = {
-        from: this.configService.get("FROM_EMAIL") || "contact@getsekure.com",
+        from: this.configService.get("FROM_EMAIL") || "noreply@cartevo.co",
         to: email,
         subject: "Réinitialisation de votre mot de passe",
         html: `
@@ -319,7 +319,7 @@ export class EmailService {
   ): Promise<boolean> {
     try {
       const mailOptions = {
-        from: this.configService.get("FROM_EMAIL") || "contact@getsekure.com",
+        from: this.configService.get("FROM_EMAIL") || "noreply@cartevo.co",
         to: customerEmail,
         subject: `Wallet Funding Successful - ${companyName}`,
         html: this.getWalletFundingSuccessTemplate(
@@ -357,7 +357,7 @@ export class EmailService {
   ): Promise<boolean> {
     try {
       const mailOptions = {
-        from: this.configService.get("FROM_EMAIL") || "contact@getsekure.com",
+        from: this.configService.get("FROM_EMAIL") || "noreply@cartevo.co",
         to: customerEmail,
         subject: `Wallet Funding Failed - ${companyName}`,
         html: this.getWalletFundingFailureTemplate(
@@ -394,7 +394,7 @@ export class EmailService {
   ): Promise<boolean> {
     try {
       const mailOptions = {
-        from: this.configService.get("FROM_EMAIL") || "contact@getsekure.com",
+        from: this.configService.get("FROM_EMAIL") || "noreply@cartevo.co",
         to: customerEmail,
         subject: `Wallet Withdrawal Successful - ${companyName}`,
         html: this.getWalletWithdrawalSuccessTemplate(
@@ -431,7 +431,7 @@ export class EmailService {
   ): Promise<boolean> {
     try {
       const mailOptions = {
-        from: this.configService.get("FROM_EMAIL") || "contact@getsekure.com",
+        from: this.configService.get("FROM_EMAIL") || "noreply@cartevo.co",
         to: customerEmail,
         subject: `Wallet Withdrawal Failed - ${companyName}`,
         html: this.getWalletWithdrawalFailureTemplate(
@@ -470,7 +470,7 @@ export class EmailService {
   ): Promise<boolean> {
     try {
       const mailOptions = {
-        from: this.configService.get("FROM_EMAIL") || "contact@getsekure.com",
+        from: this.configService.get("FROM_EMAIL") || "noreply@cartevo.co",
         to: companyEmail,
         subject: `Customer Wallet Funded - ${customerName}`,
         html: this.getWalletFundingSuccessToCompanyTemplate(
@@ -513,7 +513,7 @@ export class EmailService {
   ): Promise<boolean> {
     try {
       const mailOptions = {
-        from: this.configService.get("FROM_EMAIL") || "contact@getsekure.com",
+        from: this.configService.get("FROM_EMAIL") || "noreply@cartevo.co",
         to: companyEmail,
         subject: `Customer Wallet Funding Failed - ${customerName}`,
         html: this.getWalletFundingFailureToCompanyTemplate(
@@ -555,7 +555,7 @@ export class EmailService {
   ): Promise<boolean> {
     try {
       const mailOptions = {
-        from: this.configService.get("FROM_EMAIL") || "contact@getsekure.com",
+        from: this.configService.get("FROM_EMAIL") || "noreply@cartevo.co",
         to: companyEmail,
         subject: `Customer Wallet Withdrawal - ${customerName}`,
         html: this.getWalletWithdrawalSuccessToCompanyTemplate(
@@ -597,7 +597,7 @@ export class EmailService {
   ): Promise<boolean> {
     try {
       const mailOptions = {
-        from: this.configService.get("FROM_EMAIL") || "contact@getsekure.com",
+        from: this.configService.get("FROM_EMAIL") || "noreply@cartevo.co",
         to: companyEmail,
         subject: `Customer Wallet Withdrawal Failed - ${customerName}`,
         html: this.getWalletWithdrawalFailureToCompanyTemplate(

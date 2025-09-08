@@ -183,27 +183,35 @@ class TransactionFeeModel {
   static async getTransactionFee(
     companyId: string,
     transactionType: string,
-    transactionCategory: string,
-    countryIsoCode: string,
-    currency: string
+    transactionCategory: string
+    // countryIsoCode: string,
+    // currency: string
   ) {
+    console.log("getTransactionFee :: ", {
+      company_id: companyId,
+      transaction_type: transactionType.toUpperCase(),
+      transaction_category: transactionCategory.toUpperCase(),
+      // country_iso_code: countryIsoCode.toUpperCase(),
+      // currency: currency.toUpperCase(),
+    });
+
     try {
       const result = await prisma.transactionFee.findFirst({
         where: {
           company_id: companyId,
           transaction_type: transactionType.toUpperCase(),
           transaction_category: transactionCategory.toUpperCase(),
-          country_iso_code: countryIsoCode.toUpperCase(),
-          currency: currency.toUpperCase(),
-          active: true,
+          // country_iso_code: countryIsoCode.toUpperCase(),
+          // currency: currency.toUpperCase(),
+          // active: true,
         },
       });
 
       if (!result) {
         return fnOutput.error({
-          message: `Transaction fee not found for ${transactionType} - ${transactionCategory} in ${countryIsoCode} (${currency})`,
+          message: `Transaction fee not found for ${transactionCategory} - ${transactionType}`,
           error: {
-            message: `Transaction fee not found for ${transactionType} - ${transactionCategory} in ${countryIsoCode} (${currency})`,
+            message: `Transaction fee not found for ${transactionCategory} - ${transactionType}`,
           },
         });
       }
@@ -239,13 +247,15 @@ class TransactionFeeModel {
       const feeResult = await this.getTransactionFee(
         companyId,
         transactionType,
-        transactionCategory,
-        countryIsoCode,
-        currency
+        transactionCategory
+        // countryIsoCode,
+        // currency
       );
 
+      console.log("feeResult --------------- :: ", feeResult);
+
       if (feeResult.error) {
-        return feeResult;
+        throw feeResult.error;
       }
 
       const fee = feeResult.output;
@@ -261,6 +271,18 @@ class TransactionFeeModel {
       if (fee.fee_fixed) {
         calculatedFee += parseFloat(fee.fee_fixed.toString());
       }
+
+      // console.log("calculateFee  Result --------------- :: ", {
+      //   feeAmount: calculatedFee,
+      //   feeType: fee.type,
+      //   feeValue: parseFloat(fee.value.toString()),
+      //   feeFixed: fee.fee_fixed ? parseFloat(fee.fee_fixed.toString()) : 0,
+      //   feePercentage: fee.fee_percentage
+      //     ? parseFloat(fee.fee_percentage.toString())
+      //     : 0,
+      //   feeId: fee.id,
+      //   description: fee.description,
+      // });
 
       return fnOutput.success({
         output: {

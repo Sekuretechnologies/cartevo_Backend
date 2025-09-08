@@ -1,10 +1,11 @@
-import { Injectable } from "@nestjs/common";
+import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import TransactionModel from "@/models/prisma/transactionModel";
 import { checkAndUpdatePendingWalletTransactionStatus } from "@/services/wallet/transactionStatus";
 
 @Injectable()
 export class WalletTransactionsService {
   async getWalletTransactions(
+    companyId?: string,
     walletId?: string,
     customerId?: string,
     status?: string,
@@ -12,6 +13,7 @@ export class WalletTransactionsService {
     offset?: string
   ) {
     const transactions = await TransactionModel.get({
+      company_id: companyId,
       wallet_id: walletId,
       customer_id: customerId,
       status: status,
@@ -19,11 +21,21 @@ export class WalletTransactionsService {
       offset: offset ? parseInt(offset) : undefined,
     });
 
+    if (transactions?.error) {
+      throw new HttpException(
+        transactions?.error?.message,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+
     if (transactions.output && Array.isArray(transactions.output)) {
-      // Check and update PENDING transactions
+      // Check and update PENDING transactions for afribapay provider
       const updatedTransactions = await Promise.all(
         transactions.output.map(async (transaction: any) => {
-          if (transaction.status === "PENDING") {
+          if (
+            transaction.status === "PENDING" &&
+            transaction.provider === "afribapay"
+          ) {
             try {
               const updateResult =
                 await checkAndUpdatePendingWalletTransactionStatus(
@@ -45,19 +57,25 @@ export class WalletTransactionsService {
         })
       );
 
-      return {
-        ...transactions,
-        output: updatedTransactions,
-      };
+      // return {
+      //   ...transactions,
+      //   output: updatedTransactions,
+      // };
+
+      return { data: updatedTransactions };
     }
 
-    return transactions;
+    return { data: transactions.output };
   }
 
   async getWalletTransactionById(id: string) {
     const transaction = await TransactionModel.getOne({ id });
 
-    if (transaction.output && transaction.output.status === "PENDING") {
+    if (
+      transaction.output &&
+      transaction.output.status === "PENDING" &&
+      transaction.output.provider === "afribapay"
+    ) {
       try {
         const updateResult = await checkAndUpdatePendingWalletTransactionStatus(
           transaction.output,
