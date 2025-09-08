@@ -57,12 +57,14 @@ export class UserService {
       }
     );
 
-    console.log("ownerUserResult :: ", ownerUserResult);
+    // console.log("ownerUserResult :: ", ownerUserResult);
 
     if (ownerUserResult.error) {
       throw new UnauthorizedException(ownerUserResult.error.message);
     }
     const ownerUser = ownerUserResult.output;
+
+    console.log("ownerUser :: ", ownerUser);
 
     if (!ownerUser) {
       throw new UnauthorizedException("User not found");
@@ -71,6 +73,9 @@ export class UserService {
     const isOwner = ownerUser.userCompanyRoles.some(
       (ucr) => ucr.role.name === "owner"
     );
+
+    console.log("isOwner :: ", isOwner);
+
     if (!isOwner) {
       throw new ForbiddenException("Only owners can create users");
     }
