@@ -58,81 +58,6 @@ export class AuthController {
     return this.authService.generateToken(authDto);
   }
 
-  @Post("forgot-password")
-  @HttpCode(200)
-  @ApiOperation({
-    summary: "Forgot password",
-    description:
-      "Allows a user to request a password reset. " +
-      "An email containing a reset link will be sent to the provided address.",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Password reset email sent successfully.",
-  })
-  @ApiResponse({ status: 404, description: "User not found." })
-  async forgotPassword(@Body() body: { email: string }) {
-    return this.authService.forgotPassword(body.email);
-  }
-
-  @Post("reset-password")
-  @HttpCode(200)
-  @ApiOperation({
-    summary: "Reset password",
-    description: "Reset a user's password using a valid token.",
-  })
-  async resetPassword(@Body() datas: { token: string; newPassword: string }) {
-    return this.authService.resetPassword(datas.token, datas.newPassword);
-  }
-
-  @Post("check-email")
-  @HttpCode(200)
-  @ApiOperation({
-    summary: "Check email existence across companies",
-    description:
-      "Check if an email exists in the system and how many companies it's associated with.",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Email check completed successfully",
-    type: CheckEmailResponseDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: "Bad request",
-  })
-  async checkEmail(
-    @Body() checkEmailDto: CheckEmailRequestDto
-  ): Promise<CheckEmailResponseDto> {
-    return this.authService.checkEmailExistence(checkEmailDto);
-  }
-
-  @Post("login-with-company")
-  @HttpCode(200)
-  @ApiOperation({
-    summary: "Login with company selection",
-    description:
-      "Authenticate user with email and password, with optional company selection for multi-company users.",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Login successful, OTP sent",
-    type: LoginWithCompanyResponseDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: "Multiple companies found but no company specified",
-  })
-  @ApiResponse({
-    status: 401,
-    description: "Invalid credentials",
-  })
-  async loginWithCompany(
-    @Body() loginDto: LoginWithCompanyRequestDto
-  ): Promise<LoginWithCompanyResponseDto> {
-    return this.authService.loginWithCompany(loginDto);
-  }
-
   @Post("login")
   @ApiOperation({
     summary: "User login",
@@ -206,5 +131,80 @@ export class AuthController {
       message: result.message,
       logged_out_at: result.logged_out_at,
     };
+  }
+
+  @Post("forgot-password")
+  @HttpCode(200)
+  @ApiOperation({
+    summary: "Forgot password",
+    description:
+      "Allows a user to request a password reset. " +
+      "An email containing a reset link will be sent to the provided address.",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Password reset email sent successfully.",
+  })
+  @ApiResponse({ status: 404, description: "User not found." })
+  async forgotPassword(@Body() body: { email: string }) {
+    return this.authService.forgotPassword(body.email);
+  }
+
+  @Post("reset-password")
+  @HttpCode(200)
+  @ApiOperation({
+    summary: "Reset password",
+    description: "Reset a user's password using a valid token.",
+  })
+  async resetPassword(@Body() datas: { token: string; newPassword: string }) {
+    return this.authService.resetPassword(datas.token, datas.newPassword);
+  }
+
+  @Post("check-email")
+  @HttpCode(200)
+  @ApiOperation({
+    summary: "Check email existence across companies",
+    description:
+      "Check if an email exists in the system and how many companies it's associated with.",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Email check completed successfully",
+    type: CheckEmailResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Bad request",
+  })
+  async checkEmail(
+    @Body() checkEmailDto: CheckEmailRequestDto
+  ): Promise<CheckEmailResponseDto> {
+    return this.authService.checkEmailExistence(checkEmailDto);
+  }
+
+  @Post("login-with-company")
+  @HttpCode(200)
+  @ApiOperation({
+    summary: "Login with company selection",
+    description:
+      "Authenticate user with email and password, with optional company selection for multi-company users.",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Login successful, OTP sent",
+    type: LoginWithCompanyResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Multiple companies found but no company specified",
+  })
+  @ApiResponse({
+    status: 401,
+    description: "Invalid credentials",
+  })
+  async loginWithCompany(
+    @Body() loginDto: LoginWithCompanyRequestDto
+  ): Promise<LoginWithCompanyResponseDto> {
+    return this.authService.loginWithCompany(loginDto);
   }
 }

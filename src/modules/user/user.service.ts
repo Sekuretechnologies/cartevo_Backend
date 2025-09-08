@@ -124,9 +124,6 @@ export class UserService {
 
     // Get the role
     let roleResult = await RoleModel.getOne({ name: createUserDto.role });
-    if (roleResult.error) {
-      throw new BadRequestException(roleResult.error.message);
-    }
     let role = roleResult.output;
 
     if (!role) {
