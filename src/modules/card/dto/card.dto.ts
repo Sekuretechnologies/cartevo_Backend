@@ -29,6 +29,14 @@ export class CreateCardDto {
 
 export class FundCardDto {
   @ApiProperty({
+    description: "Customer ID who is executing the funding action",
+    example: "cust_12345",
+  })
+  @IsString()
+  @IsNotEmpty()
+  customer_id: string;
+
+  @ApiProperty({
     description: "Amount to add to the card",
     example: 100.5,
   })
@@ -38,6 +46,14 @@ export class FundCardDto {
 }
 
 export class WithdrawCardDto {
+  @ApiProperty({
+    description: "Customer ID who is executing the withdrawal action",
+    example: "cust_12345",
+  })
+  @IsString()
+  @IsNotEmpty()
+  customer_id: string;
+
   @ApiProperty({
     description: "Amount to withdraw from the card",
     example: 50.25,

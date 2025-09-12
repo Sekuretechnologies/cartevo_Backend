@@ -58,6 +58,41 @@ class CustomerLogsModel {
       });
     }
   }
+
+  static async get(filters: { [key: string]: any }) {
+    try {
+      const result = await prisma.customerLogs.findMany({
+        where: filters,
+      });
+      return fnOutput.success({ output: result });
+    } catch (error: any) {
+      return fnOutput.error({
+        message: "Error fetching customer logs: " + error.message,
+        error: { message: "Error fetching customer logs: " + error.message },
+      });
+    }
+  }
+
+  static async getWithComplexFilters(
+    whereClause: Prisma.CustomerLogsWhereInput
+  ) {
+    try {
+      const result = await prisma.customerLogs.findMany({
+        where: whereClause,
+      });
+      return fnOutput.success({ output: result });
+    } catch (error: any) {
+      return fnOutput.error({
+        message:
+          "Error fetching customer logs with complex filters: " + error.message,
+        error: {
+          message:
+            "Error fetching customer logs with complex filters: " +
+            error.message,
+        },
+      });
+    }
+  }
 }
 
 export default CustomerLogsModel;

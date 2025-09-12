@@ -62,6 +62,15 @@ const env = cleanEnv(process.env, {
   DEBIT_ACCOUNT_ID_SANDBOX: str(),
   DEBIT_ACCOUNT_ID_PRODUCTION: str(),
   /** ------------------------*/
+  /** Maplerad Card Provider */
+  MAPLERAD_BASE_URL: str(),
+  MAPLERAD_SECRET_KEY: str(),
+  MAPLERAD_ENROLL_CREATE_CARD_URL: str(),
+  /** Maplerad Fees (USD) */
+  MAPLERAD_CARD_CREATION_FEE: num(),
+  MAPLERAD_CARD_FUNDING_FEE: num(),
+  MAPLERAD_CARD_WITHDRAWAL_FEE: num(),
+  /** ------------------------*/
   VAULT_URL: str(),
   VAULT_ID: str(),
   VGS_SCRIPT: str(),

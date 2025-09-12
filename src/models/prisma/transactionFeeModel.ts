@@ -182,29 +182,30 @@ class TransactionFeeModel {
    */
   static async getTransactionFee(
     companyId: string,
+    transactionCategory: string,
     transactionType: string,
-    transactionCategory: string
-    // countryIsoCode: string,
-    // currency: string
+    countryIsoCode?: string,
+    currency?: string
   ) {
     console.log("getTransactionFee :: ", {
       company_id: companyId,
       transaction_type: transactionType.toUpperCase(),
       transaction_category: transactionCategory.toUpperCase(),
-      // country_iso_code: countryIsoCode.toUpperCase(),
-      // currency: currency.toUpperCase(),
+      country_iso_code: countryIsoCode.toUpperCase(),
+      currency: currency.toUpperCase(),
     });
+    const where: any = {
+      company_id: companyId,
+      transaction_type: transactionType.toUpperCase(),
+      transaction_category: transactionCategory.toUpperCase(),
+      // active: true,
+    };
+    if (countryIsoCode) where.country_iso_code = countryIsoCode.toUpperCase();
+    if (currency) where.currency = currency.toUpperCase();
 
     try {
       const result = await prisma.transactionFee.findFirst({
-        where: {
-          company_id: companyId,
-          transaction_type: transactionType.toUpperCase(),
-          transaction_category: transactionCategory.toUpperCase(),
-          // country_iso_code: countryIsoCode.toUpperCase(),
-          // currency: currency.toUpperCase(),
-          // active: true,
-        },
+        where,
       });
 
       if (!result) {

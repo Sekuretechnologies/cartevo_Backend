@@ -2,10 +2,7 @@
 import { FilterObject } from "@/types";
 import { sanitizeTextInput, setMethodFilter } from "@/utils/shared/common";
 import fnOutput from "@/utils/shared/fnOutputHandler";
-import { Prisma, PrismaClient } from "@prisma/client";
-import { buildPrismaQuery } from "prisma/functions";
-
-const prisma = new PrismaClient();
+import { Prisma } from "@prisma/client";
 
 export interface CustomerModelInterface {
   getOne(filters: FilterObject): Promise<any>;
@@ -16,11 +13,14 @@ export interface CustomerModelInterface {
 }
 
 class CustomerModel {
+  static get prisma() {
+    return require("@/modules/prisma/prisma.service").prisma;
+  }
   static async getOne(filters: FilterObject) {
     try {
-      const result = await prisma.customer.findFirst(
-        buildPrismaQuery({ filters })
-      );
+      const result = await this.prisma.customer.findFirst({
+        where: filters,
+      });
       if (!result) {
         return fnOutput.error({
           message: "Customer not found",
@@ -38,9 +38,9 @@ class CustomerModel {
 
   static async get(filters?: FilterObject) {
     try {
-      const result = await prisma.customer.findMany(
-        buildPrismaQuery({ filters })
-      );
+      const result = await this.prisma.customer.findMany({
+        where: filters,
+      });
       return fnOutput.success({ output: result });
     } catch (error: any) {
       return fnOutput.error({
@@ -52,30 +52,40 @@ class CustomerModel {
 
   static async getCustomersWithCardCount(filters?: FilterObject) {
     try {
-      const query = `
-      SELECT 
-          c.id AS id,
-          c.first_name AS first_name,
-          c.last_name AS last_name,
-          c.country_phone_code AS country_phone_code,
-          c.phone_number AS phone_number,
-          c.email AS email,
-          c.created_at AS created_at,
-          COUNT(card.id) AS number_of_cards
-      FROM 
-          "Customer" c
-      WHERE c.company_id = ${filters.company_id}
-      LEFT JOIN 
-          "Card" card ON c.id = card.customer_id
-      GROUP BY 
-          c.id;
-    `;
-      const result = await prisma.$queryRaw`${query}`;
-      return fnOutput.success({ output: result });
+      if (!filters?.company_id) {
+        return fnOutput.error({
+          message: "Company ID is required",
+          error: { message: "Company ID is required" },
+        });
+      }
+
+      const customers = await this.prisma.customer.findMany({
+        where: {
+          company_id: filters.company_id,
+        },
+        include: {
+          cards: true,
+        },
+      });
+
+      const customersWithCardCount = customers.map((customer) => ({
+        id: customer.id,
+        first_name: customer.first_name,
+        last_name: customer.last_name,
+        country_phone_code: customer.country_phone_code,
+        phone_number: customer.phone_number,
+        email: customer.email,
+        created_at: customer.created_at,
+        number_of_cards: customer.cards.length,
+      }));
+
+      return fnOutput.success({ output: customersWithCardCount });
     } catch (error: any) {
       return fnOutput.error({
-        message: "Error fetching customers: " + error.message,
-        error: { message: "Error fetching customers: " + error.message },
+        message: "Error fetching customers with card count: " + error.message,
+        error: {
+          message: "Error fetching customers with card count: " + error.message,
+        },
       });
     }
   }
@@ -107,7 +117,9 @@ class CustomerModel {
           connect: { id: inputCustomer.company_id },
         };
       }
-      const customer = await prisma.customer.create({ data: customerData });
+      const customer = await this.prisma.customer.create({
+        data: customerData,
+      });
       return fnOutput.success({ code: 201, output: customer });
     } catch (error: any) {
       return fnOutput.error({
@@ -144,7 +156,7 @@ class CustomerModel {
           customerData.postal_code
         );
       }
-      const updatedCustomer = await prisma.customer.update({
+      const updatedCustomer = await this.prisma.customer.update({
         where,
         data: updatedCustomerData,
       });
@@ -167,7 +179,7 @@ class CustomerModel {
           error: { message: "Invalid identifier provided" },
         });
       }
-      const deletedCustomer = await prisma.customer.delete({ where });
+      const deletedCustomer = await this.prisma.customer.delete({ where });
       return fnOutput.success({ output: deletedCustomer });
     } catch (error: any) {
       return fnOutput.error({
@@ -187,9 +199,7 @@ class CustomerModel {
    */
   static async operation<T>(callback: (prisma: any) => Promise<T>): Promise<T> {
     try {
-      // Use the global prisma instance
-      const prisma = require("@/modules/prisma/prisma.service").prisma;
-      return await prisma.$transaction(callback);
+      return await this.prisma.$transaction(callback);
     } catch (error) {
       throw new Error(`Operation failed: ${error.message}`);
     }

@@ -6,10 +6,8 @@ import {
   setMethodFilter,
 } from "@/utils/shared/common";
 import fnOutput from "@/utils/shared/fnOutputHandler";
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { buildPrismaQuery } from "prisma/functions";
-
-const prisma = new PrismaClient();
 
 export interface CompanyModelInterface {
   getOne(filters: FilterObject): Promise<any>;
@@ -20,9 +18,13 @@ export interface CompanyModelInterface {
 }
 
 class CompanyModel {
+  static get prisma() {
+    return require("@/modules/prisma/prisma.service").prisma;
+  }
+
   static async getOne(filters: FilterObject) {
     try {
-      const result = await prisma.company.findFirst(
+      const result = await this.prisma.company.findFirst(
         buildPrismaQuery({ filters })
       );
       if (!result) {
@@ -42,7 +44,7 @@ class CompanyModel {
 
   static async get(filters?: FilterObject) {
     try {
-      const result = await prisma.company.findMany(
+      const result = await this.prisma.company.findMany(
         buildPrismaQuery({ filters })
       );
       return fnOutput.success({ output: result });
@@ -66,7 +68,7 @@ class CompanyModel {
       if (inputCompany.email) {
         companyData.email = sanitizeTextInput(inputCompany.email);
       }
-      const company = await prisma.company.create({ data: companyData });
+      const company = await this.prisma.company.create({ data: companyData });
       return fnOutput.success({ code: 201, output: company });
     } catch (error: any) {
       return fnOutput.error({
@@ -98,7 +100,7 @@ class CompanyModel {
       if (companyData.email) {
         updatedCompanyData.email = sanitizeTextInput(companyData.email);
       }
-      const updatedCompany = await prisma.company.update({
+      const updatedCompany = await this.prisma.company.update({
         where,
         data: updatedCompanyData,
       });
@@ -121,7 +123,7 @@ class CompanyModel {
           error: { message: "Invalid identifier provided" },
         });
       }
-      const deletedCompany = await prisma.company.delete({ where });
+      const deletedCompany = await this.prisma.company.delete({ where });
       return fnOutput.success({ output: deletedCompany });
     } catch (error: any) {
       return fnOutput.error({
@@ -133,8 +135,7 @@ class CompanyModel {
 
   static async operation<T>(callback: (prisma: any) => Promise<T>): Promise<T> {
     try {
-      const prisma = require("@/modules/prisma/prisma.service").prisma;
-      return await prisma.$transaction(callback);
+      return await this.prisma.$transaction(callback);
     } catch (error) {
       throw new Error(`Operation failed: ${error.message}`);
     }

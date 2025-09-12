@@ -2,10 +2,8 @@
 import { FilterObject, IncludeObject } from "@/types";
 import { setMethodFilter } from "@/utils/shared/common";
 import fnOutput from "@/utils/shared/fnOutputHandler";
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { buildPrismaQuery } from "prisma/functions";
-
-const prisma = new PrismaClient();
 
 export interface TransactionModelInterface {
   getOne(filters: FilterObject): Promise<any>;
@@ -18,16 +16,24 @@ export interface TransactionModelInterface {
 }
 
 class TransactionModel {
-  static async getOne(filters: FilterObject, include: IncludeObject = {}) {
+  static get prisma() {
+    return require("@/modules/prisma/prisma.service").prisma;
+  }
+
+  static async getOne(filters: FilterObject, include: any = {}) {
     try {
-      const result = await prisma.transaction.findFirst(
+      const defaultInclude = {
+        wallet: true,
+        user: true,
+        customer: true,
+        balanceTransactionRecords: true,
+        ...include,
+      };
+
+      const result = await this.prisma.transaction.findFirst(
         buildPrismaQuery({
           filters,
-          include: {
-            wallet: true,
-            user: true,
-            customer: true,
-          },
+          include: defaultInclude,
         })
       );
       if (!result) {
@@ -45,16 +51,20 @@ class TransactionModel {
     }
   }
 
-  static async get(filters?: FilterObject) {
+  static async get(filters?: FilterObject, include: any = {}) {
     try {
-      const result = await prisma.transaction.findMany(
+      const defaultInclude = {
+        wallet: true,
+        user: true,
+        customer: true,
+        balanceTransactionRecords: true,
+        ...include,
+      };
+
+      const result = await this.prisma.transaction.findMany(
         buildPrismaQuery({
           filters,
-          include: {
-            wallet: true,
-            user: true,
-            customer: true,
-          },
+          include: defaultInclude,
         })
       );
       return fnOutput.success({ output: result });
@@ -70,7 +80,7 @@ class TransactionModel {
     inputTransaction: Prisma.TransactionUncheckedCreateInput
   ) {
     try {
-      const transaction = await prisma.transaction.create({
+      const transaction = await this.prisma.transaction.create({
         data: inputTransaction,
       });
       return fnOutput.success({ code: 201, output: transaction });
@@ -92,7 +102,7 @@ class TransactionModel {
           error: { message: "Invalid identifier provided" },
         });
       }
-      const updatedTransaction = await prisma.transaction.update({
+      const updatedTransaction = await this.prisma.transaction.update({
         where,
         data: transactionData,
       });
@@ -115,7 +125,9 @@ class TransactionModel {
           error: { message: "Invalid identifier provided" },
         });
       }
-      const deletedTransaction = await prisma.transaction.delete({ where });
+      const deletedTransaction = await this.prisma.transaction.delete({
+        where,
+      });
       return fnOutput.success({ output: deletedTransaction });
     } catch (error: any) {
       return fnOutput.error({
@@ -135,9 +147,7 @@ class TransactionModel {
    */
   static async operation<T>(callback: (prisma: any) => Promise<T>): Promise<T> {
     try {
-      // Use the global prisma instance
-      const prisma = require("@/modules/prisma/prisma.service").prisma;
-      return await prisma.$transaction(callback);
+      return await this.prisma.$transaction(callback);
     } catch (error) {
       throw new Error(`Operation failed: ${error.message}`);
     }

@@ -19,7 +19,7 @@ import CustomerModel from "@/models/prisma/customerModel";
 import UserModel from "@/models/prisma/userModel";
 import TransactionModel from "@/models/prisma/transactionModel";
 import WalletModel from "@/models/prisma/walletModel";
-import getCardFees from "@/utils/cards/cardFees";
+// import getCardFees from "@/utils/cards/cardFees";
 import sudoUtils from "@/utils/cards/sudo";
 import CustomerLogsModel from "@/models/prisma/customerLogsModel";
 import { wordsInSentence } from "@/utils/shared/common";
