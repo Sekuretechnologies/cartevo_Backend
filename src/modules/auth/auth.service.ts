@@ -810,7 +810,7 @@ export class AuthService {
       const payload = {
         sub: user.id,
         email: user.email,
-        companyId: selectCompanyDto.company_id,
+        companyId: selectedCompanyRole.company.id,
       };
 
       const accessToken = this.jwtService.sign(payload, {
