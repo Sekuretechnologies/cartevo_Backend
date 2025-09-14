@@ -17,7 +17,7 @@ import { CardSyncTransactionService } from "../services/card.sync.transaction.se
  * 🔄 MONIX-STYLE: Dedicated Sync Operations Controller
  * Handles card synchronization and transaction syncing
  */
-@Controller("sync")
+@Controller("cards/sync")
 @UseGuards(JwtAuthGuard)
 export class SyncOperationsController {
   constructor(
@@ -28,7 +28,7 @@ export class SyncOperationsController {
   /**
    * 🔄 Sync all cards for the company
    */
-  @Post("cards")
+  @Post("")
   async syncAllCards(@Request() req: any) {
     console.log("🔄 SYNC CONTROLLER - Sync All Cards Request", {
       userId: req.user.id,
@@ -47,7 +47,7 @@ export class SyncOperationsController {
   /**
    * 🔄 Sync specific card
    */
-  @Post("cards/:cardId")
+  @Post(":cardId")
   async syncCard(@Param("cardId") cardId: string, @Request() req: any) {
     console.log("🔄 SYNC CONTROLLER - Sync Card Request", {
       cardId,
@@ -67,7 +67,7 @@ export class SyncOperationsController {
   /**
    * 📊 Sync transactions for specific card (placeholder)
    */
-  @Post("cards/:cardId/transactions")
+  @Post(":cardId/transactions")
   async syncCardTransactions(
     @Param("cardId") cardId: string,
     @Request() req: any,

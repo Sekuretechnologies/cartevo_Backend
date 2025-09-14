@@ -5,7 +5,7 @@ import { PrismaModule } from "./modules/prisma/prisma.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { CompanyModule } from "./modules/company/company.module";
 import { CustomerModule } from "./modules/customer/customer.module";
-import { CardModule } from "./modules/card/card.module";
+
 import { UserModule } from "./modules/user/user.module";
 import { WalletModule } from "./modules/wallet/wallet.module";
 import { MapleradModule } from "./modules/maplerad/maplerad.module";
@@ -23,7 +23,6 @@ import { MapleradModule } from "./modules/maplerad/maplerad.module";
     AuthModule,
     CompanyModule,
     CustomerModule,
-    CardModule,
     UserModule,
     WalletModule,
     MapleradModule,

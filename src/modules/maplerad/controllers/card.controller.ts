@@ -18,11 +18,14 @@ import { CardManagementService } from "../services/card.management.service";
 import { CreateCardDto } from "../dto/create-card.dto";
 import { FundCardDto } from "../dto/fund-card.dto";
 import { WithdrawCardDto } from "../dto/withdraw-card.dto";
+import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 
 /**
  * 🎯 MONIX-STYLE: Dedicated Card Operations Controller
  * Handles all card-related operations with modular services
  */
+@ApiTags("Cards")
+@ApiBearerAuth()
 @Controller("cards")
 @UseGuards(JwtAuthGuard)
 export class CardOperationsController {
@@ -221,23 +224,23 @@ export class CardOperationsController {
   /**
    * 🔄 Update card limits (placeholder - not implemented in service)
    */
-  @Put(":cardId/limits")
-  async updateCardLimits(
-    @Param("cardId") cardId: string,
-    @Body() limits: { dailyLimit?: number; monthlyLimit?: number },
-    @Request() req: any
-  ) {
-    console.log("🔄 CARD CONTROLLER - Update Card Limits Request", {
-      cardId,
-      limits,
-      userId: req.user.id,
-    });
+  // @Put(":cardId/limits")
+  // async updateCardLimits(
+  //   @Param("cardId") cardId: string,
+  //   @Body() limits: { dailyLimit?: number; monthlyLimit?: number },
+  //   @Request() req: any
+  // ) {
+  //   console.log("🔄 CARD CONTROLLER - Update Card Limits Request", {
+  //     cardId,
+  //     limits,
+  //     userId: req.user.id,
+  //   });
 
-    // Placeholder response - service doesn't implement this yet
-    return {
-      message: "Card limits update not yet implemented",
-      card_id: cardId,
-      requested_limits: limits,
-    };
-  }
+  //   // Placeholder response - service doesn't implement this yet
+  //   return {
+  //     message: "Card limits update not yet implemented",
+  //     card_id: cardId,
+  //     requested_limits: limits,
+  //   };
+  // }
 }

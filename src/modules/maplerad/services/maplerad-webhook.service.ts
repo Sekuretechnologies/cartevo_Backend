@@ -41,8 +41,19 @@ export class MapleradWebhookService {
 
     try {
       // 1. 🔐 Verify webhook signature (MONIX-STYLE)
+      const svixId = headers?.["svix-id"] || headers?.["x-svix-id"];
+      const svixTimestamp =
+        headers?.["svix-timestamp"] || headers?.["x-svix-timestamp"];
+      const svixSignature =
+        headers?.["svix-signature"] || headers?.["x-svix-signature"];
+
       const isSignatureValid =
-        await this.securityService.verifyWebhookSignature(payload, headers);
+        await this.securityService.verifyWebhookSignature(
+          JSON.stringify(payload),
+          svixId,
+          svixTimestamp,
+          svixSignature
+        );
       if (!isSignatureValid) {
         this.logger.error(`❌ Webhook signature verification failed`, {
           webhookId,

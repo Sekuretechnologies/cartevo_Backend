@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { BadRequestException } from "@nestjs/common";
-import { MapleradWebhookPayload, WebhookSecurityConfig } from "./webhook.types";
+import { WebhookSecurityConfig } from "./webhook.types";
+import * as crypto from "crypto";
 
 /**
  * MONIX-Style Webhook Security Service
@@ -25,37 +26,103 @@ export class WebhookSecurityService {
   /**
    * 🔐 MONIX-STYLE: Verify webhook signature
    */
-  async verifyWebhookSignature(
-    payload: MapleradWebhookPayload,
-    headers?: any
-  ): Promise<boolean> {
+  verifyWebhookSignature(
+    payload: string,
+    svixId: string,
+    svixTimestamp: string,
+    svixSignature: string
+  ): boolean {
     try {
-      if (!this.config.signatureVerificationEnabled) {
-        this.logger.warn("⚠️ Webhook signature verification is disabled");
-        return true; // Allow for development
-      }
-
-      const signature = headers?.signature || headers?.["x-signature"];
-
-      if (!signature) {
-        this.logger.error("❌ No webhook signature provided");
+      if (!svixId || !svixTimestamp || !svixSignature) {
+        this.logger.warn("Headers svix manquants pour vérification signature");
         return false;
       }
 
-      // TODO: Implement full HMAC SHA-256 verification
-      // This is a placeholder for the MONIX-style signature verification
-      const isValid = await this.validateSignature(payload, signature);
+      // Construire le contenu signé selon la doc Maplerad
+      const signedContent = `${svixId}.${svixTimestamp}.${payload}`;
 
-      if (!isValid) {
-        this.logger.error("❌ Invalid webhook signature");
+      // Récupérer le secret webhook depuis la configuration
+      const webhookSecret = !!this.getWebhookSecret();
+      if (!webhookSecret) {
+        this.logger.error(
+          "Secret webhook Maplerad non configuré dans getConfigInfo"
+        );
         return false;
       }
 
-      return true;
+      // Récupérer le secret depuis MapleradService (configuration structurée)
+      const secretKey = this.getWebhookSecret();
+      if (!secretKey) {
+        this.logger.error(
+          "Secret webhook Maplerad non configuré dans MapleradService"
+        );
+        return false;
+      }
+
+      // ✅ DEBUG: Log des informations de configuration
+      this.logger.debug("🔐 DEBUG WEBHOOK SECRET", {
+        hasWebhookSecret: !!webhookSecret,
+        secretKeyLength: secretKey?.length || 0,
+        secretKeyPrefix: secretKey?.substring(0, 10) || "N/A",
+        isWhsecFormat: secretKey?.startsWith("whsec_") || false,
+      });
+
+      // Extraire la partie base64 du secret (après le préfixe whsec_)
+      const secretBytes = secretKey.startsWith("whsec_")
+        ? Buffer.from(secretKey.split("_")[1], "base64")
+        : Buffer.from(secretKey, "utf8");
+
+      // Calculer la signature HMAC SHA-256
+      const expectedSignature = crypto
+        .createHmac("sha256", secretBytes)
+        .update(signedContent)
+        .digest("base64");
+
+      // Extraire les signatures depuis l'header (format: v1,signature1 v1,signature2)
+      const signatures = svixSignature.split(" ");
+
+      for (const sig of signatures) {
+        const [version, signature] = sig.split(",");
+        if (version === "v1") {
+          // Comparaison constant-time pour éviter les attaques timing
+          if (this.constantTimeCompare(signature, expectedSignature)) {
+            return true;
+          }
+        }
+      }
+
+      this.logger.warn("Aucune signature valide trouvée", {
+        expectedSignature: expectedSignature.substring(0, 10) + "...",
+        receivedSignatures: signatures.length,
+      });
+
+      return false;
     } catch (error) {
-      this.logger.error("Signature verification error:", error.message);
+      this.logger.error("Erreur vérification signature webhook", {
+        error: error.message,
+      });
       return false;
     }
+  }
+
+  /**
+   * 🔐 Récupère le secret webhook Maplerad
+   */
+  getWebhookSecret(): string {
+    return process.env.MAPLERAD_WEBHOOK_SECRET;
+  }
+
+  private constantTimeCompare(a: string, b: string): boolean {
+    if (a.length !== b.length) {
+      return false;
+    }
+
+    let result = 0;
+    for (let i = 0; i < a.length; i++) {
+      result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    }
+
+    return result === 0;
   }
 
   /**
@@ -119,21 +186,21 @@ export class WebhookSecurityService {
   /**
    * 🔐 MONIX-STYLE: Validate signature (placeholder)
    */
-  private async validateSignature(
-    payload: MapleradWebhookPayload,
-    signature: string
-  ): Promise<boolean> {
-    try {
-      // TODO: Implement actual signature validation
-      // This should use HMAC SHA-256 with the webhook secret
-      const expectedSignature = "placeholder_signature";
+  // private async validateSignature(
+  //   payload: MapleradWebhookPayload,
+  //   signature: string
+  // ): Promise<boolean> {
+  //   try {
+  //     // TODO: Implement actual signature validation
+  //     // This should use HMAC SHA-256 with the webhook secret
+  //     const expectedSignature = "placeholder_signature";
 
-      return signature === expectedSignature;
-    } catch (error) {
-      this.logger.error("Signature validation error:", error.message);
-      return false;
-    }
-  }
+  //     return signature === expectedSignature;
+  //   } catch (error) {
+  //     this.logger.error("Signature validation error:", error.message);
+  //     return false;
+  //   }
+  // }
 
   /**
    * ⚙️ MONIX-STYLE: Update security configuration
