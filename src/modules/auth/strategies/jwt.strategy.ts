@@ -57,6 +57,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
           role: ucr.role.name,
         })) || [];
 
+      console.log({
+        userId: user.id,
+        email: user.email,
+        payload_companyId: payload.companyId,
+        companies: userCompanies,
+        type: "user",
+      });
+
       let company: any = undefined;
       if (payload.companyId) {
         const companyResult = await CompanyModel.getOne({
@@ -69,6 +77,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
           throw new UnauthorizedException("Invalid company token");
         }
       }
+
       console.log({
         userId: user.id,
         email: user.email,
