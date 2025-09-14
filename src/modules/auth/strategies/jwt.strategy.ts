@@ -49,40 +49,27 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
       const user = userResult.output;
 
+      let companyId: any = undefined;
       // Get user's companies and roles
       const userCompanies =
-        user.userCompanyRoles?.map((ucr: any) => ({
-          companyId: ucr.company.id,
-          companyName: ucr.company.name,
-          role: ucr.role.name,
-        })) || [];
+        user.userCompanyRoles?.map((ucr: any) => {
+          if (payload.companyId === ucr.company.id) companyId = ucr.company.id;
+          return {
+            companyId: ucr.company.id,
+            companyName: ucr.company.name,
+            role: ucr.role.name,
+          };
+        }) || [];
 
-      console.log({
-        userId: user.id,
-        email: user.email,
-        payload_companyId: payload.companyId,
-        companies: userCompanies,
-        type: "user",
-      });
-
-      let company: any = undefined;
-      if (payload.companyId) {
-        const companyResult = await CompanyModel.getOne({
-          id: payload.companyId,
-          // is_active: true,
-        });
-        company = companyResult.output;
-
-        if (!company) {
-          throw new UnauthorizedException("Invalid company token");
-        }
+      if (!companyId) {
+        throw new UnauthorizedException("Invalid company token");
       }
 
       console.log({
         userId: user.id,
         email: user.email,
         payload_companyId: payload.companyId,
-        companyId: company?.id,
+        companyId,
         companies: userCompanies,
         type: "user",
       });
@@ -90,7 +77,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       return {
         userId: user.id,
         email: user.email,
-        companyId: company?.id,
+        companyId,
         companies: userCompanies,
         type: "user",
       };
