@@ -58,7 +58,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         })) || [];
 
       let company: any = undefined;
-      if (payload.companyId && !payload.email) {
+      if (payload.companyId) {
         const companyResult = await CompanyModel.getOne({
           id: payload.companyId,
           is_active: true,
@@ -73,7 +73,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       return {
         userId: user.id,
         email: user.email,
-        companyId: company.id,
+        companyId: company?.id,
         companies: userCompanies,
         type: "user",
       };
