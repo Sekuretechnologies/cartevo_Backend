@@ -206,6 +206,8 @@ export class WalletController {
 
   @Get()
   async getAllWallets(@CurrentUser() user: CurrentUserData) {
+    console.log("getAllWallets  -- @CurrentUser() user:: ", user);
+
     return this.walletService.getAllWallets(user.companyId);
   }
 

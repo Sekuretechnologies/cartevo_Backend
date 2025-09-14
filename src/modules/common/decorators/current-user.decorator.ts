@@ -21,6 +21,14 @@ export const CurrentUser = createParamDecorator(
     const user = request.user;
 
     if (user.type === "user") {
+      console.log({
+        userId: user.userId || user.sub,
+        email: user.email,
+        companyId: user.companyId,
+        companies: user.companies || [],
+        type: "user",
+      });
+
       return {
         userId: user.userId || user.sub,
         email: user.email,
@@ -29,6 +37,13 @@ export const CurrentUser = createParamDecorator(
         type: "user",
       };
     } else if (user.type === "company") {
+      console.log({
+        companyId: user.companyId,
+        clientId: user.clientId,
+        companyName: user.companyName,
+        type: "company",
+      });
+
       return {
         companyId: user.companyId,
         clientId: user.clientId,
@@ -37,6 +52,12 @@ export const CurrentUser = createParamDecorator(
       };
     }
 
+    console.log({
+      userId: user.sub,
+      email: user.email,
+      companyId: user.companyId,
+      companies: user.companies || [],
+    });
     // Fallback for legacy tokens
     return {
       userId: user.sub,
