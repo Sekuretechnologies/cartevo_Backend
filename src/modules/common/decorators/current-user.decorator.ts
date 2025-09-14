@@ -3,12 +3,16 @@ import { createParamDecorator, ExecutionContext } from "@nestjs/common";
 export interface CurrentUserData {
   userId?: string;
   email?: string;
-  companyId?: string;
-  roles?: string[];
+  companies?: Array<{
+    companyId: string;
+    companyName: string;
+    role: string;
+  }>;
   type?: "user" | "company";
   // Company token fields
   clientId?: string;
   companyName?: string;
+  companyId?: string; // For backward compatibility with company tokens
 }
 
 export const CurrentUser = createParamDecorator(
@@ -20,8 +24,7 @@ export const CurrentUser = createParamDecorator(
       return {
         userId: user.userId,
         email: user.email,
-        companyId: user.companyId,
-        roles: user.roles || [],
+        companies: user.companies || [],
         type: "user",
       };
     } else if (user.type === "company") {
@@ -37,8 +40,7 @@ export const CurrentUser = createParamDecorator(
     return {
       userId: user.sub,
       email: user.email,
-      companyId: user.companyId || user.company_id,
-      roles: user.roles || [],
+      companies: user.companies || [],
     };
   }
 );

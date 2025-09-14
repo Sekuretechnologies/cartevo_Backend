@@ -34,9 +34,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       const userResult = await UserModel.getOne(
         { id: payload.sub },
         {
-          company: true,
           userCompanyRoles: {
-            include: { role: true },
+            include: {
+              role: true,
+              company: true,
+            },
           },
         }
       );
@@ -47,11 +49,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
       const user = userResult.output;
 
+      // Get user's companies and roles
+      const userCompanies =
+        user.userCompanyRoles?.map((ucr: any) => ({
+          companyId: ucr.company.id,
+          companyName: ucr.company.name,
+          role: ucr.role.name,
+        })) || [];
+
       return {
         userId: user.id,
         email: user.email,
-        companyId: user.company.id,
-        roles: user.userCompanyRoles?.map((ucr: any) => ucr.role.name),
+        companies: userCompanies,
         type: "user",
       };
     }

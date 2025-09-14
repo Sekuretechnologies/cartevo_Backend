@@ -78,8 +78,14 @@ export class CardController {
     @Param("id") cardId: string,
     @Body() fundDto: FundCardDto
   ): Promise<SuccessResponseDto> {
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
     const result = await this.cardService.fundCard(
-      user.companyId,
+      companyId,
       cardId,
       fundDto.amount
     );
@@ -112,8 +118,14 @@ export class CardController {
     @Param("id") cardId: string,
     @Body() withdrawDto: WithdrawCardDto
   ): Promise<SuccessResponseDto> {
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
     const result = await this.cardService.withdrawFromCard(
-      user.companyId,
+      companyId,
       cardId,
       withdrawDto.amount
     );
@@ -145,7 +157,13 @@ export class CardController {
     @CurrentUser() user: CurrentUserData,
     @Param("id") cardId: string
   ): Promise<SuccessResponseDto> {
-    const result = await this.cardService.freezeCard(user.companyId, cardId);
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
+    const result = await this.cardService.freezeCard(companyId, cardId);
     return {
       success: result.success,
       message: result.message,
@@ -174,7 +192,13 @@ export class CardController {
     @CurrentUser() user: CurrentUserData,
     @Param("id") cardId: string
   ): Promise<SuccessResponseDto> {
-    const result = await this.cardService.unfreezeCard(user.companyId, cardId);
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
+    const result = await this.cardService.unfreezeCard(companyId, cardId);
     return {
       success: result.success,
       message: result.message,
@@ -223,7 +247,13 @@ export class CardController {
   async findAll(
     @CurrentUser() user: CurrentUserData
   ): Promise<CardResponseDto[]> {
-    return this.cardService.findAllByCompany(user.companyId);
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
+    return this.cardService.findAllByCompany(companyId);
   }
 
   @Get(":id")
@@ -244,7 +274,13 @@ export class CardController {
     @CurrentUser() user: CurrentUserData,
     @Param("id") cardId: string
   ): Promise<CardResponseDto> {
-    return this.cardService.findOne(user.companyId, cardId);
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
+    return this.cardService.findOne(companyId, cardId);
   }
 
   @Get(":id/transactions")
@@ -265,6 +301,12 @@ export class CardController {
     @CurrentUser() user: CurrentUserData,
     @Param("id") cardId: string
   ): Promise<TransactionResponseDto[]> {
-    return this.cardService.getTransactions(user.companyId, cardId);
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
+    return this.cardService.getTransactions(companyId, cardId);
   }
 }

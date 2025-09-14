@@ -216,7 +216,13 @@ export class CompanyController {
   async getCompanyWallets(
     @CurrentUser() user: CurrentUserData
   ): Promise<{ data: WalletResponseDto[] }> {
-    return this.companyService.getCompanyBalance(user.companyId);
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
+    return this.companyService.getCompanyBalance(companyId);
   }
 
   @Get("transactions")
@@ -234,7 +240,13 @@ export class CompanyController {
   async getCompanyTransactions(
     @CurrentUser() user: CurrentUserData
   ): Promise<{ data: TransactionResponseDto[] }> {
-    return this.companyService.getCompanyTransactions(user.companyId);
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
+    return this.companyService.getCompanyTransactions(companyId);
   }
 
   @Get("admin")
@@ -313,8 +325,14 @@ export class CompanyController {
     @CurrentUser() user: CurrentUserData,
     @Body() createExchangeRateDto: CreateExchangeRateDto
   ): Promise<any> {
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
     return this.companyService.createExchangeRate(
-      user.companyId,
+      companyId,
       createExchangeRateDto
     );
   }
@@ -334,7 +352,13 @@ export class CompanyController {
   async getCompanyExchangeRates(
     @CurrentUser() user: CurrentUserData
   ): Promise<any> {
-    return this.companyService.getCompanyExchangeRates(user.companyId);
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
+    return this.companyService.getCompanyExchangeRates(companyId);
   }
 
   @Patch("exchange-rates/:exchangeRateId")
@@ -414,8 +438,14 @@ export class CompanyController {
     @CurrentUser() user: CurrentUserData,
     @Body() currencyConversionDto: CurrencyConversionDto
   ): Promise<any> {
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
     return this.companyService.convertCurrency(
-      user.companyId,
+      companyId,
       currencyConversionDto.amount,
       currencyConversionDto.fromCurrency,
       currencyConversionDto.toCurrency
@@ -445,8 +475,14 @@ export class CompanyController {
     @CurrentUser() user: CurrentUserData,
     @Body() createTransactionFeeDto: CreateTransactionFeeDto
   ): Promise<any> {
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
     return this.companyService.createTransactionFee(
-      user.companyId,
+      companyId,
       createTransactionFeeDto
     );
   }
@@ -466,7 +502,13 @@ export class CompanyController {
   async getCompanyTransactionFees(
     @CurrentUser() user: CurrentUserData
   ): Promise<any> {
-    return this.companyService.getCompanyTransactionFees(user.companyId);
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
+    return this.companyService.getCompanyTransactionFees(companyId);
   }
 
   @Patch("transaction-fees/:feeId")
@@ -544,8 +586,14 @@ export class CompanyController {
     @CurrentUser() user: CurrentUserData,
     @Body() calculateTransactionFeeDto: CalculateTransactionFeeDto
   ): Promise<any> {
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
     return this.companyService.calculateTransactionFee(
-      user.companyId,
+      companyId,
       calculateTransactionFeeDto.amount,
       calculateTransactionFeeDto.transactionType,
       calculateTransactionFeeDto.transactionCategory,
@@ -597,11 +645,13 @@ export class CompanyController {
       proof_of_address?: any[];
     }
   ): Promise<CompleteKycResponseDto> {
-    return this.companyService.completeKyc(
-      user.companyId, // We'll get the user ID from the company context
-      completeKycDto,
-      files
-    );
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
+    return this.companyService.completeKyc(companyId, completeKycDto, files);
   }
 
   @Post("onboarding/kyb")
@@ -645,11 +695,13 @@ export class CompanyController {
       proof_of_address?: any[];
     }
   ): Promise<CompleteKybResponseDto> {
-    return this.companyService.completeKyb(
-      user.companyId,
-      completeKybDto,
-      files
-    );
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
+    return this.companyService.completeKyb(companyId, completeKybDto, files);
   }
 
   @Post("onboarding/banking")
@@ -678,7 +730,13 @@ export class CompanyController {
     @CurrentUser() user: CurrentUserData,
     @Body() bankingInfoDto: BankingInfoDto
   ): Promise<BankingInfoResponseDto> {
-    return this.companyService.addBankingInfo(user.companyId, bankingInfoDto);
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
+    return this.companyService.addBankingInfo(companyId, bankingInfoDto);
   }
 
   @Post("onboarding/profile")
@@ -707,10 +765,13 @@ export class CompanyController {
     @CurrentUser() user: CurrentUserData,
     @Body() completeProfileDto: CompleteProfileDto
   ): Promise<CompleteProfileResponseDto> {
-    return this.companyService.completeProfile(
-      user.companyId, // We'll get the user ID from the company context
-      completeProfileDto
-    );
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
+    return this.companyService.completeProfile(companyId, completeProfileDto);
   }
 
   @Get("onboarding/status")
@@ -734,7 +795,13 @@ export class CompanyController {
   async getOnboardingStatus(
     @CurrentUser() user: CurrentUserData
   ): Promise<OnboardingStatusDto> {
-    return this.companyService.getOnboardingStatus(user.companyId, user.userId);
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
+    return this.companyService.getOnboardingStatus(companyId, user.userId);
   }
 
   // ==================== ONBOARDING STEP CONTROLLERS ====================
@@ -759,8 +826,14 @@ export class CompanyController {
     @Body() initData: InitializeOnboardingStepsDto,
     @CurrentUser() user: CurrentUserData
   ): Promise<InitializeOnboardingStepsResponseDto> {
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
     // Override company_id with authenticated company ID
-    initData.company_id = user.companyId;
+    initData.company_id = companyId;
     return this.companyService.initializeOnboardingSteps(initData);
   }
 
@@ -785,10 +858,13 @@ export class CompanyController {
     @CurrentUser() user: CurrentUserData,
     @Query("status") status?: string
   ): Promise<{ data: GetOnboardingStepsResponseDto }> {
-    return this.companyService.getCompanyOnboardingSteps(
-      user.companyId,
-      status
-    );
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
+    return this.companyService.getCompanyOnboardingSteps(companyId, status);
   }
 
   @Get("onboarding-steps/:stepId")
@@ -918,7 +994,13 @@ export class CompanyController {
   async getNextPendingStep(
     @CurrentUser() user: CurrentUserData
   ): Promise<OnboardingStepResponseDto | null> {
-    return this.companyService.getNextPendingStep(user.companyId);
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
+    return this.companyService.getNextPendingStep(companyId);
   }
 
   @Delete("onboarding-steps/:stepId")
@@ -968,7 +1050,13 @@ export class CompanyController {
   async resetOnboardingSteps(
     @CurrentUser() user: CurrentUserData
   ): Promise<{ success: boolean; message: string }> {
-    return this.companyService.resetCompanySteps(user.companyId);
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
+    return this.companyService.resetCompanySteps(companyId);
   }
 
   // ==================== CLIENT CREDENTIALS AND WEBHOOK ROUTES ====================
@@ -994,7 +1082,13 @@ export class CompanyController {
   async getCompanyCredentials(
     @CurrentUser() user: CurrentUserData
   ): Promise<CompanyCredentialsResponseDto> {
-    return this.companyService.getCompanyCredentials(user.companyId);
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
+    return this.companyService.getCompanyCredentials(companyId);
   }
 
   @Put("webhook")
@@ -1036,10 +1130,13 @@ export class CompanyController {
       );
     }
 
-    return this.companyService.updateWebhookUrl(
-      user.companyId,
-      updateWebhookUrlDto
-    );
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
+    return this.companyService.updateWebhookUrl(companyId, updateWebhookUrlDto);
   }
 
   @Post("regenerate-client-key")
@@ -1063,6 +1160,12 @@ export class CompanyController {
   async regenerateClientKey(
     @CurrentUser() user: CurrentUserData
   ): Promise<RegenerateClientKeyResponseDto> {
-    return this.companyService.regenerateClientKey(user.companyId);
+    // Use first company as default for now - should be updated to accept company_id parameter
+    const companyId = user.companies?.[0]?.companyId;
+    if (!companyId) {
+      throw new Error("User does not belong to any company");
+    }
+
+    return this.companyService.regenerateClientKey(companyId);
   }
 }

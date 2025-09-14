@@ -572,8 +572,8 @@ export class UserResponseDto {
   @ApiProperty()
   email: string;
 
-  @ApiProperty()
-  company_id: string;
+  @ApiProperty({ required: false })
+  company_id?: string;
 
   @ApiProperty()
   step: number;

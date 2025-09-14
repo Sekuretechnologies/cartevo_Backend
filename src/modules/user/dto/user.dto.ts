@@ -197,7 +197,7 @@ export class CreateUserResponseDto {
   user: UserResponseDto;
 
   @ApiProperty()
-  invitation_code: string;
+  invitation_token: string;
 }
 
 export class AuthResponseDto {
@@ -250,6 +250,34 @@ export class LoginSuccessResponseDto {
     enum: ["dashboard", "step2", "waiting"],
   })
   redirect_to: string;
+}
+
+export class VerifyOtpMultiCompanyResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty()
+  message: string;
+
+  @ApiProperty({
+    description: "Temporary token containing userId and email only",
+  })
+  temp_token: string;
+
+  @ApiProperty({
+    description: "Whether company selection is required",
+  })
+  requires_company_selection: boolean;
+
+  @ApiProperty({
+    description: "List of companies for user to choose from",
+    type: [Object],
+  })
+  companies: Array<{
+    id: string;
+    name: string;
+    country: string;
+  }>;
 }
 
 // KYC Status Update DTO

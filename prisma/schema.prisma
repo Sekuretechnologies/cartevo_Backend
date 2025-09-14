@@ -45,7 +45,6 @@ model Company {
   created_at     DateTime @default(now()) @map("created_at")
   updated_at     DateTime @updatedAt @map("updated_at")
 
-  users            User[]
   customers        Customer[]
   cards            Card[]
   transactions     Transaction[]
@@ -93,7 +92,6 @@ model User {
   email          String
   address        String?
   password       String?
-  company_id      String     @map("company_id")
   step           Int        @default(1)
   status         UserStatus @default(PENDING)
   kyc_status     KycStatus  @default(NONE) @map("kyc_status") // KYC (Know Your Customer) status
@@ -120,11 +118,10 @@ model User {
   created_at      DateTime   @default(now()) @map("created_at")
   updated_at      DateTime   @updatedAt @map("updated_at")
 
-  company          Company           @relation(fields: [company_id], references: [id])
   userCompanyRoles UserCompanyRole[]
   transactions Transaction[]
 
-  @@unique([company_id, email])
+  @@unique([email])
   @@map("users")
 }
 
@@ -197,7 +194,7 @@ model Customer {
   identification_number String             @map("identification_number")
   id_document_front     String             @map("id_document_front")
   id_document_back      String?            @map("id_document_back") // Optional back side of the ID document
-  id_document_type     String  
+  id_document_type     String
   // image                String?            // URL or path to identification document
   // photo                String?            // URL or path to customer photo
   // number               String?             // Additional identification number
@@ -212,6 +209,7 @@ model Customer {
   notifications Notification[]
   transactions Transaction[]
   syncmetadatas Syncmetadata[]
+  providerMappings CustomerProviderMapping[]
 
   @@unique([company_id, email])
   @@map("customers")
@@ -495,4 +493,20 @@ model BalanceTransactionRecord {
   created_at          DateTime @default(now()) @map("created_at")
 
   @@map("balance_transaction_records")
+}
+
+model CustomerProviderMapping {
+  id                  String   @id @default(uuid())
+  customer_id         String   @map("customer_id") // Our internal customer ID
+  provider_name       String   @map("provider_name") // e.g., "maplerad", "sudo", "flutterwave"
+  provider_customer_id String   @map("provider_customer_id") // The provider's customer ID
+  metadata            Json?    @map("metadata") // Additional provider-specific data
+  is_active           Boolean  @default(true) @map("is_active")
+  created_at          DateTime @default(now()) @map("created_at")
+  updated_at          DateTime @updatedAt @map("updated_at")
+
+  customer Customer @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+
+  @@unique([customer_id, provider_name])
+  @@map("customer_provider_mappings")
 }

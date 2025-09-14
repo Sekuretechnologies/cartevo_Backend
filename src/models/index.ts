@@ -11,4 +11,5 @@ export {
   UserCompanyRoleModel,
   SyncmetadataModel,
   BalanceTransactionRecordModel,
+  CustomerProviderMappingModel,
 } from "./prisma";

@@ -14,3 +14,4 @@ export { default as ExchangeRateModel } from "./exchangeRateModel";
 export { default as TransactionFeeModel } from "./transactionFeeModel";
 export { default as OnboardingStepModel } from "./onboardingStepModel";
 export { default as BalanceTransactionRecordModel } from "./balanceTransactionRecordModel";
+export { default as CustomerProviderMappingModel } from "./customerProviderMappingModel";

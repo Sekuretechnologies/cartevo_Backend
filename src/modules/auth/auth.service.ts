@@ -17,6 +17,13 @@ import {
   CheckEmailResponseDto,
   LoginWithCompanyRequestDto,
   LoginWithCompanyResponseDto,
+  SelectCompanyRequestDto,
+  SelectCompanyResponseDto,
+  ValidateInvitationTokenDto,
+  ValidateInvitationResponseDto,
+  AcceptInvitationDto,
+  AcceptInvitationResponseDto,
+  RegisterWithInvitationDto,
 } from "./dto/auth.dto";
 import {
   LoginDto,
@@ -24,6 +31,7 @@ import {
   UserResponseDto,
   AuthResponseDto,
   LoginSuccessResponseDto,
+  VerifyOtpMultiCompanyResponseDto,
 } from "../user/dto/user.dto";
 import {
   UserModel,
@@ -116,12 +124,27 @@ export class AuthService {
       // Multiple companies found - return list of companies for user to choose
       const companies = await Promise.all(
         users.map(async (user) => {
-          const companyResult = await CompanyModel.getOne({
-            id: user.company_id,
+          // Get user's companies through UserCompanyRole
+          const userCompanyRolesResult = await UserCompanyRoleModel.get({
+            user_id: user.id,
           });
-          if (companyResult.error) {
-            throw new BadRequestException(companyResult.error.message);
+
+          if (userCompanyRolesResult.error || !userCompanyRolesResult.output) {
+            return null;
           }
+
+          const userCompanyRoles = userCompanyRolesResult.output;
+          if (!userCompanyRoles || userCompanyRoles.length === 0) return null;
+
+          // Get company details for the first role
+          const companyResult = await CompanyModel.getOne({
+            id: userCompanyRoles[0].company_id,
+          });
+
+          if (companyResult.error || !companyResult.output) {
+            return null;
+          }
+
           const company = companyResult.output;
           return {
             id: company.id,
@@ -131,11 +154,13 @@ export class AuthService {
         })
       );
 
+      const validCompanies = companies.filter((company) => company !== null);
+
       return {
         success: true,
         message: "Multiple companies found. Please specify a company to login.",
         requires_otp: false,
-        companies: companies,
+        companies: validCompanies,
       };
     }
 
@@ -183,7 +208,7 @@ export class AuthService {
 
   async verifyOtp(
     verifyOtpDto: VerifyOtpDto
-  ): Promise<LoginSuccessResponseDto> {
+  ): Promise<LoginSuccessResponseDto | VerifyOtpMultiCompanyResponseDto> {
     // Find user with valid OTP
     console.log("verifyOtpDto :: ", verifyOtpDto);
     const userResult = await UserModel.getOne(
@@ -193,9 +218,11 @@ export class AuthService {
         // status: UserStatus.ACTIVE,
       },
       {
-        company: true,
         userCompanyRoles: {
-          include: { role: true },
+          include: {
+            role: true,
+            company: true,
+          },
         },
       }
     );
@@ -215,106 +242,95 @@ export class AuthService {
       throw new UnauthorizedException("Invalid or expired OTP");
     }
 
+    // Check if user belongs to multiple companies
+    const userCompanies = user.userCompanyRoles || [];
+    const hasMultipleCompanies = userCompanies.length > 1;
+
     // Clear OTP
     await UserModel.update(user.id, {
       otp: null,
       otp_expires: null,
     });
 
-    // Generate JWT token with expiry
-    const payload = {
-      sub: user.id,
-      email: user.email,
-      companyId: user.company.id,
-      roles: user.userCompanyRoles?.map((ucr: any) => ucr.role.name),
-    };
+    if (hasMultipleCompanies) {
+      // Generate temporary token with userId and email only
+      const tempPayload = {
+        sub: user.id,
+        email: user.email,
+        temp: true, // Mark as temporary token
+      };
 
-    // Set token expiry to 24 hours (86400 seconds)
-    const accessToken = this.jwtService.sign(payload, {
-      expiresIn: "1h", // You can also use '1d', '7d', '30d', or specific seconds like '86400'
-    });
+      const tempToken = this.jwtService.sign(tempPayload, {
+        expiresIn: "15m", // Shorter expiry for temp token
+      });
 
-    console.log("payload :: ", payload);
-    console.log("accessToken :: ", accessToken);
-    // Determine redirect based on user and company completion status
-    let redirectTo = "dashboard";
-    let redirectMessage = "Login successful";
+      // Get list of companies for user to choose from
+      const companies = userCompanies.map((ucr: any) => ({
+        id: ucr.company.id,
+        name: ucr.company.name,
+        country: ucr.company.country,
+      }));
 
-    // -------------------------------------------------
-    const result = await OnboardingStepModel.get({
-      company_id: user.company.id,
-    });
-    if (result.error) {
-      throw new BadRequestException(result.error.message);
+      return {
+        success: true,
+        message: "OTP verified. Please select a company to continue.",
+        temp_token: tempToken,
+        requires_company_selection: true,
+        companies: companies,
+      } as VerifyOtpMultiCompanyResponseDto;
+    } else {
+      // Single company - proceed with full token
+      const userCompany = userCompanies[0];
+      if (!userCompany) {
+        throw new UnauthorizedException("User does not belong to any company");
+      }
+
+      // Generate JWT token with expiry
+      const payload = {
+        sub: user.id,
+        email: user.email,
+      };
+
+      // Set token expiry to 24 hours (86400 seconds)
+      const accessToken = this.jwtService.sign(payload, {
+        expiresIn: "1h", // You can also use '1d', '7d', '30d', or specific seconds like '86400'
+      });
+
+      console.log("payload :: ", payload);
+      console.log("accessToken :: ", accessToken);
+      // Determine redirect based on user and company completion status
+      let redirectTo = "dashboard";
+      let redirectMessage = "Login successful";
+
+      // -------------------------------------------------
+      const result = await OnboardingStepModel.get({
+        company_id: userCompany.company.id,
+      });
+      if (result.error) {
+        throw new BadRequestException(result.error.message);
+      }
+      const steps = result.output;
+      const totalCount: number = steps.length;
+      // Count by status
+      const completedCount: number = steps.filter(
+        (step: any) => step.status === "COMPLETED"
+      ).length;
+      // -------------------------------------------------
+
+      return {
+        success: true,
+        message: redirectMessage,
+        access_token: accessToken,
+        user: await this.mapToResponseDto(user),
+        company: {
+          id: userCompany.company.id,
+          name: userCompany.company.name,
+          country: userCompany.company.country,
+          onboarding_is_completed: completedCount === totalCount,
+        },
+        redirect_to: redirectTo,
+      };
     }
-    const steps = result.output;
-    const totalCount: number = steps.length;
-    // Count by status
-    const completedCount: number = steps.filter(
-      (step: any) => step.status === "COMPLETED"
-    ).length;
-    // -------------------------------------------------
-
-    // // Check if user needs to complete step 2
-    // if (user.step === 1) {
-    //   redirectTo = "step2";
-    //   redirectMessage = "Please complete your company registration (Step 2)";
-    // }
-    // Check if KYC (user documents) and KYB (company documents) are completed
-    // else if (user.step === 2) {
-    //   // Check if user has completed KYC (personal documents)
-    //   const hasUserDocuments =
-    //     user.id_document_front &&
-    //     user.id_document_back &&
-    //     user.proof_of_address;
-
-    //   // Check if company has completed KYB (business documents)
-    //   const hasCompanyDocuments =
-    //     user.company.share_holding_document &&
-    //     user.company.incorporation_certificate &&
-    //     user.company.business_proof_of_address;
-    //   // && user.company.memart;
-
-    //   // if (!hasUserDocuments || !hasCompanyDocuments) {
-    //   //   redirectTo = "waiting";
-    //   //   redirectMessage =
-    //   //     "Your account is under review. Please wait for KYC/KYB completion.";
-    //   // }
-
-    //   if (
-    //     user.kyc_status !== "APPROVED" &&
-    //     user.company.kyb_status !== "APPROVED"
-    //   ) {
-    //     redirectTo = "waiting";
-    //     redirectMessage =
-    //       "Your account is under review. Please wait for KYC/KYB completion.";
-    //   }
-    // }
-
-    // if (
-    //   user.kyc_status !== "APPROVED" &&
-    //   user.company.kyb_status !== "APPROVED"
-    // ) {
-    //   redirectTo = "waiting";
-    //   redirectMessage =
-    //     "Your account is under review. Please wait for KYC/KYB completion.";
-    // }
-
-    // -------------------------------------------------
-
-    return {
-      success: true,
-      message: redirectMessage,
-      access_token: accessToken,
-      user: await this.mapToResponseDto(user),
-      company: {
-        id: user.company.id,
-        name: user.company.name,
-        country: user.company.country,
-        onboarding_is_completed: completedCount === totalCount,
-      },
-      redirect_to: redirectTo,
-    };
   }
 
   private generateOTP(): string {
@@ -353,7 +369,7 @@ export class AuthService {
       first_name: user.first_name,
       last_name: user.last_name,
       email: user.email,
-      company_id: user.company?.id,
+      company_id: user.userCompanyRoles?.[0]?.company?.id || null,
       status: user.status,
       step: user.step,
       role: userRole,
@@ -564,13 +580,45 @@ export class AuthService {
         | undefined;
 
       if (company_count > 1) {
-        // Since UserModel.get doesn't include company data, we'll need to fetch it separately
-        // For now, return basic info without company details
-        companies = users.map((user) => ({
-          id: user.company_id,
-          name: "", // Would need separate query to get company name
-          country: "",
-        }));
+        // Get company details for each user
+        companies = await Promise.all(
+          users.map(async (user) => {
+            const userCompanyRolesResult = await UserCompanyRoleModel.get({
+              user_id: user.id,
+            });
+
+            if (
+              userCompanyRolesResult.error ||
+              !userCompanyRolesResult.output ||
+              userCompanyRolesResult.output.length === 0
+            ) {
+              return {
+                id: "",
+                name: "",
+                country: "",
+              };
+            }
+
+            const companyResult = await CompanyModel.getOne({
+              id: userCompanyRolesResult.output[0].company_id,
+            });
+
+            if (companyResult.error || !companyResult.output) {
+              return {
+                id: "",
+                name: "",
+                country: "",
+              };
+            }
+
+            const company = companyResult.output;
+            return {
+              id: company.id,
+              name: company.name,
+              country: company.country,
+            };
+          })
+        );
       }
 
       return {
@@ -608,22 +656,26 @@ export class AuthService {
       let targetUser: any;
 
       if (loginDto.company_id) {
-        // User specified a company, find the user in that company
-        targetUser = users.find(
-          (user) => user.company_id === loginDto.company_id
-        );
-        if (!targetUser) {
+        // User specified a company, check if user belongs to that company
+        const userCompanyRoleResult = await UserCompanyRoleModel.getOne({
+          user_id: users[0].id, // Assuming single user for now, but this needs to be updated for multi-user scenario
+          company_id: loginDto.company_id,
+        });
+
+        if (userCompanyRoleResult.error || !userCompanyRoleResult.output) {
           throw new UnauthorizedException(
             "User not found in specified company"
           );
         }
+
+        targetUser = users[0]; // Use the first user since we're checking company membership
       } else if (users.length === 1) {
-        // Only one company, use that user
+        // Only one user, use that user
         targetUser = users[0];
       } else {
-        // Multiple companies but no company specified
+        // Multiple users but no company specified
         throw new BadRequestException(
-          "Multiple companies found. Please specify a company_id."
+          "Multiple users found. Please specify a company_id."
         );
       }
 
@@ -691,5 +743,336 @@ export class AuthService {
         error: error.message,
       });
     }
+  }
+
+  async selectCompany(
+    selectCompanyDto: SelectCompanyRequestDto
+  ): Promise<SelectCompanyResponseDto> {
+    try {
+      // Verify the temporary token
+      let decoded: { sub: string; email: string; temp: boolean };
+      try {
+        decoded = this.jwtService.verify(selectCompanyDto.temp_token) as any;
+        if (!decoded.temp) {
+          throw new UnauthorizedException("Invalid token type");
+        }
+      } catch (err) {
+        if (err.name === "TokenExpiredError") {
+          throw new UnauthorizedException("Temporary token has expired");
+        }
+        throw new UnauthorizedException("Invalid temporary token");
+      }
+
+      const userId = decoded.sub;
+      const email = decoded.email;
+
+      // Check if user belongs to the specified company
+      const userCompanyRoleResult = await UserCompanyRoleModel.getOne({
+        user_id: userId,
+        company_id: selectCompanyDto.company_id,
+      });
+
+      if (userCompanyRoleResult.error || !userCompanyRoleResult.output) {
+        throw new BadRequestException("User not found in specified company");
+      }
+
+      // Get user with company and role information
+      const userResult = await UserModel.getOne(
+        {
+          id: userId,
+          status: UserStatus.ACTIVE,
+        },
+        {
+          userCompanyRoles: {
+            include: {
+              role: true,
+              company: true,
+            },
+          },
+        }
+      );
+      if (userResult.error) {
+        throw new BadRequestException("User not found");
+      }
+      const user: any = userResult.output;
+
+      // Find the specific company-role combination
+      const selectedCompanyRole = user.userCompanyRoles.find(
+        (ucr: any) => ucr.company_id === selectCompanyDto.company_id
+      );
+
+      if (!selectedCompanyRole) {
+        throw new BadRequestException("User not found in specified company");
+      }
+
+      // Generate full JWT token with company information
+      const payload = {
+        sub: user.id,
+        email: user.email,
+      };
+
+      const accessToken = this.jwtService.sign(payload, {
+        expiresIn: "1h",
+      });
+
+      // Determine redirect based on user and company completion status
+      let redirectTo = "dashboard";
+      let redirectMessage = "Login successful";
+
+      // Get onboarding steps
+      const result = await OnboardingStepModel.get({
+        company_id: selectedCompanyRole.company.id,
+      });
+      if (result.error) {
+        throw new BadRequestException(result.error.message);
+      }
+      const steps = result.output;
+      const totalCount: number = steps.length;
+      const completedCount: number = steps.filter(
+        (step: any) => step.status === "COMPLETED"
+      ).length;
+
+      return {
+        success: true,
+        message: redirectMessage,
+        access_token: accessToken,
+        user: await this.mapToResponseDto(user, selectedCompanyRole.role.name),
+        company: {
+          id: selectedCompanyRole.company.id,
+          name: selectedCompanyRole.company.name,
+          country: selectedCompanyRole.company.country,
+          onboarding_is_completed: completedCount === totalCount,
+        },
+        redirect_to: redirectTo,
+      };
+    } catch (error) {
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "An error occurred during company selection",
+        error: error.message,
+      });
+    }
+  }
+
+  async validateInvitationToken(
+    dto: ValidateInvitationTokenDto
+  ): Promise<ValidateInvitationResponseDto> {
+    try {
+      // Verify JWT token
+      const decoded = this.jwtService.verify(dto.token) as {
+        invitation_id: string;
+        email: string;
+        company_id: string;
+        role: string;
+      };
+
+      // Check if invitation still exists and is pending
+      const invitation = await UserModel.getOne({
+        id: decoded.invitation_id,
+        status: UserStatus.PENDING,
+      });
+
+      if (!invitation.output) {
+        return { valid: false };
+      }
+
+      // Check if user already exists
+      const existingUsers = await UserModel.get({
+        email: decoded.email,
+        status: UserStatus.ACTIVE,
+      });
+
+      const userExists = existingUsers.output.length > 0;
+
+      // Get company details
+      const company = await CompanyModel.getOne({
+        id: decoded.company_id,
+      });
+
+      return {
+        valid: true,
+        invitation_id: decoded.invitation_id,
+        email: decoded.email,
+        company: {
+          id: company.output.id,
+          name: company.output.name,
+          country: company.output.country,
+        },
+        role: decoded.role,
+        user_exists: userExists,
+        existing_companies: userExists ? existingUsers.output.length : 0,
+      };
+    } catch (error) {
+      return { valid: false };
+    }
+  }
+
+  async acceptInvitation(
+    dto: AcceptInvitationDto
+  ): Promise<AcceptInvitationResponseDto> {
+    // Validate invitation token
+    const validation = await this.validateInvitationToken({ token: dto.token });
+
+    if (!validation.valid) {
+      throw new BadRequestException("Invalid or expired invitation");
+    }
+
+    const { invitation_id, email, company, role, user_exists } = validation;
+
+    if (user_exists) {
+      // Case 2: Existing user - require authentication
+      if (!dto.password) {
+        throw new BadRequestException("Password required for existing users");
+      }
+
+      const user = await UserModel.getOne({
+        email: email,
+        status: UserStatus.ACTIVE,
+      });
+
+      if (!user.output) {
+        throw new BadRequestException("User account not found");
+      }
+
+      // Verify password
+      const isValidPassword = await bcrypt.compare(
+        dto.password,
+        user.output.password
+      );
+
+      if (!isValidPassword) {
+        throw new BadRequestException("Invalid password");
+      }
+
+      // Check if user already belongs to this company
+      const existingMembership = await UserCompanyRoleModel.getOne({
+        user_id: user.output.id,
+        company_id: company.id,
+      });
+
+      if (existingMembership.output) {
+        throw new BadRequestException("User already belongs to this company");
+      }
+
+      // Add user to new company
+      const roleRecord = await RoleModel.getOne({ name: role });
+      await UserCompanyRoleModel.create({
+        user_id: user.output.id,
+        company_id: company.id,
+        role_id: roleRecord.output.id,
+      });
+
+      // Mark invitation as used
+      await UserModel.update(invitation_id, {
+        status: UserStatus.INACTIVE,
+      });
+
+      // Generate access token for the new company
+      const payload = {
+        sub: user.output.id,
+        email: user.output.email,
+        companyId: company.id,
+        roles: [role],
+      };
+
+      const accessToken = this.jwtService.sign(payload, {
+        expiresIn: "1h",
+      });
+
+      return {
+        success: true,
+        message: `Successfully joined ${company.name}`,
+        access_token: accessToken,
+        user: await this.mapToResponseDto(user.output),
+        company: company,
+        redirect_to: "dashboard",
+      };
+    } else {
+      // Case 1: New user - redirect to registration
+      return {
+        success: true,
+        message: "Please complete your registration",
+        company: company,
+        redirect_to: "register",
+      };
+    }
+  }
+
+  async registerWithInvitation(
+    dto: RegisterWithInvitationDto
+  ): Promise<LoginSuccessResponseDto> {
+    // Validate invitation token
+    const validation = await this.validateInvitationToken({
+      token: dto.invitation_token,
+    });
+
+    if (!validation.valid || validation.user_exists) {
+      throw new BadRequestException("Invalid invitation");
+    }
+
+    // Create new user account
+    const hashedPassword = await bcrypt.hash(dto.password, 12);
+
+    const newUser = await UserModel.create({
+      email: validation.email,
+      full_name: dto.full_name,
+      password: hashedPassword,
+      status: UserStatus.ACTIVE,
+    });
+
+    // Assign role to company
+    const roleRecord = await RoleModel.getOne({ name: validation.role });
+    await UserCompanyRoleModel.create({
+      user_id: newUser.output.id,
+      company_id: validation.company.id,
+      role_id: roleRecord.output.id,
+    });
+
+    // Mark invitation as used
+    await UserModel.update(validation.invitation_id, {
+      status: UserStatus.INACTIVE,
+    });
+
+    // Generate access token
+    const payload = {
+      sub: newUser.output.id,
+      email: newUser.output.email,
+      companyId: validation.company.id,
+      roles: [validation.role],
+    };
+
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: "1h",
+    });
+
+    // Get onboarding steps
+    const result = await OnboardingStepModel.get({
+      company_id: validation.company.id,
+    });
+    const steps = result.output || [];
+    const totalCount: number = steps.length;
+    const completedCount: number = steps.filter(
+      (step: any) => step.status === "COMPLETED"
+    ).length;
+
+    return {
+      success: true,
+      message: "Account created successfully",
+      access_token: accessToken,
+      user: await this.mapToResponseDto(newUser.output),
+      company: {
+        id: validation.company.id,
+        name: validation.company.name,
+        country: validation.company.country,
+        onboarding_is_completed: completedCount === totalCount,
+      },
+      redirect_to: "dashboard",
+    };
   }
 }

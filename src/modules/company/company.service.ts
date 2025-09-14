@@ -127,7 +127,6 @@ export class CompanyService {
         email: createDto.business_email,
         password: createDto.password,
         phone_number: createDto.phone_number,
-        company_id: company.id,
         status: UserStatus.ACTIVE,
       });
       if (userResult.error)
@@ -330,24 +329,33 @@ export class CompanyService {
 
       if (existingUser) {
         // Check if user belongs to an existing company
-        const companyResult = await CompanyModel.getOne({
-          id: existingUser.company_id,
+        const userCompanyRolesResult = await UserCompanyRoleModel.get({
+          user_id: existingUser.id,
         });
-        const company = companyResult.output;
 
-        if (company) {
-          return {
-            success: false,
-            message:
-              company.step === 1
-                ? "Cet utilisateur existe déjà et appartient à une entreprise en cours d'enregistrement. Veuillez compléter les informations de l'entreprise existante."
-                : "Cet utilisateur existe déjà et appartient à une entreprise déjà enregistrée.",
-            user_exists: true,
-            company_id: company.id,
-            company_name: company.name,
-            company_step: company.step,
-            action_required: company.step === 1 ? "complete_step_2" : "login",
-          };
+        if (
+          userCompanyRolesResult.output &&
+          userCompanyRolesResult.output.length > 0
+        ) {
+          const companyResult = await CompanyModel.getOne({
+            id: userCompanyRolesResult.output[0].company_id,
+          });
+          const company = companyResult.output;
+
+          if (company) {
+            return {
+              success: false,
+              message:
+                company.step === 1
+                  ? "Cet utilisateur existe déjà et appartient à une entreprise en cours d'enregistrement. Veuillez compléter les informations de l'entreprise existante."
+                  : "Cet utilisateur existe déjà et appartient à une entreprise déjà enregistrée.",
+              user_exists: true,
+              company_id: company.id,
+              company_name: company.name,
+              company_step: company.step,
+              action_required: company.step === 1 ? "complete_step_2" : "login",
+            };
+          }
         }
       }
 
@@ -408,7 +416,6 @@ export class CompanyService {
         full_name: `${personalInfoDto.first_name} ${personalInfoDto.last_name}`,
         email: personalInfoDto.email,
         password: personalInfoDto.password,
-        company_id: company.id,
         step: 1, // Step 1 completed
         role_in_company: personalInfoDto.role,
         phone_number: personalInfoDto.phone_number,
@@ -602,8 +609,17 @@ export class CompanyService {
         throw new BadRequestException(updatedCompanyResult.error.message);
       const updatedCompany = updatedCompanyResult.output;
 
-      // Get the user associated with this company
-      const userResult = await UserModel.getOne({ company_id: company.id });
+      // Get the user associated with this company through UserCompanyRole
+      const userCompanyRoleResult = await UserCompanyRoleModel.getOne({
+        company_id: company.id,
+      });
+      if (userCompanyRoleResult.error || !userCompanyRoleResult.output) {
+        throw new BadRequestException("Utilisateur associé non trouvé");
+      }
+
+      const userResult = await UserModel.getOne({
+        id: userCompanyRoleResult.output.user_id,
+      });
       if (userResult.error || !userResult.output) {
         throw new BadRequestException("Utilisateur associé non trouvé");
       }
@@ -890,7 +906,6 @@ export class CompanyService {
       id: user.id,
       full_name: user.full_name,
       email: user.email,
-      company_id: user.company_id,
       step: user.step,
       created_at: user.created_at,
       updated_at: user.updated_at,
@@ -1298,8 +1313,17 @@ export class CompanyService {
     }
   ): Promise<CompleteKycResponseDto> {
     try {
-      // Find the user associated with this company
-      const userResult = await UserModel.getOne({ company_id: companyId });
+      // Find the user associated with this company through UserCompanyRole
+      const userCompanyRoleResult = await UserCompanyRoleModel.getOne({
+        company_id: companyId,
+      });
+      if (userCompanyRoleResult.error || !userCompanyRoleResult.output) {
+        throw new NotFoundException("User not found for this company");
+      }
+
+      const userResult = await UserModel.getOne({
+        id: userCompanyRoleResult.output.user_id,
+      });
       if (userResult.error || !userResult.output) {
         throw new NotFoundException("User not found for this company");
       }
@@ -1660,8 +1684,17 @@ export class CompanyService {
     profileData: CompleteProfileDto
   ): Promise<CompleteProfileResponseDto> {
     try {
-      // Find the user associated with this company
-      const userResult = await UserModel.getOne({ company_id: companyId });
+      // Find the user associated with this company through UserCompanyRole
+      const userCompanyRoleResult = await UserCompanyRoleModel.getOne({
+        company_id: companyId,
+      });
+      if (userCompanyRoleResult.error || !userCompanyRoleResult.output) {
+        throw new NotFoundException("User not found for this company");
+      }
+
+      const userResult = await UserModel.getOne({
+        id: userCompanyRoleResult.output.user_id,
+      });
       if (userResult.error || !userResult.output) {
         throw new NotFoundException("User not found for this company");
       }
