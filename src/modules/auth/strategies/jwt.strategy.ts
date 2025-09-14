@@ -61,7 +61,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       if (payload.companyId) {
         const companyResult = await CompanyModel.getOne({
           id: payload.companyId,
-          is_active: true,
+          // is_active: true,
         });
         company = companyResult.output;
 
@@ -72,6 +72,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       console.log({
         userId: user.id,
         email: user.email,
+        payload_companyId: payload.companyId,
         companyId: company?.id,
         companies: userCompanies,
         type: "user",
