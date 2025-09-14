@@ -22,8 +22,9 @@ export const CurrentUser = createParamDecorator(
 
     if (user.type === "user") {
       return {
-        userId: user.userId,
+        userId: user.userId || user.sub,
         email: user.email,
+        companyId: user.companyId,
         companies: user.companies || [],
         type: "user",
       };
@@ -40,6 +41,7 @@ export const CurrentUser = createParamDecorator(
     return {
       userId: user.sub,
       email: user.email,
+      companyId: user.companyId,
       companies: user.companies || [],
     };
   }
