@@ -289,6 +289,7 @@ export class AuthService {
       const payload = {
         sub: user.id,
         email: user.email,
+        companyId: userCompany.company.id,
       };
 
       // Set token expiry to 24 hours (86400 seconds)
@@ -809,6 +810,7 @@ export class AuthService {
       const payload = {
         sub: user.id,
         email: user.email,
+        companyId: selectCompanyDto.company_id,
       };
 
       const accessToken = this.jwtService.sign(payload, {
