@@ -2,7 +2,7 @@
 import { FilterObject } from "@/types";
 import { sanitizeTextInput, setMethodFilter } from "@/utils/shared/common";
 import fnOutput from "@/utils/shared/fnOutputHandler";
-import { Prisma } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 export interface CustomerModelInterface {
   getOne(filters: FilterObject): Promise<any>;
@@ -14,7 +14,7 @@ export interface CustomerModelInterface {
 
 class CustomerModel {
   static get prisma() {
-    return require("@/modules/prisma/prisma.service").prisma;
+    return new PrismaClient();
   }
   static async getOne(filters: FilterObject) {
     try {

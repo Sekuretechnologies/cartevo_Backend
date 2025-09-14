@@ -2,7 +2,7 @@
 import { FilterObject, IncludeObject } from "@/types";
 import { setMethodFilter } from "@/utils/shared/common";
 import fnOutput from "@/utils/shared/fnOutputHandler";
-import { Prisma } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { buildPrismaQuery } from "prisma/functions";
 
 export interface TransactionModelInterface {
@@ -17,8 +17,9 @@ export interface TransactionModelInterface {
 
 class TransactionModel {
   static get prisma() {
-    return require("@/modules/prisma/prisma.service").prisma;
+    return new PrismaClient();
   }
+  // return require("@/modules/prisma/prisma.service").prisma;
 
   static async getOne(filters: FilterObject, include: any = {}) {
     try {
@@ -57,7 +58,7 @@ class TransactionModel {
         wallet: true,
         user: true,
         customer: true,
-        balanceTransactionRecords: true,
+        // balanceTransactionRecords: true,
         ...include,
       };
 

@@ -65,15 +65,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         throw new UnauthorizedException("Invalid company token");
       }
 
-      console.log({
-        userId: user.id,
-        email: user.email,
-        payload_companyId: payload.companyId,
-        companyId,
-        companies: userCompanies,
-        type: "user",
-      });
-
       return {
         userId: user.id,
         email: user.email,

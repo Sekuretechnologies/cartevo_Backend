@@ -1,7 +1,7 @@
 // src/models/prisma/customerProviderMappingModel.ts
 import { FilterObject } from "@/types";
 import fnOutput from "@/utils/shared/fnOutputHandler";
-import { Prisma } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 export interface CustomerProviderMappingModelInterface {
   getOne(filters: FilterObject): Promise<any>;
@@ -19,7 +19,7 @@ export interface CustomerProviderMappingModelInterface {
 
 class CustomerProviderMappingModel {
   static get prisma() {
-    return require("@/modules/prisma/prisma.service").prisma;
+    return new PrismaClient();
   }
 
   static async getOne(filters: FilterObject) {

@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { FilterObject } from "@/types";
 import { setMethodFilter } from "@/utils/shared/common";
 import fnOutput from "@/utils/shared/fnOutputHandler";
@@ -15,7 +15,7 @@ export interface BalanceTransactionRecordModelInterface {
 
 class BalanceTransactionRecordModel {
   static get prisma() {
-    return require("@/modules/prisma/prisma.service").prisma;
+    return new PrismaClient();
   }
 
   static async getOne(filters: FilterObject) {
