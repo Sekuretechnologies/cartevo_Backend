@@ -213,7 +213,7 @@ export class WebhookManagementController {
   @Get("stats")
   async getWebhookStats(@Request() req: any) {
     console.log("📊 WEBHOOK CONTROLLER - Get Webhook Stats Request", {
-      userId: "", // req.user.id,
+      userId: "", // req.user.userId,
     });
 
     return this.webhookService.getProcessingStats();
@@ -225,7 +225,7 @@ export class WebhookManagementController {
   @Put("security")
   async updateWebhookSecurity(@Body() config: any, @Request() req: any) {
     console.log("⚙️ WEBHOOK CONTROLLER - Update Security Config Request", {
-      userId: "", // req.user.id,
+      userId: "", // req.user.userId,
       config: config,
     });
 
@@ -245,7 +245,7 @@ export class WebhookManagementController {
     @Request() req: any
   ) {
     console.log("🧪 WEBHOOK CONTROLLER - Webhook Processing Request", {
-      userId: "", // req.user.id,
+      userId: "", // req.user.userId,
       eventType: testPayload.event,
     });
 
@@ -268,7 +268,7 @@ export class WebhookManagementController {
   @Get("events")
   async getSupportedEvents(@Request() req: any) {
     console.log("📋 WEBHOOK CONTROLLER - Get Supported Events Request", {
-      userId: "", // req.user.id,
+      userId: "", // req.user.userId,
     });
 
     const supportedEvents = this.eventRouter.getSupportedEventTypes();
@@ -287,7 +287,7 @@ export class WebhookManagementController {
   @Get("security/status")
   async getSecurityStatus(@Request() req: any) {
     console.log("🔐 WEBHOOK CONTROLLER - Get Security Status Request", {
-      userId: "", // req.user.id,
+      userId: "", // req.user.userId,
     });
 
     // Note: This would need to be implemented in the security service
@@ -306,7 +306,7 @@ export class WebhookManagementController {
   @Post("cleanup")
   async cleanupRateLimits(@Request() req: any) {
     console.log("🧹 WEBHOOK CONTROLLER - Cleanup Rate Limits Request", {
-      userId: "", // req.user.id,
+      userId: "", // req.user.userId,
     });
 
     this.securityService.cleanupRateLimits();
@@ -323,7 +323,7 @@ export class WebhookManagementController {
   @Get("metrics")
   async getWebhookMetrics(@Request() req: any) {
     console.log("📈 WEBHOOK CONTROLLER - Get Webhook Metrics Request", {
-      userId: "", // req.user.id,
+      userId: "", // req.user.userId,
     });
 
     const stats = this.webhookService.getProcessingStats();
@@ -354,7 +354,7 @@ export class WebhookManagementController {
     @Request() req: any
   ) {
     console.log("🎯 WEBHOOK CONTROLLER - Simulate Webhook Event Request", {
-      userId: req.user.id,
+      userId: req.user.userId,
       eventType: simulationData.eventType,
     });
 

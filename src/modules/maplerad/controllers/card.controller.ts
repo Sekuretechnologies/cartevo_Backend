@@ -45,7 +45,7 @@ export class CardOperationsController {
       customerId: createCardDto.customer_id,
       brand: createCardDto.brand,
       amount: createCardDto.amount,
-      userId: req.user.id,
+      userId: req.user.userId,
     });
 
     return this.issuanceService.issueRetailCard(createCardDto, req.user);
@@ -64,7 +64,7 @@ export class CardOperationsController {
       cardId,
       customerId: fundCardDto.customer_id,
       amount: fundCardDto.amount,
-      userId: req.user.id,
+      userId: req.user.userId,
     });
 
     // Add cardId to the DTO for service processing
@@ -86,7 +86,7 @@ export class CardOperationsController {
       cardId,
       customerId: withdrawCardDto.customer_id,
       amount: withdrawCardDto.amount,
-      userId: req.user.id,
+      userId: req.user.userId,
     });
 
     // Add cardId to the DTO for service processing
@@ -110,7 +110,7 @@ export class CardOperationsController {
     console.log("🔍 CARD CONTROLLER - Get Card Request", {
       cardId,
       reveal: reveal === "true",
-      userId: req.user.id,
+      userId: req.user.userId,
     });
 
     return this.managementService.getCard(cardId, req.user, reveal === "true");
@@ -130,7 +130,7 @@ export class CardOperationsController {
       cardId,
       page,
       limit,
-      userId: req.user.id,
+      userId: req.user.userId,
     });
 
     return this.managementService.getCardTransactions(cardId, req.user, {
@@ -145,7 +145,7 @@ export class CardOperationsController {
   async freezeCard(@Param("cardId") cardId: string, @Request() req: any) {
     console.log("🧊 CARD CONTROLLER - Freeze Card Request", {
       cardId,
-      userId: req.user.id,
+      userId: req.user.userId,
     });
 
     return this.managementService.freezeCard(cardId, req.user);
@@ -158,7 +158,7 @@ export class CardOperationsController {
   async unfreezeCard(@Param("cardId") cardId: string, @Request() req: any) {
     console.log("🔥 CARD CONTROLLER - Unfreeze Card Request", {
       cardId,
-      userId: req.user.id,
+      userId: req.user.userId,
     });
 
     return this.managementService.unfreezeCard(cardId, req.user);
@@ -171,7 +171,7 @@ export class CardOperationsController {
   async terminateCard(@Param("cardId") cardId: string, @Request() req: any) {
     console.log("🗑️ CARD CONTROLLER - Terminate Card Request", {
       cardId,
-      userId: req.user.id,
+      userId: req.user.userId,
     });
 
     return this.managementService.terminateCard(cardId, req.user);
@@ -191,7 +191,7 @@ export class CardOperationsController {
       page,
       limit,
       status,
-      userId: req.user.id,
+      userId: req.user.userId,
       companyId: req.user.companyId,
     });
 
@@ -205,7 +205,7 @@ export class CardOperationsController {
   async getCardBalance(@Param("cardId") cardId: string, @Request() req: any) {
     console.log("💳 CARD CONTROLLER - Get Card Balance Request", {
       cardId,
-      userId: req.user.id,
+      userId: req.user.userId,
     });
 
     const cardResult = await this.managementService.getCard(
@@ -233,7 +233,7 @@ export class CardOperationsController {
   //   console.log("🔄 CARD CONTROLLER - Update Card Limits Request", {
   //     cardId,
   //     limits,
-  //     userId: req.user.id,
+  //     userId: req.user.userId,
   //   });
 
   //   // Placeholder response - service doesn't implement this yet

@@ -24,6 +24,38 @@ export interface MapleradCustomerData {
   };
 }
 
+export interface MapleradEnrollCustomerData {
+  first_name: string;
+  last_name: string;
+  email: string;
+  country: string; // Code pays (NG, CM, US, etc.)
+  identification_number: string; // BVN pour Nigeria, etc.
+  dob: string; // Format: 20-10-1988
+
+  phone: {
+    phone_country_code: string; // Ex: +234
+    phone_number: string; // Ex: 8123456789
+  };
+
+  identity: {
+    type: string; // Ex: NIN, CNI, etc.
+    image: string; // URL du document uploadé
+    number: string; // Numéro du document
+    country: string; // Code pays du document
+  };
+
+  address: {
+    street: string;
+    street2?: string; // Optionnel
+    city: string;
+    state: string;
+    country: string; // Code pays
+    postal_code: string;
+  };
+
+  photo?: string; // URL selfie (optionnel)
+}
+
 export interface MapleradCardData {
   customer_id: string;
   currency: string;
@@ -79,33 +111,33 @@ export class MapleradUtils {
    * Create a customer in Maplerad
    */
   static async createCustomer(
-    customerData: MapleradCustomerData
+    customerData: MapleradEnrollCustomerData
   ): Promise<MapleradApiResponse> {
     try {
       console.log("📤 Creating Maplerad customer:", {
-        firstName: customerData.firstName,
-        lastName: customerData.lastName,
+        firstName: customerData.first_name,
+        lastName: customerData.last_name,
         email: customerData.email,
       });
 
-      const payload = {
-        first_name: customerData.firstName,
-        last_name: customerData.lastName,
-        email: customerData.email,
-        phone: customerData.phone,
-        date_of_birth: customerData.dateOfBirth,
-        address: {
-          street: customerData.address.street,
-          city: customerData.address.city,
-          state: customerData.address.state,
-          country: customerData.address.country,
-          postal_code: customerData.address.postalCode,
-        },
-      };
+      // const payload = {
+      //   first_name: customerData.firstName,
+      //   last_name: customerData.lastName,
+      //   email: customerData.email,
+      //   phone: customerData.phone,
+      //   date_of_birth: customerData.dateOfBirth,
+      //   address: {
+      //     street: customerData.address.street,
+      //     city: customerData.address.city,
+      //     state: customerData.address.state,
+      //     country: customerData.address.country,
+      //     postal_code: customerData.address.postalCode,
+      //   },
+      // };
 
       const response: any = await this.getAxiosInstance().post(
-        "/customers",
-        payload
+        "/customers/enroll",
+        customerData
       );
 
       console.log("✅ Maplerad customer created:", response.data);
