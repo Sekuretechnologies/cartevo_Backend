@@ -32,6 +32,10 @@ import {
 import { EmailService } from "../../services/email.service";
 import { TokenBlacklistService } from "../../services/token-blacklist.service";
 import { OnboardingStepModel } from "@/models/prisma";
+import {
+  ValidateInvitationResponseDto,
+  ValidateInvitationTokenDto,
+} from "../auth/dto/auth.dto";
 
 @Injectable()
 export class UserService {
@@ -267,25 +271,40 @@ export class UserService {
     registerDto: RegisterUserDto
   ): Promise<{ success: boolean; message: string }> {
     // Find user by email and invitation code
-    const userResult = await UserModel.getOne({
-      email: registerDto.email,
-      invitation_code: registerDto.invitation_code,
-      status: UserStatus.PENDING,
-    });
-    if (userResult.error) {
-      throw new BadRequestException(userResult.error.message);
-    }
-    const user = userResult.output;
+    // const userResult = await UserModel.getOne({
+    //   email: registerDto.email,
+    //   invitation_code: registerDto.invitation_code,
+    //   status: UserStatus.PENDING,
+    // });
+    // if (userResult.error) {
+    //   throw new BadRequestException(userResult.error.message);
+    // }
+    // const user = userResult.output;
 
-    if (!user) {
+    // if (!user) {
+    //   throw new BadRequestException("Invalid invitation code or email");
+    // }
+
+    // Validate invitation token
+    const validation = await this.validateInvitationToken({
+      token: registerDto.token,
+    });
+
+    if (!validation.valid) {
+      throw new BadRequestException("Invalid or expired invitation");
+    }
+
+    const { invitation_id, user_id, email, company, role, user_exists } =
+      validation;
+
+    if (!user_exists) {
       throw new BadRequestException("Invalid invitation code or email");
     }
-
     // Hash password
     // const hashedPassword = await bcrypt.hash(registerDto.password, 12);
 
     // Update user to active status
-    const updateResult = await UserModel.update(user.id, {
+    const updateResult = await UserModel.update(user_id, {
       first_name: registerDto.first_name,
       last_name: registerDto.last_name,
       password: registerDto.password,
@@ -295,6 +314,16 @@ export class UserService {
     if (updateResult.error) {
       throw new BadRequestException(updateResult.error.message);
     }
+
+    await UserCompanyRoleModel.update(
+      {
+        user_id,
+        company_id: company.id,
+      },
+      {
+        status: UserStatus.ACTIVE,
+      }
+    );
 
     return {
       success: true,
@@ -557,6 +586,7 @@ export class UserService {
         return {
           user,
           role: userRole?.role?.name || "member",
+          company_status: userRole?.status,
         };
       })
     );
@@ -568,7 +598,7 @@ export class UserService {
 
     return Promise.all(
       activeUsers.map((item: any) =>
-        this.mapToResponseDto(item.user, item.role)
+        this.mapToResponseDto(item.user, item.role, item.company_status)
       )
     );
   }
@@ -677,7 +707,8 @@ export class UserService {
 
   private async mapToResponseDto(
     user: any,
-    role?: string
+    role?: string,
+    company_status?: string
   ): Promise<UserResponseDto> {
     let userRole = role;
 
@@ -708,11 +739,64 @@ export class UserService {
       last_name: user.last_name,
       email: user.email,
       company_id: user.company?.id,
-      status: user.status,
+      status: company_status || user.status,
       step: user.step,
       role: userRole,
       created_at: user.createdAt,
       updated_at: user.updatedAt,
     };
+  }
+
+  async validateInvitationToken(
+    dto: ValidateInvitationTokenDto
+  ): Promise<ValidateInvitationResponseDto> {
+    try {
+      // Verify JWT token
+      const decoded = this.jwtService.verify(dto.token) as {
+        invitation_id: string;
+        email: string;
+        company_id: string;
+        role: string;
+      };
+
+      // Check if invitation still exists and is pending
+      const invitation = await UserModel.getOne({
+        id: decoded.invitation_id,
+        status: UserStatus.PENDING,
+      });
+
+      if (!invitation.output) {
+        return { valid: false };
+      }
+
+      // Check if user already exists
+      const existingUsers = await UserModel.get({
+        email: decoded.email,
+        // status: UserStatus.ACTIVE,
+      });
+
+      const userExists = existingUsers.output.length > 0;
+
+      // Get company details
+      const company = await CompanyModel.getOne({
+        id: decoded.company_id,
+      });
+
+      return {
+        valid: true,
+        invitation_id: decoded.invitation_id,
+        email: decoded.email,
+        company: {
+          id: company.output.id,
+          name: company.output.name,
+          country: company.output.country,
+        },
+        role: decoded.role,
+        user_exists: userExists,
+        existing_companies: userExists ? existingUsers.output.length : 0,
+      };
+    } catch (error) {
+      return { valid: false };
+    }
   }
 }

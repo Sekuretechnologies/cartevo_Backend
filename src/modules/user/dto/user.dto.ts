@@ -39,13 +39,21 @@ export class RegisterUserDto {
   @IsNotEmpty()
   email: string;
 
+  // @ApiProperty({
+  //   description: "Invitation code received via email",
+  //   example: "INV_1234567890",
+  // })
+  // @IsString()
+  // @IsNotEmpty()
+  // invitation_code: string;
+
   @ApiProperty({
-    description: "Invitation code received via email",
-    example: "INV_1234567890",
+    description: "Invitation token from the email link",
+    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   })
   @IsString()
   @IsNotEmpty()
-  invitation_code: string;
+  token: string;
 
   @ApiProperty({
     description: "User first name",
