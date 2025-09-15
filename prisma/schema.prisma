@@ -141,6 +141,7 @@ model UserCompanyRole {
   user_id    String   @map("user_id")
   company_id String   @map("company_id")
   role_id    String   @map("role_id")
+  status    UserStatus @default(PENDING)
   is_active     Boolean  @default(true)
   created_at DateTime @default(now()) @map("created_at")
 
