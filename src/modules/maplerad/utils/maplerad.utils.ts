@@ -207,7 +207,7 @@ export class MapleradUtils {
       };
 
       const response: any = await this.getAxiosInstance().post(
-        "/cards",
+        "/issuing",
         payload
       );
 
@@ -248,7 +248,7 @@ export class MapleradUtils {
       };
 
       const response: any = await this.getAxiosInstance().post(
-        `/cards/${cardId}/fund`,
+        `/issuing/${cardId}/fund`,
         payload
       );
 
@@ -289,7 +289,7 @@ export class MapleradUtils {
       };
 
       const response: any = await this.getAxiosInstance().post(
-        `/cards/${cardId}/withdraw`,
+        `/issuing/${cardId}/withdraw`,
         payload
       );
 
@@ -327,7 +327,7 @@ export class MapleradUtils {
       const params = includeSensitive ? { include_sensitive: "true" } : {};
 
       const response: any = await this.getAxiosInstance().get(
-        `/cards/${cardId}`,
+        `/issuing/${cardId}`,
         { params }
       );
 
@@ -359,7 +359,7 @@ export class MapleradUtils {
       console.log("📤 Freezing Maplerad card:", { cardId });
 
       const response: any = await this.getAxiosInstance().post(
-        `/cards/${cardId}/freeze`
+        `/issuing/${cardId}/freeze`
       );
 
       console.log("✅ Maplerad card frozen:", response.data);
@@ -390,7 +390,7 @@ export class MapleradUtils {
       console.log("📤 Unfreezing Maplerad card:", { cardId });
 
       const response: any = await this.getAxiosInstance().post(
-        `/cards/${cardId}/unfreeze`
+        `/issuing/${cardId}/unfreeze`
       );
 
       console.log("✅ Maplerad card unfrozen:", response.data);
@@ -421,7 +421,7 @@ export class MapleradUtils {
       console.log("📤 Terminating Maplerad card:", { cardId });
 
       const response: any = await this.getAxiosInstance().post(
-        `/cards/${cardId}/terminate`
+        `/issuing/${cardId}/terminate`
       );
 
       console.log("✅ Maplerad card terminated:", response.data);
@@ -455,7 +455,7 @@ export class MapleradUtils {
       console.log("📤 Getting Maplerad card transactions:", { cardId, params });
 
       const response: any = await this.getAxiosInstance().get(
-        `/cards/${cardId}/transactions`,
+        `/issuing/${cardId}/transactions`,
         { params }
       );
 
@@ -532,7 +532,7 @@ export class MapleradUtils {
       console.log("📤 Getting Maplerad card balance:", { cardId });
 
       const response: any = await this.getAxiosInstance().get(
-        `/cards/${cardId}/balance`
+        `/issuing/${cardId}/balance`
       );
 
       console.log("✅ Maplerad card balance retrieved:", response.data);

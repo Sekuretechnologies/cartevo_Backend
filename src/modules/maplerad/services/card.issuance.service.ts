@@ -483,6 +483,7 @@ export class CardIssuanceService {
   ): Promise<string> {
     const mapleradCustomerResult = await CustomerProviderMappingModel.getOne({
       customer_id: customer.id,
+      provider_name: "maplerad",
     });
     let mapleradCustomerId =
       mapleradCustomerResult.output?.provider_customer_id;
