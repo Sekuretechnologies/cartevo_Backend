@@ -50,9 +50,11 @@ export class UserService {
     const ownerUserResult = await UserModel.getOne(
       { id: ownerUserId },
       {
-        company: true,
         userCompanyRoles: {
-          include: { role: true },
+          include: {
+            role: true,
+            company: true,
+          },
         },
       }
     );
@@ -85,7 +87,10 @@ export class UserService {
       { email: createUserDto.email },
       {
         userCompanyRoles: {
-          include: { role: true },
+          include: {
+            role: true,
+            company: true,
+          },
         },
       }
     );
