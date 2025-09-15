@@ -29,6 +29,7 @@ const createMapleradRequest = ({ method, url, data }: IMapleradConfig) => {
     },
     ...(data && { data }),
   };
+  console.log("createMapleradRequest : config : ", config);
 
   return config;
 };
