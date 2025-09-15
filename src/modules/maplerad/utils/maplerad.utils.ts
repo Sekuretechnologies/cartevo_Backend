@@ -1,4 +1,5 @@
 import env from "@/env";
+import { makeMapleradRequest } from "@/utils/cards/maplerad/card";
 import axios from "axios";
 
 export interface MapleradApiResponse<T = any> {
@@ -144,18 +145,32 @@ export class MapleradUtils {
       //   },
       // };
 
-      const response: any = await this.getAxiosInstance().post(
-        "/customers/enroll",
-        customerData
-      );
+      const result = await makeMapleradRequest({
+        method: "POST",
+        url: "/customers/enroll",
+        data: customerData,
+      });
+      // const response: any = await this.getAxiosInstance().post(
+      //   "/customers/enroll",
+      //   customerData
+      // );
 
-      console.log("✅ Maplerad customer created:", response.data);
+      console.log("✅ Maplerad customer created:");
 
-      return {
-        output: response.data,
-      };
+      return result;
+
+      // return {
+      //   output: response.data,
+      // };
     } catch (error: any) {
-      console.error("❌ Maplerad customer creation error:", error);
+      console.error("❌ Maplerad customer creation error:", {
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to create customer",
+        details: error.response?.data,
+        payload: error.config?.data,
+      });
 
       return {
         error: {
