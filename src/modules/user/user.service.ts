@@ -167,7 +167,8 @@ export class UserService {
     await this.sendInvitationEmail(
       createUserDto.email,
       invitationToken,
-      ownerUser
+      ownerUser,
+      true
     );
 
     return {
@@ -220,7 +221,8 @@ export class UserService {
     await this.sendInvitationEmail(
       createUserDto.email,
       invitationToken,
-      ownerUser
+      ownerUser,
+      false
     );
 
     return {
@@ -251,14 +253,16 @@ export class UserService {
   private async sendInvitationEmail(
     email: string,
     invitationToken: string,
-    ownerUser: any
+    ownerUser: any,
+    isExistingUser: boolean
   ) {
     try {
       await this.emailService.sendInvitationEmailWithToken(
         email,
         invitationToken,
         ownerUser.company?.name || "Your Company",
-        ownerUser.first_name || ownerUser.full_name || "Company Owner"
+        ownerUser.first_name || ownerUser.full_name || "Company Owner",
+        isExistingUser
       );
     } catch (error) {
       // Log the error but don't fail the entire operation
