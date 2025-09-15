@@ -116,7 +116,7 @@ export class UserController {
   async getCompanyUsers(
     @CurrentUser() currentUser: CurrentUserData
   ): Promise<UserResponseDto[]> {
-    return this.userService.getCompanyUsers(currentUser.userId);
+    return this.userService.getCompanyUsers(currentUser.companyId);
   }
 
   @Put(":id")

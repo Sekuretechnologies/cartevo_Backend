@@ -124,9 +124,10 @@ export class AuthService {
       // Multiple companies found - return list of companies for user to choose
       const companies = await Promise.all(
         users.map(async (user) => {
-          // Get user's companies through UserCompanyRole
+          // Get user's active companies through UserCompanyRole
           const userCompanyRolesResult = await UserCompanyRoleModel.get({
             user_id: user.id,
+            is_active: true,
           });
 
           if (userCompanyRolesResult.error || !userCompanyRolesResult.output) {
@@ -219,6 +220,9 @@ export class AuthService {
       },
       {
         userCompanyRoles: {
+          where: {
+            is_active: true,
+          },
           include: {
             role: true,
             company: true,
@@ -661,6 +665,7 @@ export class AuthService {
         const userCompanyRoleResult = await UserCompanyRoleModel.getOne({
           user_id: users[0].id, // Assuming single user for now, but this needs to be updated for multi-user scenario
           company_id: loginDto.company_id,
+          is_active: true,
         });
 
         if (userCompanyRoleResult.error || !userCompanyRoleResult.output) {
@@ -771,6 +776,7 @@ export class AuthService {
       const userCompanyRoleResult = await UserCompanyRoleModel.getOne({
         user_id: userId,
         company_id: selectCompanyDto.company_id,
+        is_active: true,
       });
 
       if (userCompanyRoleResult.error || !userCompanyRoleResult.output) {
@@ -785,6 +791,9 @@ export class AuthService {
         },
         {
           userCompanyRoles: {
+            where: {
+              is_active: true,
+            },
             include: {
               role: true,
               company: true,

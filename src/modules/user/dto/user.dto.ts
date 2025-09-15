@@ -48,14 +48,24 @@ export class RegisterUserDto {
   invitation_code: string;
 
   @ApiProperty({
-    description: "User full name",
+    description: "User first name",
     example: "John Doe",
   })
   @IsString()
   @IsNotEmpty()
   @MinLength(2)
   @MaxLength(255)
-  full_name: string;
+  first_name: string;
+
+  @ApiProperty({
+    description: "User last name",
+    example: "John Doe",
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  @MaxLength(255)
+  last_name: string;
 
   @ApiProperty({
     description:

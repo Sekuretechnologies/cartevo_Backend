@@ -46,7 +46,26 @@ export class UserService {
     ownerUserId: string,
     createUserDto: CreateUserDto
   ): Promise<CreateUserResponseDto> {
-    // Verify the acting user is an owner
+    // return await UserModel.operation(async (prisma) => {
+    // Verify the acting user is an owner and get their company
+    const ownerUser = await this.validateOwnerAndGetCompany(ownerUserId);
+
+    // Check if user with email already exists globally
+    const existingUser = await this.findExistingUser(createUserDto.email);
+
+    if (existingUser) {
+      return await this.handleExistingUser(
+        existingUser,
+        createUserDto,
+        ownerUser
+      );
+    }
+
+    return await this.handleNewUser(createUserDto, ownerUser);
+    // });
+  }
+
+  private async validateOwnerAndGetCompany(ownerUserId: string) {
     const ownerUserResult = await UserModel.getOne(
       { id: ownerUserId },
       {
@@ -59,17 +78,13 @@ export class UserService {
       }
     );
 
-    // console.log("ownerUserResult :: ", ownerUserResult);
-
     if (ownerUserResult.error) {
       throw new UnauthorizedException(ownerUserResult.error.message);
     }
+
     const ownerUser = ownerUserResult.output;
-
-    console.log("ownerUser :: ", ownerUser);
-
     if (!ownerUser) {
-      throw new UnauthorizedException("User not found");
+      throw new UnauthorizedException("Owner user not found");
     }
 
     const isOwner = ownerUser.userCompanyRoles.some(
@@ -80,11 +95,19 @@ export class UserService {
       throw new ForbiddenException("Only owners can create users");
     }
 
-    console.log("isOwner :: ", isOwner);
+    const ownerCompanyId = ownerUser.userCompanyRoles[0]?.company_id;
+    if (!ownerCompanyId) {
+      throw new BadRequestException(
+        "Owner user does not belong to any company"
+      );
+    }
 
-    // Check if user with email already exists in this company
+    return { ownerUser, ownerCompanyId };
+  }
+
+  private async findExistingUser(email: string) {
     const existingUserResult = await UserModel.getOne(
-      { email: createUserDto.email },
+      { email },
       {
         userCompanyRoles: {
           include: {
@@ -95,62 +118,122 @@ export class UserService {
       }
     );
 
+    return existingUserResult.output;
+  }
+
+  private async handleExistingUser(
+    existingUser: any,
+    createUserDto: CreateUserDto,
+    ownerData: { ownerUser: any; ownerCompanyId: string }
+  ) {
+    const { ownerUser, ownerCompanyId } = ownerData;
+
     // Check if the existing user is already in this company
-    if (existingUserResult.output) {
-      const existingUser = existingUserResult.output;
-      const isInCompany = existingUser.userCompanyRoles.some(
-        (ucr: any) => ucr.company_id === ownerUser.company_id
-      );
+    const isInCompany = existingUser.userCompanyRoles.some(
+      (ucr: any) => ucr.company_id === ownerCompanyId
+    );
 
-      if (isInCompany) {
-        throw new BadRequestException(
-          "User with this email already exists in the company"
-        );
-      }
-    }
-    // if (existingUserResult.error) {
-    //   throw new UnauthorizedException(existingUserResult.error.message);
-    // }
-    const existingUser = existingUserResult.output;
-
-    console.log("existingUser :: ", existingUser);
-
-    if (existingUser) {
-      throw new BadRequestException(
-        "User with this email already exists in the company"
-      );
+    if (isInCompany) {
+      throw new BadRequestException("User already belongs to this company");
     }
 
-    // return await UserModel.operation(async (prisma) => {
+    // User exists but not in this company - add them to this company
+    const role = await this.getOrCreateRole(createUserDto.role);
+
+    // Create user-company-role association
+    const userCompanyRoleResult = await UserCompanyRoleModel.create({
+      user_id: existingUser.id,
+      company_id: ownerCompanyId,
+      role_id: role.id,
+    });
+
+    if (userCompanyRoleResult.error) {
+      throw new BadRequestException(userCompanyRoleResult.error.message);
+    }
+
+    // Generate invitation token
+    const invitationToken = this.generateInvitationToken({
+      invitation_id: existingUser.id,
+      email: createUserDto.email,
+      company_id: ownerCompanyId,
+      role: createUserDto.role,
+    });
+
+    // Send invitation email
+    await this.sendInvitationEmail(
+      createUserDto.email,
+      invitationToken,
+      ownerUser
+    );
+
+    return {
+      success: true,
+      message: "User invitation sent successfully",
+      user: await this.mapToResponseDto(existingUser, createUserDto.role),
+      invitation_token: invitationToken, // For demo purposes only
+    };
+  }
+
+  private async handleNewUser(
+    createUserDto: CreateUserDto,
+    ownerData: { ownerUser: any; ownerCompanyId: string }
+  ) {
+    const { ownerUser, ownerCompanyId } = ownerData;
+
     // Create pending user
     const newUserResult = await UserModel.create({
       email: createUserDto.email,
       status: UserStatus.PENDING,
     });
+
     if (newUserResult.error) {
       throw new BadRequestException(newUserResult.error.message);
     }
+
     const newUser = newUserResult.output;
+    const role = await this.getOrCreateRole(createUserDto.role);
 
-    console.log("newUser :: ", newUser);
+    // Create user-company-role association
+    const userCompanyRoleResult = await UserCompanyRoleModel.create({
+      user_id: newUser.id,
+      company_id: ownerCompanyId,
+      role_id: role.id,
+    });
 
-    // Generate invitation token (JWT) after user is created
+    if (userCompanyRoleResult.error) {
+      throw new BadRequestException(userCompanyRoleResult.error.message);
+    }
+
+    // Generate invitation token
     const invitationToken = this.generateInvitationToken({
       invitation_id: newUser.id,
       email: createUserDto.email,
-      company_id: ownerUser.company_id,
+      company_id: ownerCompanyId,
       role: createUserDto.role,
     });
 
-    console.log("invitationToken :: ", invitationToken);
+    // Send invitation email
+    await this.sendInvitationEmail(
+      createUserDto.email,
+      invitationToken,
+      ownerUser
+    );
 
-    // Get the role
-    let roleResult = await RoleModel.getOne({ name: createUserDto.role });
+    return {
+      success: true,
+      message: "User invitation sent successfully",
+      user: await this.mapToResponseDto(newUser, createUserDto.role),
+      invitation_token: invitationToken, // For demo purposes only
+    };
+  }
+
+  private async getOrCreateRole(roleName: string) {
+    let roleResult = await RoleModel.getOne({ name: roleName });
     let role = roleResult.output;
 
     if (!role) {
       const roleCreateResult = await RoleModel.create({
-        name: createUserDto.role,
+        name: roleName,
       });
       if (roleCreateResult.error) {
         throw new BadRequestException(roleCreateResult.error.message);
@@ -158,38 +241,26 @@ export class UserService {
       role = roleCreateResult.output;
     }
 
-    console.log("role :: ", role);
+    return role;
+  }
 
-    // Create user-company-role association
-    const userCompanyRoleResult = await UserCompanyRoleModel.create({
-      user_id: newUser.id,
-      company_id: ownerUser.company_id,
-      role_id: role.id,
-    });
-    if (userCompanyRoleResult.error) {
-      throw new BadRequestException(userCompanyRoleResult.error.message);
+  private async sendInvitationEmail(
+    email: string,
+    invitationToken: string,
+    ownerUser: any
+  ) {
+    try {
+      await this.emailService.sendInvitationEmailWithToken(
+        email,
+        invitationToken,
+        ownerUser.company?.name || "Your Company",
+        ownerUser.first_name || ownerUser.full_name || "Company Owner"
+      );
+    } catch (error) {
+      // Log the error but don't fail the entire operation
+      console.error("Failed to send invitation email:", error);
+      // In production, you might want to use a proper logger here
     }
-
-    console.log(
-      "userCompanyRoleResult.output :: ",
-      userCompanyRoleResult.output
-    );
-
-    // Send invitation email with token
-    await this.emailService.sendInvitationEmailWithToken(
-      createUserDto.email,
-      invitationToken,
-      ownerUser.company?.name || "Your Company",
-      ownerUser.first_name || ownerUser.full_name || "Company Owner"
-    );
-
-    return {
-      success: true,
-      message: "User invitation sent successfully",
-      user: await this.mapToResponseDto(newUser, createUserDto.role),
-      invitation_token: invitationToken, // For demo purposes, normally only sent via email
-    };
-    // });
   }
 
   async registerUser(
@@ -211,12 +282,13 @@ export class UserService {
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(registerDto.password, 12);
+    // const hashedPassword = await bcrypt.hash(registerDto.password, 12);
 
     // Update user to active status
     const updateResult = await UserModel.update(user.id, {
-      full_name: registerDto.full_name,
-      password: hashedPassword,
+      first_name: registerDto.first_name,
+      last_name: registerDto.last_name,
+      password: registerDto.password,
       status: UserStatus.ACTIVE,
       invitation_code: null, // Clear invitation code after use
     });
@@ -279,8 +351,15 @@ export class UserService {
     }
 
     // Check if target user belongs to the same company as the owner
+    const ownerCompanyId = ownerUser.userCompanyRoles[0]?.company_id;
+    if (!ownerCompanyId) {
+      throw new BadRequestException(
+        "Owner user does not belong to any company"
+      );
+    }
+
     const isInSameCompany = targetUser.userCompanyRoles.some(
-      (ucr: any) => ucr.company_id === ownerUser.company_id
+      (ucr: any) => ucr.company_id === ownerCompanyId
     );
 
     if (!isInSameCompany) {
@@ -302,7 +381,7 @@ export class UserService {
         // Remove existing role
         const deleteResult = await UserCompanyRoleModel.delete({
           user_id: userId,
-          company_id: ownerUser.company_id,
+          company_id: ownerCompanyId,
         });
         if (deleteResult.error) {
           throw new BadRequestException(deleteResult.error.message);
@@ -328,7 +407,7 @@ export class UserService {
         // Create new role association
         const userCompanyRoleResult = await UserCompanyRoleModel.create({
           user_id: userId,
-          company_id: ownerUser.company_id,
+          company_id: ownerCompanyId,
           role_id: role.id,
         });
         if (userCompanyRoleResult.error) {
@@ -388,8 +467,15 @@ export class UserService {
     }
 
     // Check if target user belongs to the same company as the owner
+    const ownerCompanyId = ownerUser.userCompanyRoles[0]?.company_id;
+    if (!ownerCompanyId) {
+      throw new BadRequestException(
+        "Owner user does not belong to any company"
+      );
+    }
+
     const isInSameCompany = targetUser.userCompanyRoles.some(
-      (ucr: any) => ucr.company_id === ownerUser.company_id
+      (ucr: any) => ucr.company_id === ownerCompanyId
     );
 
     if (!isInSameCompany) {
@@ -402,7 +488,7 @@ export class UserService {
     );
     if (isTargetOwner) {
       const ownerCount = await UserCompanyRoleModel.count({
-        company_id: ownerUser.company_id,
+        company_id: ownerCompanyId,
         role_name: "owner",
       });
 
@@ -413,48 +499,32 @@ export class UserService {
       }
     }
 
-    // Soft delete by setting status to inactive
-    const deleteResult = await UserModel.update(userId, {
-      status: UserStatus.INACTIVE,
-    });
-    if (deleteResult.error) {
-      throw new BadRequestException(deleteResult.error.message);
+    // Deactivate the user-company-role association instead of the user
+    const deactivateResult = await UserCompanyRoleModel.update(
+      {
+        user_id: userId,
+        company_id: ownerCompanyId,
+      },
+      {
+        is_active: false,
+      }
+    );
+
+    if (deactivateResult.error) {
+      throw new BadRequestException(deactivateResult.error.message);
     }
 
     return {
       success: true,
-      message: "User deleted successfully",
+      message: "User removed from company successfully",
     };
   }
 
-  async getCompanyUsers(userId: string): Promise<UserResponseDto[]> {
-    // Get user's companies
-    const userResult = await UserModel.getOne(
-      { id: userId },
-      {
-        userCompanyRoles: {
-          include: { company: true },
-        },
-      }
-    );
-    if (userResult.error) {
-      throw new UnauthorizedException(userResult.error.message);
-    }
-    const user = userResult.output;
-
-    if (!user) {
-      throw new UnauthorizedException("User not found");
-    }
-
-    // Get the first company (assuming single company for now, but this could be enhanced)
-    const userCompany = user.userCompanyRoles?.[0];
-    if (!userCompany) {
-      throw new UnauthorizedException("User does not belong to any company");
-    }
-
-    // Get all users in the same company
+  async getCompanyUsers(companyId: string): Promise<UserResponseDto[]> {
+    // Get all active users in the same company
     const companyUsersResult = await UserCompanyRoleModel.get({
-      company_id: userCompany.company_id,
+      company_id: companyId,
+      is_active: true,
     });
 
     if (companyUsersResult.error) {
@@ -481,12 +551,12 @@ export class UserService {
 
         const user = userResult.output;
         const userRole = user.userCompanyRoles.find(
-          (ucrDetail: any) => ucrDetail.company_id === userCompany.company_id
+          (ucrDetail: any) => ucrDetail.company_id === companyId
         );
 
         return {
           user,
-          role: userRole?.role?.name || "user",
+          role: userRole?.role?.name || "member",
         };
       })
     );
