@@ -71,7 +71,7 @@ export class MapleradUtils {
 
   private static getAxiosInstance(): any {
     if (!this.axiosInstance) {
-      const baseURL = env.MAPLERAD_BASE_URL || "https://api.maplerad.com";
+      const baseURL = env.MAPLERAD_BASE_URL;
       const secretKey = env.MAPLERAD_SECRET_KEY;
 
       if (!secretKey) {
@@ -145,23 +145,23 @@ export class MapleradUtils {
       //   },
       // };
 
-      const result = await makeMapleradRequest({
-        method: "POST",
-        url: "/customers/enroll",
-        data: customerData,
-      });
-      // const response: any = await this.getAxiosInstance().post(
-      //   "/customers/enroll",
-      //   customerData
-      // );
+      // const result = await makeMapleradRequest({
+      //   method: "POST",
+      //   url: "/customers/enroll",
+      //   data: customerData,
+      // });
+      const response: any = await this.getAxiosInstance().post(
+        "/customers/enroll",
+        customerData
+      );
 
       console.log("✅ Maplerad customer created:");
 
-      return result;
+      // return result;
 
-      // return {
-      //   output: response.data,
-      // };
+      return {
+        output: response.data,
+      };
     } catch (error: any) {
       console.error("❌ Maplerad customer creation error:", {
         message:
