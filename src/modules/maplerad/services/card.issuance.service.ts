@@ -488,6 +488,11 @@ export class CardIssuanceService {
     let mapleradCustomerId =
       mapleradCustomerResult.output?.provider_customer_id;
 
+    this.logger.debug("Maplerad customer found", {
+      mapleradCustomerResult,
+      mapleradCustomerId,
+    });
+
     if (!mapleradCustomerId) {
       // Create Maplerad customer
       const customerData = {
