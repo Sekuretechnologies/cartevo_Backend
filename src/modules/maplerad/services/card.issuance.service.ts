@@ -27,6 +27,7 @@ import TransactionFeeModel from "@/models/prisma/transactionFeeModel";
 import BalanceTransactionRecordModel from "@/models/prisma/balanceTransactionRecordModel";
 import { TransactionCategory, TransactionType } from "@/types";
 import { CustomerProviderMappingModel } from "@/models";
+import { getFormattedDate } from "@/utils/shared/common";
 
 /**
  * Advanced Card Issuance Service for Maplerad
@@ -494,7 +495,7 @@ export class CardIssuanceService {
         email: customer.email,
         country: customer.country_iso_code,
         identification_number: customer.identification_number,
-        dob: new Date(customer.date_of_birth).toISOString(),
+        dob: getFormattedDate(new Date(customer.date_of_birth)),
         phone: {
           phone_country_code: customer.country_phone_code,
           phone_number: customer.phone_number,
