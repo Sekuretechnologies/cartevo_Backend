@@ -10,4 +10,6 @@ export {
   WalletModel,
   UserCompanyRoleModel,
   SyncmetadataModel,
+  BalanceTransactionRecordModel,
+  CustomerProviderMappingModel,
 } from "./prisma";

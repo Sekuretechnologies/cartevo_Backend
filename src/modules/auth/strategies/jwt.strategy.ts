@@ -3,13 +3,14 @@ import { ConfigService } from "@nestjs/config";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { PrismaService } from "../../prisma/prisma.service";
-import { CompanyModel } from "@/models";
+import { CompanyModel, UserModel } from "@/models";
 
 export interface JwtPayload {
   sub: string;
-  businessId: string;
-  clientId: string;
-  roles: string[];
+  companyId?: string; // For both company and user tokens
+  clientId?: string; // Optional for user tokens
+  email?: string; // For user tokens
+  roles?: string[]; // For user tokens
   iat?: number;
   exp?: number;
 }
@@ -23,28 +24,67 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-
-      secretOrKey: process.env.JWT_SECRET, // configService.get<string>('JWT_SECRET'),
+      secretOrKey: process.env.JWT_SECRET,
     });
   }
 
   async validate(payload: JwtPayload) {
-    const companyResult = await CompanyModel.getOne({
-      id: payload.businessId,
-      is_active: true,
-    });
-    const company = companyResult.output;
+    // Check if this is a user token (has email)
+    if (payload.email) {
+      const userResult = await UserModel.getOne(
+        { id: payload.sub },
+        {
+          userCompanyRoles: {
+            include: {
+              role: true,
+              company: true,
+            },
+          },
+        }
+      );
 
-    if (!company) {
-      throw new UnauthorizedException("Invalid token");
+      if (userResult.error || !userResult.output) {
+        throw new UnauthorizedException("Invalid user token");
+      }
+
+      const user = userResult.output;
+
+      // Get user's companies and roles
+      const userCompanies =
+        user.userCompanyRoles?.map((ucr: any) => ({
+          companyId: ucr.company.id,
+          companyName: ucr.company.name,
+          role: ucr.role.name,
+        })) || [];
+
+      return {
+        userId: user.id,
+        email: user.email,
+        companies: userCompanies,
+        type: "user",
+      };
     }
 
-    return {
-      businessId: company.id,
-      clientId: company.clientId,
-      businessName: company.name,
-      userId: payload.sub,
-      roles: payload.roles,
-    };
+    // Handle company token (has companyId but no email)
+    if (payload.companyId && !payload.email) {
+      const companyResult = await CompanyModel.getOne({
+        id: payload.companyId,
+        is_active: true,
+      });
+      const company = companyResult.output;
+
+      if (!company) {
+        throw new UnauthorizedException("Invalid company token");
+      }
+
+      return {
+        companyId: company.id,
+        clientId: company.clientId,
+        companyName: company.name,
+        type: "company",
+      };
+    }
+
+    throw new UnauthorizedException("Invalid token structure");
   }
 }

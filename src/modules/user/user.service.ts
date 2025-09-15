@@ -57,15 +57,14 @@ export class UserService {
       }
     );
 
+    // console.log("ownerUserResult :: ", ownerUserResult);
+
     if (ownerUserResult.error) {
       throw new UnauthorizedException(ownerUserResult.error.message);
     }
     const ownerUser = ownerUserResult.output;
 
-    console.log(
-      "userCompanyRoles:",
-      JSON.stringify(ownerUser.userCompanyRoles, null, 2)
-    );
+    console.log("ownerUser :: ", ownerUser);
 
     if (!ownerUser) {
       throw new UnauthorizedException("User not ");
@@ -75,23 +74,42 @@ export class UserService {
     const isOwner = ownerUser.userCompanyRoles.some(
       (ucr) => ucr.role.name === "owner"
     );
+
     if (!isOwner) {
       throw new ForbiddenException("Only owners can create users");
     }
 
+    console.log("isOwner :: ", isOwner);
+
     // Check if user with email already exists in this company
     const existingUserResult = await UserModel.getOne(
-      { email: createUserDto.email, company_id: ownerUser.company_id },
+      { email: createUserDto.email },
       {
         userCompanyRoles: {
           include: { role: true },
         },
       }
     );
-    if (existingUserResult.error) {
-      throw new UnauthorizedException(existingUserResult.error.message);
+
+    // Check if the existing user is already in this company
+    if (existingUserResult.output) {
+      const existingUser = existingUserResult.output;
+      const isInCompany = existingUser.userCompanyRoles.some(
+        (ucr: any) => ucr.company_id === ownerUser.company_id
+      );
+
+      if (isInCompany) {
+        throw new BadRequestException(
+          "User with this email already exists in the company"
+        );
+      }
     }
+    // if (existingUserResult.error) {
+    //   throw new UnauthorizedException(existingUserResult.error.message);
+    // }
     const existingUser = existingUserResult.output;
+
+    console.log("existingUser :: ", existingUser);
 
     if (existingUser) {
       throw new BadRequestException(
@@ -99,63 +117,75 @@ export class UserService {
       );
     }
 
-    // Generate invitation code
-    const invitationCode = this.generateInvitationCode();
-
-    return await UserModel.operation(async (prisma) => {
-      // Create pending user
-      const newUserResult = await UserModel.create({
-        email: createUserDto.email,
-        company_id: ownerUser.company_id,
-        status: UserStatus.PENDING,
-        invitation_code: invitationCode,
-      });
-      if (newUserResult.error) {
-        throw new BadRequestException(newUserResult.error.message);
-      }
-      const newUser = newUserResult.output;
-
-      // Get the role
-      let roleResult = await RoleModel.getOne({ name: createUserDto.role });
-      if (roleResult.error) {
-        throw new BadRequestException(roleResult.error.message);
-      }
-      let role = roleResult.output;
-
-      if (!role) {
-        const roleCreateResult = await RoleModel.create({
-          name: createUserDto.role,
-        });
-        if (roleCreateResult.error) {
-          throw new BadRequestException(roleCreateResult.error.message);
-        }
-        role = roleCreateResult.output;
-      }
-
-      // Create user-company-role association
-      const userCompanyRoleResult = await UserCompanyRoleModel.create({
-        user_id: newUser.id,
-        company_id: ownerUser.company_id,
-        role_id: role.id,
-      });
-      if (userCompanyRoleResult.error) {
-        throw new BadRequestException(userCompanyRoleResult.error.message);
-      }
-
-      // Send invitation email
-      await this.emailService.sendInvitationEmail(
-        createUserDto.email,
-        invitationCode,
-        ownerUser.company?.name || "Your Company"
-      );
-
-      return {
-        success: true,
-        message: "User invitation sent successfully",
-        user: await this.mapToResponseDto(newUser, createUserDto.role),
-        invitation_code: invitationCode, // For demo purposes, normally only sent via email
-      };
+    // return await UserModel.operation(async (prisma) => {
+    // Create pending user
+    const newUserResult = await UserModel.create({
+      email: createUserDto.email,
+      status: UserStatus.PENDING,
     });
+    if (newUserResult.error) {
+      throw new BadRequestException(newUserResult.error.message);
+    }
+    const newUser = newUserResult.output;
+
+    console.log("newUser :: ", newUser);
+
+    // Generate invitation token (JWT) after user is created
+    const invitationToken = this.generateInvitationToken({
+      invitation_id: newUser.id,
+      email: createUserDto.email,
+      company_id: ownerUser.company_id,
+      role: createUserDto.role,
+    });
+
+    console.log("invitationToken :: ", invitationToken);
+
+    // Get the role
+    let roleResult = await RoleModel.getOne({ name: createUserDto.role });
+    let role = roleResult.output;
+
+    if (!role) {
+      const roleCreateResult = await RoleModel.create({
+        name: createUserDto.role,
+      });
+      if (roleCreateResult.error) {
+        throw new BadRequestException(roleCreateResult.error.message);
+      }
+      role = roleCreateResult.output;
+    }
+
+    console.log("role :: ", role);
+
+    // Create user-company-role association
+    const userCompanyRoleResult = await UserCompanyRoleModel.create({
+      user_id: newUser.id,
+      company_id: ownerUser.company_id,
+      role_id: role.id,
+    });
+    if (userCompanyRoleResult.error) {
+      throw new BadRequestException(userCompanyRoleResult.error.message);
+    }
+
+    console.log(
+      "userCompanyRoleResult.output :: ",
+      userCompanyRoleResult.output
+    );
+
+    // Send invitation email with token
+    await this.emailService.sendInvitationEmailWithToken(
+      createUserDto.email,
+      invitationToken,
+      ownerUser.company?.name || "Your Company",
+      ownerUser.first_name || ownerUser.full_name || "Company Owner"
+    );
+
+    return {
+      success: true,
+      message: "User invitation sent successfully",
+      user: await this.mapToResponseDto(newUser, createUserDto.role),
+      invitation_token: invitationToken, // For demo purposes, normally only sent via email
+    };
+    // });
   }
 
   async registerUser(
@@ -196,247 +226,6 @@ export class UserService {
     };
   }
 
-  async login(loginDto: LoginDto): Promise<LoginSuccessResponseDto> {
-    // AuthResponseDto
-    // LoginSuccessResponseDto
-
-    // Find active user
-    const userResult = await UserModel.getOne(
-      {
-        email: loginDto.email,
-        status: UserStatus.ACTIVE,
-      },
-      {
-        company: true,
-        userCompanyRoles: {
-          include: { role: true },
-        },
-      }
-    );
-    if (userResult.error) {
-      throw new UnauthorizedException(userResult.error.message);
-    }
-    const user = userResult.output;
-
-    if (!user || !user.password) {
-      throw new UnauthorizedException("Invalid credentials");
-    }
-
-    // Verify password
-    const isPasswordValid = await bcrypt.compare(
-      loginDto.password,
-      user.password
-    );
-    if (!isPasswordValid) {
-      throw new UnauthorizedException("Invalid credentials");
-    }
-
-    // Generate JWT token with expiry
-    const payload = {
-      sub: user.id,
-      email: user.email,
-      company_id: user.company.id,
-      roles: user.userCompanyRoles?.map((ucr: any) => ucr.role.name),
-    };
-
-    // Set token expiry to 24 hours (86400 seconds)
-    const accessToken = this.jwtService.sign(payload, {
-      expiresIn: "1h", // You can also use '1d', '7d', '30d', or specific seconds like '86400'
-    });
-    let redirectTo = "dashboard";
-    let redirectMessage = "Login successful";
-
-    // -------------------------------------------------
-    const result = await OnboardingStepModel.get({
-      company_id: user.company.id,
-    });
-    if (result.error) {
-      throw new BadRequestException(result.error.message);
-    }
-    const steps = result.output;
-    const totalCount: number = steps.length;
-    // Count by status
-    const completedCount: number = steps.filter(
-      (step: any) => step.status === "COMPLETED"
-    ).length;
-
-    // -------------------------------------------------
-
-    return {
-      success: true,
-      message: redirectMessage,
-      access_token: accessToken,
-      user: await this.mapToResponseDto(user),
-      company: {
-        id: user.company.id,
-        name: user.company.name,
-        country: user.company.country,
-        is_onboarding_completed: totalCount === completedCount,
-      },
-      redirect_to: redirectTo,
-    };
-
-    // -------------------------------------------------
-
-    // // Generate and store OTP
-    // const otp = this.generateOTP();
-    // const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-    // const otpUpdateResult = await UserModel.update(user.id, {
-    //   otp,
-    //   otp_expires: otpExpires,
-    // });
-    // if (otpUpdateResult.error) {
-    //   throw new BadRequestException(otpUpdateResult.error.message);
-    // }
-
-    // // Send OTP email
-    // await this.emailService.sendOtpEmail(user.email, otp, user.full_name);
-
-    // return {
-    //   success: true,
-    //   message: `OTP sent to ${user.email}. Please verify to complete login.`,
-    //   requires_otp: true,
-    // };
-    // -------------------------------------------------
-  }
-
-  async verifyOtp(
-    verifyOtpDto: VerifyOtpDto
-  ): Promise<LoginSuccessResponseDto> {
-    // Find user with valid OTP
-    console.log("verifyOtpDto :: ", verifyOtpDto);
-    const userResult = await UserModel.getOne(
-      {
-        email: verifyOtpDto.email,
-        otp: verifyOtpDto.otp,
-        status: UserStatus.ACTIVE,
-      },
-      {
-        company: true,
-        userCompanyRoles: {
-          include: { role: true },
-        },
-      }
-    );
-    if (userResult.error) {
-      throw new UnauthorizedException(userResult.error.message);
-    }
-    const user: any = userResult.output;
-    console.log("user.otpExpires :: ", user.otp_expires);
-    console.log("new Date() :: ", new Date());
-    console.log(
-      "user.otpExpires < new Date() :: ",
-      user.otp_expires < new Date()
-    );
-    // console.log("user :: ", user);
-
-    if (!user || !user.otp_expires || user.otp_expires < new Date()) {
-      throw new UnauthorizedException("Invalid or expired OTP");
-    }
-
-    // Clear OTP
-    await UserModel.update(user.id, {
-      otp: null,
-      otp_expires: null,
-    });
-
-    // Generate JWT token with expiry
-    const payload = {
-      sub: user.id,
-      email: user.email,
-      company_id: user.company.id,
-      roles: user.userCompanyRoles?.map((ucr: any) => ucr.role.name),
-    };
-
-    // Set token expiry to 24 hours (86400 seconds)
-    const accessToken = this.jwtService.sign(payload, {
-      expiresIn: "1h", // You can also use '1d', '7d', '30d', or specific seconds like '86400'
-    });
-
-    console.log("payload :: ", payload);
-    console.log("accessToken :: ", accessToken);
-    // Determine redirect based on user and company completion status
-    let redirectTo = "dashboard";
-    let redirectMessage = "Login successful";
-
-    // -------------------------------------------------
-    const result = await OnboardingStepModel.get({
-      company_id: user.company.id,
-    });
-    if (result.error) {
-      throw new BadRequestException(result.error.message);
-    }
-    const steps = result.output;
-    const totalCount: number = steps.length;
-    // Count by status
-    const completedCount: number = steps.filter(
-      (step: any) => step.status === "COMPLETED"
-    ).length;
-    // -------------------------------------------------
-
-    // // Check if user needs to complete step 2
-    // if (user.step === 1) {
-    //   redirectTo = "step2";
-    //   redirectMessage = "Please complete your company registration (Step 2)";
-    // }
-    // Check if KYC (user documents) and KYB (company documents) are completed
-    // else if (user.step === 2) {
-    //   // Check if user has completed KYC (personal documents)
-    //   const hasUserDocuments =
-    //     user.id_document_front &&
-    //     user.id_document_back &&
-    //     user.proof_of_address;
-
-    //   // Check if company has completed KYB (business documents)
-    //   const hasCompanyDocuments =
-    //     user.company.share_holding_document &&
-    //     user.company.incorporation_certificate &&
-    //     user.company.business_proof_of_address;
-    //   // && user.company.memart;
-
-    //   // if (!hasUserDocuments || !hasCompanyDocuments) {
-    //   //   redirectTo = "waiting";
-    //   //   redirectMessage =
-    //   //     "Your account is under review. Please wait for KYC/KYB completion.";
-    //   // }
-
-    //   if (
-    //     user.kyc_status !== "APPROVED" &&
-    //     user.company.kyb_status !== "APPROVED"
-    //   ) {
-    //     redirectTo = "waiting";
-    //     redirectMessage =
-    //       "Your account is under review. Please wait for KYC/KYB completion.";
-    //   }
-    // }
-
-    // if (
-    //   user.kyc_status !== "APPROVED" &&
-    //   user.company.kyb_status !== "APPROVED"
-    // ) {
-    //   redirectTo = "waiting";
-    //   redirectMessage =
-    //     "Your account is under review. Please wait for KYC/KYB completion.";
-    // }
-
-    // -------------------------------------------------
-
-    return {
-      success: true,
-      message: redirectMessage,
-      access_token: accessToken,
-      user: await this.mapToResponseDto(user),
-      company: {
-        id: user.company.id,
-        name: user.company.name,
-        country: user.company.country,
-        is_onboarding_completed: completedCount === totalCount,
-      },
-      redirect_to: redirectTo,
-    };
-  }
-
   async updateUser(
     ownerUserId: string,
     userId: string,
@@ -467,17 +256,30 @@ export class UserService {
       throw new ForbiddenException("Only owners can update users");
     }
 
-    // Find target user in the same company
-    const targetUserResult = await UserModel.getOne({
-      id: userId,
-      company_id: ownerUser.company_id,
-    });
+    // Find target user and check if they belong to the same company
+    const targetUserResult = await UserModel.getOne(
+      { id: userId },
+      {
+        userCompanyRoles: {
+          include: { role: true },
+        },
+      }
+    );
     if (targetUserResult.error) {
       throw new NotFoundException(targetUserResult.error.message);
     }
     const targetUser = targetUserResult.output;
 
     if (!targetUser) {
+      throw new NotFoundException("User not found");
+    }
+
+    // Check if target user belongs to the same company as the owner
+    const isInSameCompany = targetUser.userCompanyRoles.some(
+      (ucr: any) => ucr.company_id === ownerUser.company_id
+    );
+
+    if (!isInSameCompany) {
       throw new NotFoundException("User not found in your company");
     }
 
@@ -563,12 +365,9 @@ export class UserService {
       throw new ForbiddenException("Only owners can delete users");
     }
 
-    // Find target user in the same company
+    // Find target user and check if they belong to the same company
     const targetUserResult = await UserModel.getOne(
-      {
-        id: userId,
-        company_id: ownerUser.company_id,
-      },
+      { id: userId },
       {
         userCompanyRoles: {
           include: { role: true },
@@ -581,6 +380,15 @@ export class UserService {
     const targetUser = targetUserResult.output;
 
     if (!targetUser) {
+      throw new NotFoundException("User not found");
+    }
+
+    // Check if target user belongs to the same company as the owner
+    const isInSameCompany = targetUser.userCompanyRoles.some(
+      (ucr: any) => ucr.company_id === ownerUser.company_id
+    );
+
+    if (!isInSameCompany) {
       throw new NotFoundException("User not found in your company");
     }
 
@@ -616,8 +424,15 @@ export class UserService {
   }
 
   async getCompanyUsers(userId: string): Promise<UserResponseDto[]> {
-    // Get user's company
-    const userResult = await UserModel.getOne({ id: userId });
+    // Get user's companies
+    const userResult = await UserModel.getOne(
+      { id: userId },
+      {
+        userCompanyRoles: {
+          include: { company: true },
+        },
+      }
+    );
     if (userResult.error) {
       throw new UnauthorizedException(userResult.error.message);
     }
@@ -627,17 +442,61 @@ export class UserService {
       throw new UnauthorizedException("User not found");
     }
 
-    // Get all active users in the company
-    const usersResult = await UserModel.get({
-      company_id: user.company_id,
-      status: { not: UserStatus.INACTIVE },
-    });
-    if (usersResult.error) {
-      throw new BadRequestException(usersResult.error.message);
+    // Get the first company (assuming single company for now, but this could be enhanced)
+    const userCompany = user.userCompanyRoles?.[0];
+    if (!userCompany) {
+      throw new UnauthorizedException("User does not belong to any company");
     }
-    const users = usersResult.output;
 
-    return Promise.all(users.map((u: any) => this.mapToResponseDto(u)));
+    // Get all users in the same company
+    const companyUsersResult = await UserCompanyRoleModel.get({
+      company_id: userCompany.company_id,
+    });
+
+    if (companyUsersResult.error) {
+      throw new BadRequestException(companyUsersResult.error.message);
+    }
+
+    const companyUsers = companyUsersResult.output || [];
+
+    // Get user details for each user-company-role association
+    const usersWithDetails = await Promise.all(
+      companyUsers.map(async (ucr: any) => {
+        const userResult = await UserModel.getOne(
+          { id: ucr.user_id },
+          {
+            userCompanyRoles: {
+              include: { role: true },
+            },
+          }
+        );
+
+        if (userResult.error || !userResult.output) {
+          return null;
+        }
+
+        const user = userResult.output;
+        const userRole = user.userCompanyRoles.find(
+          (ucrDetail: any) => ucrDetail.company_id === userCompany.company_id
+        );
+
+        return {
+          user,
+          role: userRole?.role?.name || "user",
+        };
+      })
+    );
+
+    // Filter out inactive users and null results
+    const activeUsers = usersWithDetails.filter(
+      (item) => item !== null && item.user.status !== UserStatus.INACTIVE
+    );
+
+    return Promise.all(
+      activeUsers.map((item: any) =>
+        this.mapToResponseDto(item.user, item.role)
+      )
+    );
   }
 
   async getAllUsers(): Promise<{ users: any[] }> {
@@ -720,12 +579,26 @@ export class UserService {
     }
   }
 
-  private generateInvitationCode(): string {
-    return "INV_" + uuidv4().replace(/-/g, "").substring(0, 16);
+  private generateInvitationToken(invitationData: {
+    invitation_id: string;
+    email: string;
+    company_id: string;
+    role: string;
+  }): string {
+    const payload = {
+      invitation_id: invitationData.invitation_id,
+      email: invitationData.email,
+      company_id: invitationData.company_id,
+      role: invitationData.role,
+    };
+
+    return this.jwtService.sign(payload, {
+      expiresIn: "7d", // 7 days expiry
+    });
   }
 
-  private generateOTP(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+  private generateInvitationCode(): string {
+    return "INV_" + uuidv4().replace(/-/g, "").substring(0, 16);
   }
 
   private async mapToResponseDto(
@@ -767,46 +640,5 @@ export class UserService {
       created_at: user.createdAt,
       updated_at: user.updatedAt,
     };
-  }
-
-  /**
-   * Logout user by blacklisting their token
-   * @param token - JWT token to blacklist
-   * @returns LogoutResponseDto
-   */
-  async logout(
-    token: string
-  ): Promise<{ success: boolean; message: string; logged_out_at: Date }> {
-    try {
-      // Decode token to get expiry information for auto-cleanup
-      let expiryTime: Date | undefined;
-      try {
-        const decoded = this.jwtService.decode(token) as any;
-        if (decoded && decoded.exp) {
-          expiryTime = new Date(decoded.exp * 1000); // Convert from seconds to milliseconds
-        }
-      } catch (decodeError) {
-        // If we can't decode the token, we'll still blacklist it but without auto-cleanup
-        console.warn(
-          "Could not decode token for expiry time:",
-          decodeError.message
-        );
-      }
-
-      // Add token to blacklist
-      this.tokenBlacklistService.addToBlacklist(token, expiryTime);
-
-      return {
-        success: true,
-        message: "Successfully logged out",
-        logged_out_at: new Date(),
-      };
-    } catch (error) {
-      throw new BadRequestException({
-        success: false,
-        message: "Error during logout",
-        error: error.message,
-      });
-    }
   }
 }

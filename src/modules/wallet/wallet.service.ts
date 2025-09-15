@@ -11,7 +11,29 @@ import {
 } from "@/services/wallet/walletFunding.service";
 import WalletModel from "@/models/prisma/walletModel";
 import WalletPhoneOperatorModel from "@/models/prisma/walletPhoneOperatorModel";
+import TransactionModel from "@/models/prisma/transactionModel";
 import fnOutput, { OutputProps } from "@/utils/shared/fnOutputHandler";
+
+export interface DepositToWalletSubmitProps {
+  sourceWallet: {
+    id: string;
+    currency: string;
+    amount: number;
+    feeAmount: number;
+    totalAmount: number;
+  };
+  destinationWallet: {
+    id: string;
+    currency: string;
+    amount: number;
+  };
+  exchangeRate: {
+    rate: number;
+    fromCurrency: string;
+    toCurrency: string;
+  };
+}
+
 export interface IWalletCreate {
   currency: string;
   country: string;
@@ -45,14 +67,15 @@ export class WalletService {
 
       const result = await WalletModel.create(walletData);
       const wallet = result.output;
+      console.log("walletResult :: ", result);
       return { data: wallet };
     } catch (error: any) {
       throw new BadRequestException(
         "Failed to create wallet: " + error.message
       );
-      return fnOutput.error({
-        error: { message: "Failed to create wallet: " + error.message },
-      });
+      // return fnOutput.error({
+      //   error: { message: "Failed to create wallet: " + error.message },
+      // });
     }
   }
 
@@ -174,5 +197,101 @@ export class WalletService {
 
   async getWalletBalance(companyId: string, walletId: string) {
     return getWalletBalance(walletId);
+  }
+
+  async depositToWallet(companyId: string, data: DepositToWalletSubmitProps) {
+    try {
+      // Get source wallet
+      const sourceWallet = await WalletModel.getOne({
+        id: data.sourceWallet.id,
+        company_id: companyId,
+      });
+      if (sourceWallet.error || !sourceWallet.output) {
+        throw new BadRequestException("Source wallet not found");
+      }
+
+      // Get destination wallet
+      const destinationWallet = await WalletModel.getOne({
+        id: data.destinationWallet.id,
+        company_id: companyId,
+      });
+      if (destinationWallet.error || !destinationWallet.output) {
+        throw new BadRequestException("Destination wallet not found");
+      }
+
+      // Check if source has enough balance
+      if (sourceWallet.output.balance < data.sourceWallet.totalAmount) {
+        throw new BadRequestException("Insufficient balance in source wallet");
+      }
+
+      // Calculate converted amount
+      const convertedAmount = data.destinationWallet.amount; // Assuming amount is already converted
+
+      // Generate reference
+      const reference = `DEPOSIT_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
+
+      // Use transaction to ensure atomicity
+      // await TransactionModel.operation(async (prisma) => {
+      // Update source wallet balance
+      await WalletModel.update(
+        { id: data.sourceWallet.id },
+        {
+          balance: sourceWallet.output.balance - data.sourceWallet.totalAmount,
+        }
+      );
+
+      // Update destination wallet balance
+      await WalletModel.update(
+        { id: data.destinationWallet.id },
+        { balance: destinationWallet.output.balance + convertedAmount }
+      );
+
+      // Create debit transaction for source wallet
+      await TransactionModel.create({
+        category: "WALLET_TRANSFER",
+        type: "DEBIT",
+        wallet_id: data.sourceWallet.id,
+        company_id: companyId,
+        status: "SUCCESS",
+        description: `Transfer to wallet ${data.destinationWallet.id}`,
+        reason: "Wallet to wallet transfer",
+        wallet_balance_before: sourceWallet.output.balance,
+        wallet_balance_after:
+          sourceWallet.output.balance - data.sourceWallet.totalAmount,
+        amount: data.sourceWallet.amount,
+        currency: data.sourceWallet.currency,
+        fee_amount: data.sourceWallet.feeAmount,
+        net_amount: data.sourceWallet.amount,
+        amount_with_fee: data.sourceWallet.totalAmount,
+        reference: reference,
+      });
+
+      // Create credit transaction for destination wallet
+      await TransactionModel.create({
+        category: "WALLET_TRANSFER",
+        type: "CREDIT",
+        wallet_id: data.destinationWallet.id,
+        company_id: companyId,
+        status: "SUCCESS",
+        description: `Transfer from wallet ${data.sourceWallet.id}`,
+        reason: "Wallet to wallet transfer",
+        wallet_balance_before: destinationWallet.output.balance,
+        wallet_balance_after:
+          destinationWallet.output.balance + convertedAmount,
+        amount: convertedAmount,
+        currency: data.destinationWallet.currency,
+        fee_amount: 0,
+        net_amount: convertedAmount,
+        amount_with_fee: convertedAmount,
+        reference: reference,
+      });
+      // });
+
+      return { data: { message: "Deposit successful", reference: reference } };
+    } catch (error: any) {
+      throw new BadRequestException("Failed to deposit: " + error.message);
+    }
   }
 }

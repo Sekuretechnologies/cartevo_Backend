@@ -80,6 +80,45 @@ export class EmailService {
     }
   }
 
+  async sendInvitationEmailWithToken(
+    email: string,
+    invitationToken: string,
+    companyName: string,
+    inviterName?: string
+  ): Promise<boolean> {
+    try {
+      // Generate invitation URLs
+      const frontendUrl =
+        this.configService.get("FRONTEND_URL") || "http://localhost:3000";
+      const acceptInvitationUrl = `${frontendUrl}/invitation/accept?token=${invitationToken}`;
+      const registerUrl = `${frontendUrl}/invitation/accept?token=${invitationToken}`;
+
+      const mailOptions = {
+        from: this.configService.get("FROM_EMAIL") || "noreply@cartevo.co",
+        to: email,
+        subject: `Invitation to join ${companyName} on CARTEVO`,
+        html: this.getInvitationEmailTemplateWithToken(
+          acceptInvitationUrl,
+          registerUrl,
+          invitationToken,
+          companyName,
+          inviterName
+        ),
+        text: `You've been invited to join ${companyName} on CARTEVO. Click here to accept: ${acceptInvitationUrl}`,
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log(
+        "Invitation email with token sent successfully:",
+        result.messageId
+      );
+      return true;
+    } catch (error) {
+      console.error("Error sending invitation email with token:", error);
+      throw new BadRequestException("Failed to send invitation email");
+    }
+  }
+
   async sendWelcomeEmail(
     email: string,
     userName: string,
@@ -210,6 +249,77 @@ export class EmailService {
           </div>
           <div class="footer">
             <p>© 2025 CARTEVO. Tous droits réservés.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private getInvitationEmailTemplateWithToken(
+    acceptInvitationUrl: string,
+    registerUrl: string,
+    invitationToken: string,
+    companyName: string,
+    inviterName?: string
+  ): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Invitation to join ${companyName}</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #007bff; color: white; padding: 20px; text-align: center; }
+          .content { padding: 30px; background-color: #f9f9f9; }
+          .invitation-link { display: inline-block; background-color: #007bff; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; text-align: center; }
+          .invitation-link:hover { background-color: #0056b3; }
+          .secondary-text { color: #666; font-size: 14px; margin: 15px 0; }
+          .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>CARTEVO</h1>
+          </div>
+          <div class="content">
+            <h2>You're invited to join ${companyName}!</h2>
+
+            <p>Hi there,</p>
+
+            <p>
+              <strong>${
+                inviterName || "A team member"
+              }</strong> has invited you to join
+              <strong>${companyName}</strong> on CARTEVO.
+            </p>
+
+            <p>Click the button below to accept the invitation and get access to ${companyName}:</p>
+            <a href="${acceptInvitationUrl}" class="invitation-link">
+              Accept Invitation & Sign In
+            </a>
+            <p class="secondary-text">
+              You'll be asked to sign in with your existing account to confirm.
+            </p>
+
+            <p><strong>What happens next?</strong></p>
+            <ul>
+              <li>You'll be redirected to CARTEVO</li>
+              <li>Sign in with your existing credentials</li>
+              <li>Get immediate access to ${companyName}</li>
+            </ul>
+
+            <p>This invitation link expires in 7 days for security reasons.</p>
+
+            <p>If the button doesn't work, copy and paste this link into your browser:</p>
+            <p><small>${acceptInvitationUrl}</small></p>
+          </div>
+          <div class="footer">
+            <p>© 2025 CARTEVO. All rights reserved.</p>
           </div>
         </div>
       </body>

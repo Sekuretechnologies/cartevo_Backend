@@ -47,7 +47,8 @@ export class UserController {
 
   @Post()
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, OwnerGuard)
+  // @UseGuards(JwtAuthGuard, OwnerGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: "Create user (Owner only)",
     description:
@@ -70,6 +71,8 @@ export class UserController {
     @CurrentUser() currentUser: CurrentUserData,
     @Body() createUserDto: CreateUserDto
   ): Promise<CreateUserResponseDto> {
+    console.log("currentUser :: ", currentUser);
+
     return this.userService.createUser(currentUser.userId, createUserDto);
   }
 
@@ -231,88 +234,5 @@ export class UserController {
     @Body() updateKycStatusDto: UpdateKycStatusDto
   ): Promise<UpdateKycStatusResponseDto> {
     return this.userService.updateKycStatus(userId, updateKycStatusDto);
-  }
-}
-
-@ApiTags("Authentication")
-@Controller("auth")
-export class AuthController {
-  constructor(private readonly userService: UserService) {}
-
-  @Post("login")
-  @ApiOperation({
-    summary: "User login",
-    description:
-      "Authenticate user with email and password, then send OTP for verification.",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "OTP sent to user email",
-    type: AuthResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: "Invalid credentials",
-  })
-  async login(@Body() loginDto: LoginDto): Promise<LoginSuccessResponseDto> {
-    // AuthResponseDto
-    // LoginSuccessResponseDto
-    return this.userService.login(loginDto);
-  }
-
-  @Post("verify-otp")
-  @ApiOperation({
-    summary: "Verify OTP",
-    description: "Verify OTP and complete login process.",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Login successful",
-    type: LoginSuccessResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: "Invalid or expired OTP",
-  })
-  async verifyOtp(
-    @Body() verifyOtpDto: VerifyOtpDto
-  ): Promise<LoginSuccessResponseDto> {
-    return this.userService.verifyOtp(verifyOtpDto);
-  }
-
-  @Post("logout")
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: "User logout",
-    description: "Logout user by invalidating their access token",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Logout successful",
-    type: LogoutResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: "Unauthorized - Invalid or missing token",
-  })
-  async logout(@Headers() headers: any): Promise<LogoutResponseDto> {
-    // Extract token from Authorization header
-    const authHeader = headers.authorization || headers.Authorization;
-    if (!authHeader) {
-      throw new BadRequestException("No authorization header provided");
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    if (!token || token === authHeader) {
-      throw new BadRequestException("Invalid authorization header format");
-    }
-
-    const result = await this.userService.logout(token);
-    return {
-      success: result.success,
-      message: result.message,
-      logged_out_at: result.logged_out_at,
-    };
   }
 }

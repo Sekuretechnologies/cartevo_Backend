@@ -572,8 +572,8 @@ export class UserResponseDto {
   @ApiProperty()
   email: string;
 
-  @ApiProperty()
-  company_id: string;
+  @ApiProperty({ required: false })
+  company_id?: string;
 
   @ApiProperty()
   step: number;
@@ -980,6 +980,15 @@ export class CompleteKycDto {
   @MinLength(2)
   nationality: string;
 
+  @ApiProperty({
+    description: "User email address",
+    example: "john.doe@example.com",
+    required: false,
+  })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
   // @ApiProperty({
   //   description: "User address",
   //   example: "123 Main Street, Yaoundé",
@@ -1003,10 +1012,12 @@ export class CompleteKycResponseDto {
   user_id: string;
 
   @ApiProperty()
-  kyc_status: "NONE" | "PENDING" | "APPROVED" | "REJECTED";
+  onboarding_is_completed: boolean;
 
-  @ApiProperty()
-  next_step: string;
+  // kyc_status: "NONE" | "PENDING" | "APPROVED" | "REJECTED";
+
+  // @ApiProperty()
+  // next_step: string;
 
   @ApiProperty()
   completed_at: Date;
@@ -1087,12 +1098,60 @@ export class CompleteKybDto {
   })
   incorporation_certificate: any;
 
+  // @ApiProperty({
+  //   description: "Company ID (optional - for backward compatibility)",
+  //   example: "f7c4ee3b-53d4-46fb-a652-ba108da4cd21",
+  //   required: false,
+  // })
+  // @IsOptional()
+  // @IsString()
+  // company_id?: string;
+
   @ApiProperty({
-    description: "Business proof of address file",
+    description: "Proof of address file (alternative field name)",
     type: "string",
     format: "binary",
+    required: false,
   })
-  business_proof_of_address: any;
+  @IsOptional()
+  proof_of_address: any;
+
+  //--------------------------------------------------------
+  @ApiProperty({
+    description: "Business type (optional)",
+    example: "Technology",
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  business_type?: string;
+
+  @ApiProperty({
+    description: "Country of operation (optional)",
+    example: "Cameroon",
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  country_of_operation?: string;
+
+  @ApiProperty({
+    description: "Business email (optional)",
+    example: "business@company.com",
+    required: false,
+  })
+  @IsOptional()
+  @IsEmail()
+  business_email?: string;
+
+  @ApiProperty({
+    description: "Business registration number (optional)",
+    example: "RC123456",
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  business_registration_number?: string;
 }
 
 // KYB Completion Response DTO
@@ -1107,10 +1166,13 @@ export class CompleteKybResponseDto {
   company_id: string;
 
   @ApiProperty()
-  kyb_status: "NONE" | "PENDING" | "APPROVED" | "REJECTED";
+  onboarding_is_completed: boolean;
 
-  @ApiProperty()
-  next_step: string;
+  // @ApiProperty()
+  // kyb_status: "NONE" | "PENDING" | "APPROVED" | "REJECTED";
+
+  // @ApiProperty()
+  // next_step: string;
 
   @ApiProperty()
   completed_at: Date;

@@ -45,7 +45,6 @@ model Company {
   created_at     DateTime @default(now()) @map("created_at")
   updated_at     DateTime @updatedAt @map("updated_at")
 
-  users            User[]
   customers        Customer[]
   cards            Card[]
   transactions     Transaction[]
@@ -82,6 +81,7 @@ enum KybStatus {
 enum FeeType {
   FIXED
   PERCENTAGE
+  RANGE
 }
 
 model User {
@@ -89,17 +89,16 @@ model User {
   full_name       String?    @map("full_name")
   first_name     String?    @map("first_name")
   last_name      String?    @map("last_name")
-  email          String     @unique
+  email          String
   address        String?
   password       String?
-  company_id      String     @map("company_id")
   step           Int        @default(1)
   status         UserStatus @default(PENDING)
   kyc_status     KycStatus  @default(NONE) @map("kyc_status") // KYC (Know Your Customer) status
   invitation_code String?    @unique @map("invitation_code")
   otp            String?
   otp_expires     DateTime?  @map("otp_expires")
-  
+
   // Personal information fields (Step 1)
   role_in_company    String?    @map("role_in_company")
   phone_number       String?    @map("phone_number")
@@ -115,14 +114,14 @@ model User {
   street             String?
   postal_code        String?    @map("postal_code")
   proof_of_address   String?    @map("proof_of_address")
-  
+
   created_at      DateTime   @default(now()) @map("created_at")
   updated_at      DateTime   @updatedAt @map("updated_at")
 
-  company          Company           @relation(fields: [company_id], references: [id])
   userCompanyRoles UserCompanyRole[]
   transactions Transaction[]
 
+  @@unique([email])
   @@map("users")
 }
 
@@ -168,7 +167,6 @@ model Wallet {
   transactions Transaction[]
   phoneNumbers WalletPhoneNumber[]
 
-  @@unique([company_id, currency], name: "company_id_currency")
   @@map("wallets")
 }
 
@@ -196,7 +194,7 @@ model Customer {
   identification_number String             @map("identification_number")
   id_document_front     String             @map("id_document_front")
   id_document_back      String?            @map("id_document_back") // Optional back side of the ID document
-  id_document_type     String  
+  id_document_type     String
   // image                String?            // URL or path to identification document
   // photo                String?            // URL or path to customer photo
   // number               String?             // Additional identification number
@@ -211,6 +209,7 @@ model Customer {
   notifications Notification[]
   transactions Transaction[]
   syncmetadatas Syncmetadata[]
+  providerMappings CustomerProviderMapping[]
 
   @@unique([company_id, email])
   @@map("customers")
@@ -302,7 +301,7 @@ model Transaction {
   amount_with_fee     Decimal?         @db.Decimal(15, 2) @map("amount_with_fee")
   reference           String?
   created_at           DateTime        @default(now()) @map("created_at")
-  updated_at           DateTime        @default(now()) @map("updated_at")
+  updated_at           DateTime        @updatedAt @map("updated_at")
 
   card Card? @relation(fields: [card_id], references: [id])
   wallet Wallet? @relation(fields: [wallet_id], references: [id])
@@ -311,6 +310,7 @@ model Transaction {
   company Company @relation(fields: [company_id], references: [id])
 
   notifications Notification[]
+  balanceTransactionRecords BalanceTransactionRecord[]
 
   @@map("transactions")
 }
@@ -352,6 +352,7 @@ model Notification {
 model CustomerLogs {
   id                  String   @id @default(uuid())
   created_at          DateTime @default(now())
+  reference           String?
   log_json            Json?
   log_txt             String?
   action              String?
@@ -365,6 +366,7 @@ model CustomerLogs {
 model UserLogs {
   id                  String   @id @default(uuid())
   created_at          DateTime @default(now())
+  reference           String?
   log_json            Json?
   log_txt             String?
   action              String?
@@ -404,6 +406,8 @@ model TransactionFee {
   fee_fixed            Decimal? @map("fee_fixed") @db.Decimal(15, 2)
   type                 FeeType
   value                Decimal  @db.Decimal(15, 2)
+  range_min            Decimal?  @db.Decimal(15, 2)
+  range_max            Decimal?  @db.Decimal(15, 2)
   active               Boolean  @default(true)
   description          String?
   created_at           DateTime @default(now()) @map("created_at")
@@ -470,4 +474,39 @@ model WalletPhoneOperator {
 
   @@unique([country_iso_code, currency, operator_code])
   @@map("wallet_phone_operators")
+}
+
+
+model BalanceTransactionRecord {
+  id                  String   @id @default(uuid())
+  transaction_id      String   @map("transaction_id") // Links to the main transaction
+
+  transaction         Transaction @relation(fields: [transaction_id], references: [id], onDelete: Cascade)
+  entity_type         String   @map("entity_type") // 'wallet' or 'card'
+  entity_id           String   @map("entity_id") // wallet_id or card_id
+  old_balance         Decimal  @default(0) @db.Decimal(15, 2)
+  new_balance         Decimal  @default(0) @db.Decimal(15, 2)
+  amount_changed      Decimal  @default(0) @db.Decimal(15, 2) // Positive for increase, negative for decrease
+  currency            String
+  change_type         String?   @map("change_type") // 'debit', 'credit', 'transfer_in', 'transfer_out'
+  description         String?
+  created_at          DateTime @default(now()) @map("created_at")
+
+  @@map("balance_transaction_records")
+}
+
+model CustomerProviderMapping {
+  id                  String   @id @default(uuid())
+  customer_id         String   @map("customer_id") // Our internal customer ID
+  provider_name       String   @map("provider_name") // e.g., "maplerad", "sudo", "flutterwave"
+  provider_customer_id String   @map("provider_customer_id") // The provider's customer ID
+  metadata            Json?    @map("metadata") // Additional provider-specific data
+  is_active           Boolean  @default(true) @map("is_active")
+  created_at          DateTime @default(now()) @map("created_at")
+  updated_at          DateTime @updatedAt @map("updated_at")
+
+  customer Customer @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+
+  @@unique([customer_id, provider_name])
+  @@map("customer_provider_mappings")
 }

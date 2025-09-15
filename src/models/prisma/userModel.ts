@@ -1,6 +1,10 @@
 // src/models/UserModel.ts
 import { FilterObject, IncludeObject } from "@/types";
-import { sanitizeTextInput, setMethodFilter } from "@/utils/shared/common";
+import {
+  sanitizeName,
+  sanitizeTextInput,
+  setMethodFilter,
+} from "@/utils/shared/common";
 import fnOutput from "@/utils/shared/fnOutputHandler";
 import { Prisma, PrismaClient } from "@prisma/client";
 import * as bcrypt from "bcrypt";
@@ -100,17 +104,24 @@ class UserModel {
     hashedPassword?: any
   ) {
     try {
-      let password = "";
-      if (!hashedPassword) {
-        password = await bcrypt.hash(inputUser.password, 12);
-      } else {
-        password = hashedPassword;
-      }
-
       const userData = { ...inputUser };
-      userData.password = password;
+
+      // Only hash password if it's provided and no hashedPassword is given
+      if (!hashedPassword && inputUser.password) {
+        userData.password = await bcrypt.hash(inputUser.password, 12);
+      } else if (hashedPassword) {
+        userData.password = hashedPassword;
+      }
+      // If neither password nor hashedPassword is provided, leave password undefined
       if (inputUser.address) {
         userData.address = sanitizeTextInput(inputUser.address);
+      }
+
+      if (inputUser.first_name) {
+        userData.first_name = sanitizeName(inputUser.first_name);
+      }
+      if (inputUser.last_name) {
+        userData.last_name = sanitizeName(inputUser.last_name);
       }
 
       const user = await prisma.user.create({
@@ -147,6 +158,12 @@ class UserModel {
       }
       if (userData.address) {
         updatedUserData.address = sanitizeTextInput(userData.address);
+      }
+      if (userData.first_name) {
+        userData.first_name = sanitizeName(userData.first_name);
+      }
+      if (userData.last_name) {
+        userData.last_name = sanitizeName(userData.last_name);
       }
 
       const updatedUser = await prisma.user.update({

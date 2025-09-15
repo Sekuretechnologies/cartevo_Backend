@@ -7,10 +7,41 @@ import {
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import * as bcrypt from "bcrypt";
+import { v4 as uuidv4 } from "uuid";
+import { Prisma, UserStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
-import { AuthTokenRequestDto, AuthTokenResponseDto } from "./dto/auth.dto";
-import { CompanyModel } from "@/models";
+import {
+  AuthTokenRequestDto,
+  AuthTokenResponseDto,
+  CheckEmailRequestDto,
+  CheckEmailResponseDto,
+  LoginWithCompanyRequestDto,
+  LoginWithCompanyResponseDto,
+  SelectCompanyRequestDto,
+  SelectCompanyResponseDto,
+  ValidateInvitationTokenDto,
+  ValidateInvitationResponseDto,
+  AcceptInvitationDto,
+  AcceptInvitationResponseDto,
+  RegisterWithInvitationDto,
+} from "./dto/auth.dto";
+import {
+  LoginDto,
+  VerifyOtpDto,
+  UserResponseDto,
+  AuthResponseDto,
+  LoginSuccessResponseDto,
+  VerifyOtpMultiCompanyResponseDto,
+} from "../user/dto/user.dto";
+import {
+  UserModel,
+  RoleModel,
+  UserCompanyRoleModel,
+  CompanyModel,
+} from "@/models";
+import { OnboardingStepModel } from "@/models/prisma";
 import { EmailService } from "@/services/email.service";
+import { TokenBlacklistService } from "@/services/token-blacklist.service";
 
 @Injectable()
 export class AuthService {
@@ -18,14 +49,15 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
-    private emailService: EmailService
+    private emailService: EmailService,
+    private tokenBlacklistService: TokenBlacklistService
   ) {}
 
   async generateToken(
     authDto: AuthTokenRequestDto
   ): Promise<AuthTokenResponseDto> {
     const companyResult = await CompanyModel.getOne({
-      id: authDto.client_id,
+      client_id: authDto.client_id,
       is_active: true,
     });
     const company = companyResult.output;
@@ -45,7 +77,7 @@ export class AuthService {
 
     const payload = {
       sub: company.id,
-      businessId: company.id,
+      companyId: company.id,
       clientId: company.client_id,
     };
 
@@ -72,14 +104,340 @@ export class AuthService {
     }
   }
 
-  async forgotPassword(email: string) {
-    try {
-      const user = await this.prisma.user.findUnique({
-        where: { email },
+  async login(loginDto: LoginDto): Promise<AuthResponseDto> {
+    // Find all active users with this email
+    const usersResult = await UserModel.get({
+      email: loginDto.email,
+      status: UserStatus.ACTIVE,
+    });
+    if (usersResult.error) {
+      throw new UnauthorizedException(usersResult.error.message);
+    }
+    const users = usersResult.output;
+
+    if (!users || users.length === 0) {
+      throw new UnauthorizedException("Invalid credentials");
+    }
+
+    // Check if user has multiple companies
+    if (users.length > 1) {
+      // Multiple companies found - return list of companies for user to choose
+      const companies = await Promise.all(
+        users.map(async (user) => {
+          // Get user's companies through UserCompanyRole
+          const userCompanyRolesResult = await UserCompanyRoleModel.get({
+            user_id: user.id,
+          });
+
+          if (userCompanyRolesResult.error || !userCompanyRolesResult.output) {
+            return null;
+          }
+
+          const userCompanyRoles = userCompanyRolesResult.output;
+          if (!userCompanyRoles || userCompanyRoles.length === 0) return null;
+
+          // Get company details for the first role
+          const companyResult = await CompanyModel.getOne({
+            id: userCompanyRoles[0].company_id,
+          });
+
+          if (companyResult.error || !companyResult.output) {
+            return null;
+          }
+
+          const company = companyResult.output;
+          return {
+            id: company.id,
+            name: company.name,
+            country: company.country,
+          };
+        })
+      );
+
+      const validCompanies = companies.filter((company) => company !== null);
+
+      return {
+        success: true,
+        message: "Multiple companies found. Please specify a company to login.",
+        requires_otp: false,
+        companies: validCompanies,
+      };
+    }
+
+    // Single company - proceed with login
+    const user = users[0];
+
+    if (!user.password) {
+      throw new UnauthorizedException("Invalid credentials");
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(
+      loginDto.password,
+      user.password
+    );
+    if (!isPasswordValid) {
+      throw new UnauthorizedException("Invalid credentials");
+    }
+
+    // Generate and store OTP
+    const otp = this.generateOTP();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    const otpUpdateResult = await UserModel.update(user.id, {
+      otp,
+      otp_expires: otpExpires,
+    });
+    if (otpUpdateResult.error) {
+      throw new BadRequestException(otpUpdateResult.error.message);
+    }
+
+    // Send OTP email
+    await this.emailService.sendOtpEmail(
+      user.email,
+      otp,
+      user.first_name || user.full_name || "User"
+    );
+
+    return {
+      success: true,
+      message: `OTP sent to ${user.email}. Please verify to complete login.`,
+      requires_otp: true,
+    };
+  }
+
+  async verifyOtp(
+    verifyOtpDto: VerifyOtpDto
+  ): Promise<LoginSuccessResponseDto | VerifyOtpMultiCompanyResponseDto> {
+    // Find user with valid OTP
+    console.log("verifyOtpDto :: ", verifyOtpDto);
+    const userResult = await UserModel.getOne(
+      {
+        email: verifyOtpDto.email,
+        otp: verifyOtpDto.otp,
+        // status: UserStatus.ACTIVE,
+      },
+      {
+        userCompanyRoles: {
+          include: {
+            role: true,
+            company: true,
+          },
+        },
+      }
+    );
+    if (userResult.error) {
+      throw new UnauthorizedException(userResult.error.message);
+    }
+    const user: any = userResult.output;
+    console.log("user.otpExpires :: ", user.otp_expires);
+    console.log("new Date() :: ", new Date());
+    console.log(
+      "user.otpExpires < new Date() :: ",
+      user.otp_expires < new Date()
+    );
+    console.log("user :: ", user);
+
+    if (!user || !user.otp_expires || user.otp_expires < new Date()) {
+      throw new UnauthorizedException("Invalid or expired OTP");
+    }
+
+    // Check if user belongs to multiple companies
+    const userCompanies = user.userCompanyRoles || [];
+    const hasMultipleCompanies = userCompanies.length > 1;
+
+    // Clear OTP
+    await UserModel.update(user.id, {
+      otp: null,
+      otp_expires: null,
+    });
+
+    if (hasMultipleCompanies) {
+      // Generate temporary token with userId and email only
+      const tempPayload = {
+        sub: user.id,
+        email: user.email,
+        temp: true, // Mark as temporary token
+      };
+
+      const tempToken = this.jwtService.sign(tempPayload, {
+        expiresIn: "15m", // Shorter expiry for temp token
       });
 
-      if (!user) {
+      // Get list of companies for user to choose from
+      const companies = userCompanies.map((ucr: any) => ({
+        id: ucr.company.id,
+        name: ucr.company.name,
+        country: ucr.company.country,
+      }));
+
+      return {
+        success: true,
+        message: "OTP verified. Please select a company to continue.",
+        temp_token: tempToken,
+        requires_company_selection: true,
+        companies: companies,
+      } as VerifyOtpMultiCompanyResponseDto;
+    } else {
+      // Single company - proceed with full token
+      const userCompany = userCompanies[0];
+      if (!userCompany) {
+        throw new UnauthorizedException("User does not belong to any company");
+      }
+
+      // Generate JWT token with expiry
+      const payload = {
+        sub: user.id,
+        email: user.email,
+      };
+
+      // Set token expiry to 24 hours (86400 seconds)
+      const accessToken = this.jwtService.sign(payload, {
+        expiresIn: "1h", // You can also use '1d', '7d', '30d', or specific seconds like '86400'
+      });
+
+      console.log("payload :: ", payload);
+      console.log("accessToken :: ", accessToken);
+      // Determine redirect based on user and company completion status
+      let redirectTo = "dashboard";
+      let redirectMessage = "Login successful";
+
+      // -------------------------------------------------
+      const result = await OnboardingStepModel.get({
+        company_id: userCompany.company.id,
+      });
+      if (result.error) {
+        throw new BadRequestException(result.error.message);
+      }
+      const steps = result.output;
+      const totalCount: number = steps.length;
+      // Count by status
+      const completedCount: number = steps.filter(
+        (step: any) => step.status === "COMPLETED"
+      ).length;
+      // -------------------------------------------------
+
+      return {
+        success: true,
+        message: redirectMessage,
+        access_token: accessToken,
+        user: await this.mapToResponseDto(user),
+        company: {
+          id: userCompany.company.id,
+          name: userCompany.company.name,
+          country: userCompany.company.country,
+          onboarding_is_completed: completedCount === totalCount,
+        },
+        redirect_to: redirectTo,
+      };
+    }
+  }
+
+  private generateOTP(): string {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  private async mapToResponseDto(
+    user: any,
+    role?: string
+  ): Promise<UserResponseDto> {
+    let userRole = role;
+
+    if (!userRole && user.userCompanyRoles) {
+      userRole = user.userCompanyRoles[0]?.role?.name || "user";
+    }
+
+    if (!userRole) {
+      // Fetch role if not provided
+      const userWithRoleResult = await UserModel.getOne(
+        { id: user.id },
+        {
+          userCompanyRoles: {
+            include: { role: true },
+          },
+        }
+      );
+      if (userWithRoleResult.error) {
+        throw new BadRequestException(userWithRoleResult.error.message);
+      }
+      const userWithRole = userWithRoleResult.output;
+      userRole = userWithRole?.userCompanyRoles[0]?.role?.name || "user";
+    }
+
+    return {
+      id: user.id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email,
+      company_id: user.userCompanyRoles?.[0]?.company?.id || null,
+      status: user.status,
+      step: user.step,
+      role: userRole,
+      created_at: user.createdAt,
+      updated_at: user.updatedAt,
+    };
+  }
+
+  /**
+   * Logout user by blacklisting their token
+   * @param token - JWT token to blacklist
+   * @returns LogoutResponseDto
+   */
+  async logout(
+    token: string
+  ): Promise<{ success: boolean; message: string; logged_out_at: Date }> {
+    try {
+      // Decode token to get expiry information for auto-cleanup
+      let expiryTime: Date | undefined;
+      try {
+        const decoded = this.jwtService.decode(token) as any;
+        if (decoded && decoded.exp) {
+          expiryTime = new Date(decoded.exp * 1000); // Convert from seconds to milliseconds
+        }
+      } catch (decodeError) {
+        // If we can't decode the token, we'll still blacklist it but without auto-cleanup
+        console.warn(
+          "Could not decode token for expiry time:",
+          decodeError.message
+        );
+      }
+
+      // Add token to blacklist
+      this.tokenBlacklistService.addToBlacklist(token, expiryTime);
+
+      return {
+        success: true,
+        message: "Successfully logged out",
+        logged_out_at: new Date(),
+      };
+    } catch (error) {
+      throw new BadRequestException({
+        success: false,
+        message: "Error during logout",
+        error: error.message,
+      });
+    }
+  }
+
+  async forgotPassword(email: string) {
+    try {
+      // Find all users with this email across companies
+      const usersResult = await UserModel.get({ email });
+      if (usersResult.status !== "success") {
         throw new NotFoundException("User not found");
+      }
+      const users = usersResult.output;
+
+      if (!users || users.length === 0) {
+        throw new NotFoundException("User not found");
+      }
+
+      // For forgot password, we'll use the first active user
+      // In a production system, you might want to send emails to all companies
+      const user = users.find((u) => u.status === "ACTIVE");
+
+      if (!user) {
+        throw new NotFoundException("No active user found with this email");
       }
 
       // generate JWt token
@@ -109,13 +467,13 @@ export class AuthService {
       );
 
       // mise a jour du token et de sa duree de validitee dans la base de donnee
-      await this.prisma.user.update({
-        where: { email },
-        data: {
-          otp: token,
-          otp_expires: linkExpiresAt,
-        },
+      const updateResult = await UserModel.update(user.id, {
+        otp: token,
+        otp_expires: linkExpiresAt,
       });
+      if (updateResult.status !== "success") {
+        throw new BadRequestException("Failed to update user OTP");
+      }
 
       return {
         success: true,
@@ -144,35 +502,40 @@ export class AuthService {
         throw new UnauthorizedException("Invalid token");
       }
 
-      const user = await this.prisma.user.findUnique({
-        where: { email: decoded.email },
-      });
+      // Find all users with this email and get the one with matching OTP
+      const usersResult = await UserModel.get({ email: decoded.email });
+      if (usersResult.status !== "success") {
+        throw new NotFoundException("User not found");
+      }
+      const users = usersResult.output;
+
+      if (!users || users.length === 0) {
+        throw new NotFoundException("User not found");
+      }
+
+      // Find the user with matching OTP
+      const user = users.find((u) => u.otp === token);
 
       if (!user) {
-        throw new NotFoundException("User not found");
+        throw new UnauthorizedException("Invalid token");
       }
 
       if (user.otp_expires < new Date()) {
         throw new UnauthorizedException("Token has expired");
       }
 
-      // verification du token
-      if (user.otp !== token) {
-        throw new UnauthorizedException("Invalid token");
-      }
-
       // hashage du nouveau mot de passe
       const hashedPassword = await bcrypt.hash(newPassword, 10);
 
       // mise a jour du mot de passe dans la base de donnee
-      await this.prisma.user.update({
-        where: { email: decoded.email },
-        data: {
-          password: hashedPassword,
-          otp: null,
-          otp_expires: null,
-        },
+      const updateResult = await UserModel.update(user.id, {
+        password: hashedPassword,
+        otp: null,
+        otp_expires: null,
       });
+      if (updateResult.status !== "success") {
+        throw new BadRequestException("Failed to reset password");
+      }
 
       return {
         success: true,
@@ -185,5 +548,531 @@ export class AuthService {
         error: error.message,
       });
     }
+  }
+
+  async checkEmailExistence(
+    checkEmailDto: CheckEmailRequestDto
+  ): Promise<CheckEmailResponseDto> {
+    try {
+      // Find all active users with this email across all companies
+      const usersResult = await UserModel.get({
+        email: checkEmailDto.email,
+        status: "ACTIVE",
+      });
+      if (usersResult.status !== "success") {
+        return {
+          exists: false,
+          company_count: 0,
+          companies: undefined,
+        };
+      }
+      const users = usersResult.output;
+
+      const exists = users.length > 0;
+      const company_count = users.length;
+
+      let companies:
+        | Array<{
+            id: string;
+            name: string;
+            country: string;
+          }>
+        | undefined;
+
+      if (company_count > 1) {
+        // Get company details for each user
+        companies = await Promise.all(
+          users.map(async (user) => {
+            const userCompanyRolesResult = await UserCompanyRoleModel.get({
+              user_id: user.id,
+            });
+
+            if (
+              userCompanyRolesResult.error ||
+              !userCompanyRolesResult.output ||
+              userCompanyRolesResult.output.length === 0
+            ) {
+              return {
+                id: "",
+                name: "",
+                country: "",
+              };
+            }
+
+            const companyResult = await CompanyModel.getOne({
+              id: userCompanyRolesResult.output[0].company_id,
+            });
+
+            if (companyResult.error || !companyResult.output) {
+              return {
+                id: "",
+                name: "",
+                country: "",
+              };
+            }
+
+            const company = companyResult.output;
+            return {
+              id: company.id,
+              name: company.name,
+              country: company.country,
+            };
+          })
+        );
+      }
+
+      return {
+        exists,
+        company_count,
+        companies,
+      };
+    } catch (error) {
+      throw new BadRequestException({
+        success: false,
+        message: "An error occurred while checking email existence",
+        error: error.message,
+      });
+    }
+  }
+
+  async loginWithCompany(
+    loginDto: LoginWithCompanyRequestDto
+  ): Promise<LoginWithCompanyResponseDto> {
+    try {
+      // Find users with this email
+      const usersResult = await UserModel.get({
+        email: loginDto.email,
+        status: "ACTIVE",
+      });
+      if (usersResult.status !== "success") {
+        throw new UnauthorizedException("Invalid credentials");
+      }
+      const users = usersResult.output;
+
+      if (!users || users.length === 0) {
+        throw new UnauthorizedException("Invalid credentials");
+      }
+
+      let targetUser: any;
+
+      if (loginDto.company_id) {
+        // User specified a company, check if user belongs to that company
+        const userCompanyRoleResult = await UserCompanyRoleModel.getOne({
+          user_id: users[0].id, // Assuming single user for now, but this needs to be updated for multi-user scenario
+          company_id: loginDto.company_id,
+        });
+
+        if (userCompanyRoleResult.error || !userCompanyRoleResult.output) {
+          throw new UnauthorizedException(
+            "User not found in specified company"
+          );
+        }
+
+        targetUser = users[0]; // Use the first user since we're checking company membership
+      } else if (users.length === 1) {
+        // Only one user, use that user
+        targetUser = users[0];
+      } else {
+        // Multiple users but no company specified
+        throw new BadRequestException(
+          "Multiple users found. Please specify a company_id."
+        );
+      }
+
+      const companyResult = await CompanyModel.getOne({
+        id: loginDto.company_id,
+      });
+      if (companyResult.error) {
+        throw new BadRequestException(companyResult.error.message);
+      }
+      const company = companyResult.output;
+
+      // Verify password
+      if (!targetUser.password) {
+        throw new UnauthorizedException("Invalid credentials");
+      }
+
+      const isPasswordValid = await bcrypt.compare(
+        loginDto.password,
+        targetUser.password
+      );
+      if (!isPasswordValid) {
+        throw new UnauthorizedException("Invalid credentials");
+      }
+
+      // Generate OTP and send email
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+      const updateResult = await UserModel.update(targetUser.id, {
+        otp,
+        otp_expires: otpExpires,
+      });
+      if (updateResult.status !== "success") {
+        throw new BadRequestException("Failed to update user OTP");
+      }
+
+      // Send OTP email
+      await this.emailService.sendOtpEmail(
+        targetUser.email,
+        otp,
+        targetUser.first_name || targetUser.full_name || "User"
+      );
+
+      // Since UserModel.get doesn't include company data, we'll use basic company info
+      return {
+        success: true,
+        message: `OTP sent to ${targetUser.email}. Please verify to complete login.`,
+        requires_otp: true,
+        company: {
+          id: company.company_id,
+          name: company.name, // Would need separate query to get company name
+          country: company.country,
+        },
+      };
+    } catch (error) {
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "An error occurred during login",
+        error: error.message,
+      });
+    }
+  }
+
+  async selectCompany(
+    selectCompanyDto: SelectCompanyRequestDto
+  ): Promise<SelectCompanyResponseDto> {
+    try {
+      // Verify the temporary token
+      let decoded: { sub: string; email: string; temp: boolean };
+      try {
+        decoded = this.jwtService.verify(selectCompanyDto.temp_token) as any;
+        if (!decoded.temp) {
+          throw new UnauthorizedException("Invalid token type");
+        }
+      } catch (err) {
+        if (err.name === "TokenExpiredError") {
+          throw new UnauthorizedException("Temporary token has expired");
+        }
+        throw new UnauthorizedException("Invalid temporary token");
+      }
+
+      const userId = decoded.sub;
+      const email = decoded.email;
+
+      // Check if user belongs to the specified company
+      const userCompanyRoleResult = await UserCompanyRoleModel.getOne({
+        user_id: userId,
+        company_id: selectCompanyDto.company_id,
+      });
+
+      if (userCompanyRoleResult.error || !userCompanyRoleResult.output) {
+        throw new BadRequestException("User not found in specified company");
+      }
+
+      // Get user with company and role information
+      const userResult = await UserModel.getOne(
+        {
+          id: userId,
+          status: UserStatus.ACTIVE,
+        },
+        {
+          userCompanyRoles: {
+            include: {
+              role: true,
+              company: true,
+            },
+          },
+        }
+      );
+      if (userResult.error) {
+        throw new BadRequestException("User not found");
+      }
+      const user: any = userResult.output;
+
+      // Find the specific company-role combination
+      const selectedCompanyRole = user.userCompanyRoles.find(
+        (ucr: any) => ucr.company_id === selectCompanyDto.company_id
+      );
+
+      if (!selectedCompanyRole) {
+        throw new BadRequestException("User not found in specified company");
+      }
+
+      // Generate full JWT token with company information
+      const payload = {
+        sub: user.id,
+        email: user.email,
+      };
+
+      const accessToken = this.jwtService.sign(payload, {
+        expiresIn: "1h",
+      });
+
+      // Determine redirect based on user and company completion status
+      let redirectTo = "dashboard";
+      let redirectMessage = "Login successful";
+
+      // Get onboarding steps
+      const result = await OnboardingStepModel.get({
+        company_id: selectedCompanyRole.company.id,
+      });
+      if (result.error) {
+        throw new BadRequestException(result.error.message);
+      }
+      const steps = result.output;
+      const totalCount: number = steps.length;
+      const completedCount: number = steps.filter(
+        (step: any) => step.status === "COMPLETED"
+      ).length;
+
+      return {
+        success: true,
+        message: redirectMessage,
+        access_token: accessToken,
+        user: await this.mapToResponseDto(user, selectedCompanyRole.role.name),
+        company: {
+          id: selectedCompanyRole.company.id,
+          name: selectedCompanyRole.company.name,
+          country: selectedCompanyRole.company.country,
+          onboarding_is_completed: completedCount === totalCount,
+        },
+        redirect_to: redirectTo,
+      };
+    } catch (error) {
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException({
+        success: false,
+        message: "An error occurred during company selection",
+        error: error.message,
+      });
+    }
+  }
+
+  async validateInvitationToken(
+    dto: ValidateInvitationTokenDto
+  ): Promise<ValidateInvitationResponseDto> {
+    try {
+      // Verify JWT token
+      const decoded = this.jwtService.verify(dto.token) as {
+        invitation_id: string;
+        email: string;
+        company_id: string;
+        role: string;
+      };
+
+      // Check if invitation still exists and is pending
+      const invitation = await UserModel.getOne({
+        id: decoded.invitation_id,
+        status: UserStatus.PENDING,
+      });
+
+      if (!invitation.output) {
+        return { valid: false };
+      }
+
+      // Check if user already exists
+      const existingUsers = await UserModel.get({
+        email: decoded.email,
+        status: UserStatus.ACTIVE,
+      });
+
+      const userExists = existingUsers.output.length > 0;
+
+      // Get company details
+      const company = await CompanyModel.getOne({
+        id: decoded.company_id,
+      });
+
+      return {
+        valid: true,
+        invitation_id: decoded.invitation_id,
+        email: decoded.email,
+        company: {
+          id: company.output.id,
+          name: company.output.name,
+          country: company.output.country,
+        },
+        role: decoded.role,
+        user_exists: userExists,
+        existing_companies: userExists ? existingUsers.output.length : 0,
+      };
+    } catch (error) {
+      return { valid: false };
+    }
+  }
+
+  async acceptInvitation(
+    dto: AcceptInvitationDto
+  ): Promise<AcceptInvitationResponseDto> {
+    // Validate invitation token
+    const validation = await this.validateInvitationToken({ token: dto.token });
+
+    if (!validation.valid) {
+      throw new BadRequestException("Invalid or expired invitation");
+    }
+
+    const { invitation_id, email, company, role, user_exists } = validation;
+
+    if (user_exists) {
+      // Case 2: Existing user - require authentication
+      if (!dto.password) {
+        throw new BadRequestException("Password required for existing users");
+      }
+
+      const user = await UserModel.getOne({
+        email: email,
+        status: UserStatus.ACTIVE,
+      });
+
+      if (!user.output) {
+        throw new BadRequestException("User account not found");
+      }
+
+      // Verify password
+      const isValidPassword = await bcrypt.compare(
+        dto.password,
+        user.output.password
+      );
+
+      if (!isValidPassword) {
+        throw new BadRequestException("Invalid password");
+      }
+
+      // Check if user already belongs to this company
+      const existingMembership = await UserCompanyRoleModel.getOne({
+        user_id: user.output.id,
+        company_id: company.id,
+      });
+
+      if (existingMembership.output) {
+        throw new BadRequestException("User already belongs to this company");
+      }
+
+      // Add user to new company
+      const roleRecord = await RoleModel.getOne({ name: role });
+      await UserCompanyRoleModel.create({
+        user_id: user.output.id,
+        company_id: company.id,
+        role_id: roleRecord.output.id,
+      });
+
+      // Mark invitation as used
+      await UserModel.update(invitation_id, {
+        status: UserStatus.INACTIVE,
+      });
+
+      // Generate access token for the new company
+      const payload = {
+        sub: user.output.id,
+        email: user.output.email,
+        companyId: company.id,
+        roles: [role],
+      };
+
+      const accessToken = this.jwtService.sign(payload, {
+        expiresIn: "1h",
+      });
+
+      return {
+        success: true,
+        message: `Successfully joined ${company.name}`,
+        access_token: accessToken,
+        user: await this.mapToResponseDto(user.output),
+        company: company,
+        redirect_to: "dashboard",
+      };
+    } else {
+      // Case 1: New user - redirect to registration
+      return {
+        success: true,
+        message: "Please complete your registration",
+        company: company,
+        redirect_to: "register",
+      };
+    }
+  }
+
+  async registerWithInvitation(
+    dto: RegisterWithInvitationDto
+  ): Promise<LoginSuccessResponseDto> {
+    // Validate invitation token
+    const validation = await this.validateInvitationToken({
+      token: dto.invitation_token,
+    });
+
+    if (!validation.valid || validation.user_exists) {
+      throw new BadRequestException("Invalid invitation");
+    }
+
+    // Create new user account
+    const hashedPassword = await bcrypt.hash(dto.password, 12);
+
+    const newUser = await UserModel.create({
+      email: validation.email,
+      full_name: dto.full_name,
+      password: hashedPassword,
+      status: UserStatus.ACTIVE,
+    });
+
+    // Assign role to company
+    const roleRecord = await RoleModel.getOne({ name: validation.role });
+    await UserCompanyRoleModel.create({
+      user_id: newUser.output.id,
+      company_id: validation.company.id,
+      role_id: roleRecord.output.id,
+    });
+
+    // Mark invitation as used
+    await UserModel.update(validation.invitation_id, {
+      status: UserStatus.INACTIVE,
+    });
+
+    // Generate access token
+    const payload = {
+      sub: newUser.output.id,
+      email: newUser.output.email,
+      companyId: validation.company.id,
+      roles: [validation.role],
+    };
+
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: "1h",
+    });
+
+    // Get onboarding steps
+    const result = await OnboardingStepModel.get({
+      company_id: validation.company.id,
+    });
+    const steps = result.output || [];
+    const totalCount: number = steps.length;
+    const completedCount: number = steps.filter(
+      (step: any) => step.status === "COMPLETED"
+    ).length;
+
+    return {
+      success: true,
+      message: "Account created successfully",
+      access_token: accessToken,
+      user: await this.mapToResponseDto(newUser.output),
+      company: {
+        id: validation.company.id,
+        name: validation.company.name,
+        country: validation.company.country,
+        onboarding_is_completed: completedCount === totalCount,
+      },
+      redirect_to: "dashboard",
+    };
   }
 }

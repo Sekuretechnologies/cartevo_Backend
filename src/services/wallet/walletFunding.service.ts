@@ -293,7 +293,7 @@ export const fundWallet = async (
     // Get wallet details
     const walletResult = await getWalletDetails(walletId);
     if (walletResult.error) {
-      return walletResult;
+      throw walletResult.error;
     }
 
     const wallet = walletResult.output;
