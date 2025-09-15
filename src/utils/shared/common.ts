@@ -398,7 +398,7 @@ export const getFormattedDate = (
     // const month = `0${entry.getMonth() + 1}`.slice(-2);
     // const day = `0${entry.getDate()}`.slice(-2);
 
-    return lang == "fr" ? `${day}/${month}/${year}` : `${day}/${month}/${year}`;
+    return lang == "fr" ? `${day}/${month}/${year}` : `${day}-${month}-${year}`;
   }
   return "";
 };
