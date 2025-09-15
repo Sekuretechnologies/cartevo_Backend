@@ -1,3 +1,4 @@
+import env from "@/env";
 import axios from "axios";
 
 export interface MapleradApiResponse<T = any> {
@@ -69,13 +70,21 @@ export class MapleradUtils {
 
   private static getAxiosInstance(): any {
     if (!this.axiosInstance) {
-      const baseURL =
-        process.env.MAPLERAD_BASE_URL || "https://api.maplerad.com/v1";
-      const secretKey = process.env.MAPLERAD_SECRET_KEY;
+      const baseURL = env.MAPLERAD_BASE_URL || "https://api.maplerad.com";
+      const secretKey = env.MAPLERAD_SECRET_KEY;
 
       if (!secretKey) {
         throw new Error("MAPLERAD_SECRET_KEY environment variable is required");
       }
+
+      console.log("getAxiosInstance :: ", {
+        baseURL,
+        headers: {
+          Authorization: `Bearer ${secretKey}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      });
 
       this.axiosInstance = axios.create({
         baseURL,
