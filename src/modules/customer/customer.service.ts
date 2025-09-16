@@ -15,6 +15,7 @@ import { v4 as uuidv4 } from "uuid";
 import { FirebaseService } from "@/services/firebase.service";
 import { EmailService } from "@/services/email.service";
 import { CardSyncService } from "@/modules/maplerad/services/card.sync.service";
+import CustomerProviderMappingModel from "@/models/prisma/customerProviderMappingModel";
 
 @Injectable()
 export class CustomerService {
@@ -207,8 +208,12 @@ export class CustomerService {
       throw new NotFoundException(customersResult.error.message);
     }
     const customers = customersResult.output;
+
+    // Fetch provider mappings for all customers
+    const customersWithMappings = await this.attachProviderMappings(customers);
+
     return {
-      data: customers, // customers.map((customer) => this.mapToResponseDto(customer)),
+      data: customersWithMappings,
     };
   }
 
@@ -236,8 +241,12 @@ export class CustomerService {
       throw new NotFoundException(customersResult.error.message);
     }
     const customers = customersResult.output;
+
+    // Fetch provider mappings for all customers
+    const customersWithMappings = await this.attachProviderMappings(customers);
+
     return {
-      data: customers, // customers.map((customer) => this.mapToResponseDto(customer)),
+      data: customersWithMappings,
     };
   }
 
@@ -251,7 +260,11 @@ export class CustomerService {
       throw new NotFoundException("Customer not found");
     }
     const customer = customerResult.output;
-    return { data: customer }; //this.mapToResponseDto(customer)
+
+    // Fetch provider mappings for this customer
+    const customersWithMappings = await this.attachProviderMappings([customer]);
+
+    return { data: customersWithMappings[0] };
   }
 
   async findCustomerCards(
@@ -285,6 +298,47 @@ export class CustomerService {
     }
     const customerTransactions = customerTransactionsResult.output;
     return { data: customerTransactions };
+  }
+
+  /**
+   * Attach provider mappings to customer data
+   */
+  private async attachProviderMappings(customers: any[]): Promise<any[]> {
+    if (!customers || customers.length === 0) {
+      return customers;
+    }
+
+    // Get all customer IDs
+    const customerIds = customers.map((customer) => customer.id);
+
+    // Fetch provider mappings for all customers in batch
+    const mappingsResult = await CustomerProviderMappingModel.get({
+      customer_id: { in: customerIds },
+      is_active: true,
+    });
+
+    const mappings = mappingsResult.output || [];
+
+    // Create a map of customer_id to their provider mappings
+    const mappingsMap = new Map();
+    for (const mapping of mappings) {
+      if (!mappingsMap.has(mapping.customer_id)) {
+        mappingsMap.set(mapping.customer_id, []);
+      }
+      mappingsMap.get(mapping.customer_id).push({
+        provider_name: mapping.provider_name,
+        provider_customer_id: mapping.provider_customer_id,
+        // created_at: mapping.created_at,
+        // updated_at: mapping.updated_at,
+      });
+    }
+
+    // Attach mappings to each customer
+    return customers.map((customer) => ({
+      ...customer,
+      provider_customer_id: mappingsMap.get(customer.id)?.provider_customer_id,
+      provider_mappings: mappingsMap.get(customer.id) || [],
+    }));
   }
 
   private mapToResponseDto(customer: any): CustomerResponseDto {
