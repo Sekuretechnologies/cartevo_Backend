@@ -603,7 +603,7 @@ export class CardIssuanceService {
     const usdWalletResult = await WalletModel.getOne({
       company_id: companyId,
       currency: "USD",
-      active: true,
+      is_active: true,
     });
 
     if (usdWalletResult.error || !usdWalletResult.output) {
@@ -1102,7 +1102,7 @@ export class CardIssuanceService {
     const usdWalletResult = await WalletModel.getOne({
       company_id: company.id,
       currency: "USD",
-      active: true,
+      is_active: true,
     });
     if (usdWalletResult.error || !usdWalletResult.output) {
       throw new BadRequestException(
@@ -1333,7 +1333,7 @@ export class CardIssuanceService {
     const usdWalletResult = await WalletModel.getOne({
       company_id: companyId,
       currency: "USD",
-      active: true,
+      is_active: true,
     });
 
     if (usdWalletResult.output) {

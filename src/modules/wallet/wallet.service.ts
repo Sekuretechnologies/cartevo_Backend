@@ -56,7 +56,7 @@ export class WalletService {
       const walletData = {
         ...data,
         balance: 0,
-        active: true,
+        is_active: true,
         company_id: companyId,
       };
       console.log("createWallet ----------------------------------");

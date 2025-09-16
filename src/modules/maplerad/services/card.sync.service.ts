@@ -978,7 +978,7 @@ export class CardSyncService {
     const usdWalletResult = await WalletModel.getOne({
       company_id: companyId,
       currency: "USD",
-      active: true,
+      is_active: true,
     });
 
     if (usdWalletResult.output) {

@@ -110,7 +110,7 @@ if (existingCards >= 5) {
 const usdWallet = await WalletModel.getOne({
   company_id: user.companyId,
   currency: "USD",
-  active: true,
+  is_active: true,
 });
 
 // Calculate total cost
