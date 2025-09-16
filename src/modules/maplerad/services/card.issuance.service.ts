@@ -833,8 +833,9 @@ export class CardIssuanceService {
     const cardData = {
       customer_id: mapleradCustomerId,
       currency: "USD",
-      type: "virtual",
+      type: "VIRTUAL",
       brand: mapleradBrand,
+      auto_approve: true,
       amount: Math.round(dto.amount * 100), // Convert to cents
     };
 

@@ -66,6 +66,15 @@ export interface MapleradCardData {
   amount: number;
 }
 
+export interface MapleradCreateCardData {
+  customer_id: string; // ID du customer (requis)
+  currency: string; // Devise (requis) - USD pour cartes virtuelles
+  type: string; // Type de carte (requis) - VIRTUAL
+  auto_approve: boolean; // Auto-approve (requis) - doit être true
+  brand?: string; // Brand optionnel - VISA ou MASTERCARD (défaut: VISA)
+  amount?: number; // Montant de pré-financement en centimes (défaut: 200 = $2.00)
+}
+
 export class MapleradUtils {
   private static axiosInstance: any;
 
@@ -264,26 +273,14 @@ export class MapleradUtils {
    * Create a virtual card in Maplerad
    */
   static async createCard(
-    cardData: MapleradCardData
+    cardData: MapleradCreateCardData
   ): Promise<MapleradApiResponse> {
     try {
-      console.log("📤 Creating Maplerad card:", {
-        customerId: cardData.customer_id,
-        brand: cardData.brand,
-        amount: cardData.amount,
-      });
-
-      const payload = {
-        customer_id: cardData.customer_id,
-        currency: cardData.currency,
-        type: cardData.type,
-        brand: cardData.brand,
-        amount: cardData.amount,
-      };
+      console.log("📤 Creating Maplerad card:", cardData);
 
       const response: any = await this.getAxiosInstance().post(
         "/issuing",
-        payload
+        cardData
       );
 
       console.log("✅ Maplerad card created:", response.data);
