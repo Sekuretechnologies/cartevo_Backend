@@ -5,6 +5,7 @@ import { PrismaModule } from "../prisma/prisma.module";
 import { CardOperationsController } from "./controllers/card.controller";
 import { WebhookManagementController } from "./controllers/webhook.controller";
 import { SyncOperationsController } from "./controllers/sync.controller";
+import { WalletController } from "./controllers/wallet.controller";
 
 // 🎣 MONIX-STYLE: Modular Webhook Services
 import { MapleradWebhookService } from "./services/maplerad-webhook.service";
@@ -28,6 +29,7 @@ import { CardSyncTransactionService } from "./services/card.sync.transaction.ser
     CardOperationsController, // 💳 Card operations
     WebhookManagementController, // 🎣 Webhook management
     SyncOperationsController, // 🔄 Sync operations
+    WalletController, // 💰 Wallet operations
   ],
   providers: [
     // 🎣 MONIX-STYLE Webhook Services

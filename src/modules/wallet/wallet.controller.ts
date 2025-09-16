@@ -15,7 +15,13 @@ import {
   IWalletWithdrawal,
   withdrawFromWallet,
 } from "@/services/wallet/walletWithdrawal.service";
-import { ApiBearerAuth, ApiTags, ApiProperty } from "@nestjs/swagger";
+import {
+  ApiBearerAuth,
+  ApiTags,
+  ApiProperty,
+  ApiOperation,
+  ApiResponse,
+} from "@nestjs/swagger";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import {
   CurrentBusiness,
@@ -32,8 +38,10 @@ import {
   IsObject,
   ValidateNested,
   Min,
+  IsBoolean,
 } from "class-validator";
 import { Type } from "class-transformer";
+import { WalletTestService } from "./wallet-test.service";
 
 export interface DepositToWalletSubmitProps {
   sourceWallet: {
@@ -194,7 +202,10 @@ export interface IWalletUpdate {
 @UseGuards(JwtAuthGuard)
 @Controller("wallets")
 export class WalletController {
-  constructor(private readonly walletService: WalletService) {}
+  constructor(
+    private readonly walletService: WalletService,
+    private readonly walletTestService: WalletTestService
+  ) {}
 
   @Post()
   async createWallet(
@@ -282,5 +293,57 @@ export class WalletController {
     @Param("walletId") walletId: string
   ) {
     return this.walletService.getWalletBalance(user.companyId, walletId);
+  }
+
+  /**
+   * Credit test wallets (Company USD wallet + Maplerad test wallet)
+   * Only works in sandbox mode for security
+   */
+  @Post("credit-test-wallet")
+  @ApiOperation({
+    summary: "Credit test wallet",
+    description: "Credits the company USD wallet. Only works in sandbox mode.",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Test wallets credited successfully",
+    schema: {
+      type: "object",
+      properties: {
+        success: { type: "boolean", example: true },
+        message: {
+          type: "string",
+          example: "Test wallets credited successfully",
+        },
+        companyWallet: {
+          type: "object",
+          properties: {
+            walletId: { type: "string" },
+            previousBalance: { type: "number" },
+            newBalance: { type: "number" },
+            creditedAmount: { type: "number" },
+          },
+        },
+        timestamp: { type: "string", format: "date-time" },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Bad request - Invalid parameters or not in sandbox mode",
+  })
+  @ApiResponse({
+    status: 500,
+    description: "Internal server error",
+  })
+  async creditTestWallet(
+    @CurrentUser() user: CurrentUserData,
+    @Body() body: { amount: number; currency?: string; sandbox: boolean }
+  ) {
+    return this.walletTestService.creditTestWallet(
+      user.companyId,
+      user.userId,
+      body
+    );
   }
 }

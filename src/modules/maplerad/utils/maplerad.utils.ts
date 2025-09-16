@@ -626,4 +626,45 @@ export class MapleradUtils {
       };
     }
   }
+
+  /**
+   * Credit test wallet
+   */
+  static async creditTestWallet(
+    amount: number,
+    currency: string = "USD"
+  ): Promise<MapleradApiResponse> {
+    try {
+      console.log("📤 Crediting Maplerad test wallet:", { amount, currency });
+
+      const payload = {
+        amount: Math.round(amount * 100), // Convert to cents
+        currency: currency.toUpperCase(),
+      };
+
+      const response: any = await this.getAxiosInstance().post(
+        "/test/wallet/credit",
+        payload
+      );
+
+      console.log("✅ Maplerad test wallet credited:", response.data);
+
+      return {
+        output: response.data,
+      };
+    } catch (error: any) {
+      console.error("❌ Maplerad test wallet credit error:", error);
+
+      return {
+        error: {
+          message:
+            error.response?.data?.message ||
+            error.message ||
+            "Failed to credit test wallet",
+          details: error.response?.data,
+          payload: error.config?.data,
+        },
+      };
+    }
+  }
 }
