@@ -2,6 +2,7 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
+  Logger,
 } from "@nestjs/common";
 import CardModel from "@/models/prisma/cardModel";
 import CompanyModel from "@/models/prisma/companyModel";
@@ -19,6 +20,8 @@ import CustomerProviderMappingModel from "@/models/prisma/customerProviderMappin
 
 @Injectable()
 export class CustomerService {
+  private readonly logger = new Logger(CustomerService.name);
+
   constructor(
     private firebaseService: FirebaseService,
     private cardSyncService: CardSyncService
@@ -188,29 +191,85 @@ export class CustomerService {
     companyId: string,
     sync: boolean = false
   ): Promise<{ data: any[] }> {
+    this.logger.log(`🔍 CUSTOMER RETRIEVAL - START`, {
+      companyId,
+      sync,
+      timestamp: new Date().toISOString(),
+    });
+
     // Sync customers with provider before returning if requested
     if (sync) {
+      this.logger.log(`🔄 CUSTOMER SYNC REQUESTED`, {
+        companyId,
+        syncType: "customers",
+        timestamp: new Date().toISOString(),
+      });
+
       try {
+        const syncStartTime = Date.now();
         await this.cardSyncService.syncCustomers(companyId, { force: false });
+        const syncDuration = Date.now() - syncStartTime;
+
+        this.logger.log(`✅ CUSTOMER SYNC COMPLETED`, {
+          companyId,
+          duration: `${syncDuration}ms`,
+          timestamp: new Date().toISOString(),
+        });
       } catch (syncError) {
-        console.warn(
-          "Customer sync failed, proceeding with local data:",
-          syncError.message
-        );
+        this.logger.error(`❌ CUSTOMER SYNC FAILED`, {
+          companyId,
+          error: syncError.message,
+          timestamp: new Date().toISOString(),
+        });
+
+        this.logger.warn(`⚠️ PROCEEDING WITH LOCAL DATA`, {
+          companyId,
+          reason: "Sync failed, using cached data",
+          timestamp: new Date().toISOString(),
+        });
       }
     }
+
+    this.logger.log(`📊 FETCHING CUSTOMERS FROM DATABASE`, {
+      companyId,
+      timestamp: new Date().toISOString(),
+    });
 
     const customersResult = await CustomerModel.get({
       company_id: companyId,
       is_active: true,
     });
+
     if (customersResult.error) {
+      this.logger.error(`❌ DATABASE QUERY FAILED`, {
+        companyId,
+        error: customersResult.error.message,
+        timestamp: new Date().toISOString(),
+      });
       throw new NotFoundException(customersResult.error.message);
     }
+
     const customers = customersResult.output;
+    this.logger.log(`📈 CUSTOMERS RETRIEVED`, {
+      companyId,
+      customerCount: customers.length,
+      timestamp: new Date().toISOString(),
+    });
 
     // Fetch provider mappings for all customers
+    this.logger.log(`🔗 ATTACHING PROVIDER MAPPINGS`, {
+      companyId,
+      customerCount: customers.length,
+      timestamp: new Date().toISOString(),
+    });
+
     const customersWithMappings = await this.attachProviderMappings(customers);
+
+    this.logger.log(`✅ CUSTOMER RETRIEVAL COMPLETED`, {
+      companyId,
+      totalCustomers: customersWithMappings.length,
+      timestamp: new Date().toISOString(),
+    });
 
     return {
       data: customersWithMappings,
@@ -221,29 +280,85 @@ export class CustomerService {
     companyId: string,
     sync: boolean = false
   ): Promise<{ data: any[] }> {
+    this.logger.log(`🔍 CUSTOMER WITH CARD COUNT RETRIEVAL - START`, {
+      companyId,
+      sync,
+      timestamp: new Date().toISOString(),
+    });
+
     // Sync customers with provider before returning if requested
     if (sync) {
+      this.logger.log(`🔄 CUSTOMER SYNC REQUESTED`, {
+        companyId,
+        syncType: "customers_with_card_count",
+        timestamp: new Date().toISOString(),
+      });
+
       try {
+        const syncStartTime = Date.now();
         await this.cardSyncService.syncCustomers(companyId, { force: false });
+        const syncDuration = Date.now() - syncStartTime;
+
+        this.logger.log(`✅ CUSTOMER SYNC COMPLETED`, {
+          companyId,
+          duration: `${syncDuration}ms`,
+          timestamp: new Date().toISOString(),
+        });
       } catch (syncError) {
-        console.warn(
-          "Customer sync failed, proceeding with local data:",
-          syncError.message
-        );
+        this.logger.error(`❌ CUSTOMER SYNC FAILED`, {
+          companyId,
+          error: syncError.message,
+          timestamp: new Date().toISOString(),
+        });
+
+        this.logger.warn(`⚠️ PROCEEDING WITH LOCAL DATA`, {
+          companyId,
+          reason: "Sync failed, using cached data",
+          timestamp: new Date().toISOString(),
+        });
       }
     }
+
+    this.logger.log(`📊 FETCHING CUSTOMERS WITH CARD COUNT FROM DATABASE`, {
+      companyId,
+      timestamp: new Date().toISOString(),
+    });
 
     const customersResult = await CustomerModel.getCustomersWithCardCount({
       company_id: companyId,
       is_active: true,
     });
+
     if (customersResult.error) {
+      this.logger.error(`❌ DATABASE QUERY FAILED`, {
+        companyId,
+        error: customersResult.error.message,
+        timestamp: new Date().toISOString(),
+      });
       throw new NotFoundException(customersResult.error.message);
     }
+
     const customers = customersResult.output;
+    this.logger.log(`📈 CUSTOMERS WITH CARD COUNT RETRIEVED`, {
+      companyId,
+      customerCount: customers.length,
+      timestamp: new Date().toISOString(),
+    });
 
     // Fetch provider mappings for all customers
+    this.logger.log(`🔗 ATTACHING PROVIDER MAPPINGS`, {
+      companyId,
+      customerCount: customers.length,
+      timestamp: new Date().toISOString(),
+    });
+
     const customersWithMappings = await this.attachProviderMappings(customers);
+
+    this.logger.log(`✅ CUSTOMER WITH CARD COUNT RETRIEVAL COMPLETED`, {
+      companyId,
+      totalCustomers: customersWithMappings.length,
+      timestamp: new Date().toISOString(),
+    });
 
     return {
       data: customersWithMappings,
@@ -251,18 +366,58 @@ export class CustomerService {
   }
 
   async findOne(companyId: string, customerId: string): Promise<{ data: any }> {
+    this.logger.log(`🔍 SINGLE CUSTOMER RETRIEVAL - START`, {
+      companyId,
+      customerId,
+      timestamp: new Date().toISOString(),
+    });
+
+    this.logger.log(`📊 FETCHING SINGLE CUSTOMER FROM DATABASE`, {
+      companyId,
+      customerId,
+      timestamp: new Date().toISOString(),
+    });
+
     const customerResult = await CustomerModel.getOne({
       id: customerId,
       company_id: companyId,
       is_active: true,
     });
+
     if (customerResult.error || !customerResult.output) {
+      this.logger.error(`❌ CUSTOMER NOT FOUND`, {
+        companyId,
+        customerId,
+        error: customerResult.error?.message || "Customer not found",
+        timestamp: new Date().toISOString(),
+      });
       throw new NotFoundException("Customer not found");
     }
+
     const customer = customerResult.output;
+    this.logger.log(`📈 CUSTOMER RETRIEVED`, {
+      companyId,
+      customerId,
+      customerEmail: customer.email,
+      timestamp: new Date().toISOString(),
+    });
 
     // Fetch provider mappings for this customer
+    this.logger.log(`🔗 ATTACHING PROVIDER MAPPINGS`, {
+      companyId,
+      customerId,
+      timestamp: new Date().toISOString(),
+    });
+
     const customersWithMappings = await this.attachProviderMappings([customer]);
+
+    this.logger.log(`✅ SINGLE CUSTOMER RETRIEVAL COMPLETED`, {
+      companyId,
+      customerId,
+      hasProviderMappings:
+        customersWithMappings[0]?.provider_mappings?.length > 0,
+      timestamp: new Date().toISOString(),
+    });
 
     return { data: customersWithMappings[0] };
   }
@@ -304,20 +459,43 @@ export class CustomerService {
    * Attach provider mappings to customer data
    */
   private async attachProviderMappings(customers: any[]): Promise<any[]> {
+    this.logger.log(`🔗 PROVIDER MAPPING ATTACHMENT - START`, {
+      customerCount: customers?.length || 0,
+      timestamp: new Date().toISOString(),
+    });
+
     if (!customers || customers.length === 0) {
+      this.logger.log(`⚠️ NO CUSTOMERS TO PROCESS`, {
+        reason: "Empty or null customers array",
+        timestamp: new Date().toISOString(),
+      });
       return customers;
     }
 
     // Get all customer IDs
     const customerIds = customers.map((customer) => customer.id);
+    this.logger.log(`📋 EXTRACTED CUSTOMER IDS`, {
+      customerIds: customerIds.slice(0, 5), // Log first 5 IDs
+      totalIds: customerIds.length,
+      timestamp: new Date().toISOString(),
+    });
 
     // Fetch provider mappings for all customers in batch
+    this.logger.log(`🔍 FETCHING PROVIDER MAPPINGS FROM DATABASE`, {
+      customerCount: customerIds.length,
+      timestamp: new Date().toISOString(),
+    });
+
     const mappingsResult = await CustomerProviderMappingModel.get({
       customer_id: { in: customerIds },
       is_active: true,
     });
 
     const mappings = mappingsResult.output || [];
+    this.logger.log(`📊 PROVIDER MAPPINGS RETRIEVED`, {
+      totalMappings: mappings.length,
+      timestamp: new Date().toISOString(),
+    });
 
     // Create a map of customer_id to their provider mappings
     const mappingsMap = new Map();
@@ -333,12 +511,36 @@ export class CustomerService {
       });
     }
 
+    this.logger.log(`🗺️ CREATED PROVIDER MAPPINGS MAP`, {
+      mappedCustomers: mappingsMap.size,
+      totalMappings: mappings.length,
+      timestamp: new Date().toISOString(),
+    });
+
     // Attach mappings to each customer
-    return customers.map((customer) => ({
-      ...customer,
-      provider_customer_id: mappingsMap.get(customer.id)?.provider_customer_id,
-      provider_mappings: mappingsMap.get(customer.id) || [],
-    }));
+    const customersWithMappings = customers.map((customer) => {
+      const customerMappings = mappingsMap.get(customer.id) || [];
+      return {
+        ...customer,
+        provider_customer_id: customerMappings[0]?.provider_customer_id,
+        provider_mappings: customerMappings,
+      };
+    });
+
+    // Log summary statistics
+    const customersWithMappingsCount = customersWithMappings.filter(
+      (c) => c.provider_mappings.length > 0
+    ).length;
+
+    this.logger.log(`✅ PROVIDER MAPPING ATTACHMENT COMPLETED`, {
+      totalCustomers: customers.length,
+      customersWithMappings: customersWithMappingsCount,
+      customersWithoutMappings: customers.length - customersWithMappingsCount,
+      totalMappingsAttached: mappings.length,
+      timestamp: new Date().toISOString(),
+    });
+
+    return customersWithMappings;
   }
 
   private mapToResponseDto(customer: any): CustomerResponseDto {
