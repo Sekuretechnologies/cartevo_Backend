@@ -14,10 +14,14 @@ import { IdentificationType } from "@prisma/client";
 import { v4 as uuidv4 } from "uuid";
 import { FirebaseService } from "@/services/firebase.service";
 import { EmailService } from "@/services/email.service";
+import { CardSyncService } from "@/modules/maplerad/services/card.sync.service";
 
 @Injectable()
 export class CustomerService {
-  constructor(private firebaseService: FirebaseService) {}
+  constructor(
+    private firebaseService: FirebaseService,
+    private cardSyncService: CardSyncService
+  ) {}
 
   async create(
     companyId: string,
@@ -179,7 +183,22 @@ export class CustomerService {
     return this.mapToResponseDto(updatedCustomer);
   }
 
-  async findAllByCompany(companyId: string): Promise<{ data: any[] }> {
+  async findAllByCompany(
+    companyId: string,
+    sync: boolean = false
+  ): Promise<{ data: any[] }> {
+    // Sync customers with provider before returning if requested
+    if (sync) {
+      try {
+        await this.cardSyncService.syncCustomers(companyId, { force: false });
+      } catch (syncError) {
+        console.warn(
+          "Customer sync failed, proceeding with local data:",
+          syncError.message
+        );
+      }
+    }
+
     const customersResult = await CustomerModel.get({
       company_id: companyId,
       is_active: true,
@@ -194,8 +213,21 @@ export class CustomerService {
   }
 
   async findAllCustomersWithCardCountByCompany(
-    companyId: string
+    companyId: string,
+    sync: boolean = false
   ): Promise<{ data: any[] }> {
+    // Sync customers with provider before returning if requested
+    if (sync) {
+      try {
+        await this.cardSyncService.syncCustomers(companyId, { force: false });
+      } catch (syncError) {
+        console.warn(
+          "Customer sync failed, proceeding with local data:",
+          syncError.message
+        );
+      }
+    }
+
     const customersResult = await CustomerModel.getCustomersWithCardCount({
       company_id: companyId,
       is_active: true,

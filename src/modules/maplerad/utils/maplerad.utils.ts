@@ -186,6 +186,81 @@ export class MapleradUtils {
   }
 
   /**
+   * Get customers
+   */
+  static async getCustomers(
+    includeSensitive: boolean = false
+  ): Promise<MapleradApiResponse> {
+    try {
+      console.log("📤 Getting Maplerad card:", { includeSensitive });
+
+      const params = includeSensitive ? { include_sensitive: "true" } : {};
+
+      const response: any = await this.getAxiosInstance().get(`/customers`, {
+        params,
+      });
+
+      console.log("✅ Maplerad customers retrieved:", response.data);
+
+      return {
+        output: response.data,
+      };
+    } catch (error: any) {
+      console.error("❌ Maplerad customers retrieval error:", error);
+
+      return {
+        error: {
+          message:
+            error.response?.data?.message ||
+            error.message ||
+            "Failed to get customers",
+          details: error.response?.data,
+        },
+      };
+    }
+  }
+
+  /**
+   * Get one customer
+   */
+  static async getOneCustomer(
+    customerId: string,
+    includeSensitive: boolean = false
+  ): Promise<MapleradApiResponse> {
+    try {
+      console.log("📤 Getting Maplerad customer:", {
+        customerId,
+        includeSensitive,
+      });
+
+      const params = includeSensitive ? { include_sensitive: "true" } : {};
+
+      const response: any = await this.getAxiosInstance().get(
+        `/customers/${customerId}`,
+        { params }
+      );
+
+      console.log("✅ Maplerad customer retrieved:", response.data);
+
+      return {
+        output: response.data,
+      };
+    } catch (error: any) {
+      console.error("❌ Maplerad customer retrieval error:", error);
+
+      return {
+        error: {
+          message:
+            error.response?.data?.message ||
+            error.message ||
+            "Failed to get customer",
+          details: error.response?.data,
+        },
+      };
+    }
+  }
+
+  /**
    * Create a virtual card in Maplerad
    */
   static async createCard(

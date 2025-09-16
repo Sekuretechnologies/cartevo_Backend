@@ -18,6 +18,8 @@ import TransactionModel from "@/models/prisma/transactionModel";
 import WalletModel from "@/models/prisma/walletModel";
 import CustomerLogsModel from "@/models/prisma/customerLogsModel";
 import BalanceTransactionRecordModel from "@/models/prisma/balanceTransactionRecordModel";
+import ProviderSyncMetadataModel from "@/models/prisma/providerSyncMetadataModel";
+import CustomerProviderMappingModel from "@/models/prisma/customerProviderMappingModel";
 import { v4 as uuidv4 } from "uuid";
 import { decodeText, encodeText } from "@/utils/shared/encryption";
 import { utcToLocalTime } from "@/utils/date";
@@ -39,7 +41,7 @@ export class CardSyncService {
    */
   async syncCard(
     cardId: string,
-    user: CurrentUserData,
+    companyId: string,
     options?: {
       force?: boolean;
       includeSensitive?: boolean;
@@ -47,17 +49,17 @@ export class CardSyncService {
   ): Promise<any> {
     this.logger.log("🔄 ADVANCED CARD SYNC FLOW - START", {
       cardId,
-      userId: user.userId,
+      companyId,
       options,
       timestamp: new Date().toISOString(),
     });
 
     try {
       // 1. Validate card ownership
-      const card = await this.validateCardAccess(cardId, user);
+      const card = await this.validateCardAccess(cardId, companyId);
 
       // 2. Check if sync is needed (unless forced)
-      if (!options?.force && !this.isSyncNeeded(card)) {
+      if (!options?.force && !(await this.isSyncNeeded(card, companyId))) {
         return {
           success: true,
           message: "Card is already up to date",
@@ -80,13 +82,16 @@ export class CardSyncService {
       const terminationResult = await this.handleTerminationRefundIfNeeded(
         card,
         mapleradData,
-        user.companyId
+        companyId
       );
 
       // 6. Apply changes to local database
       const updateResult = await this.applyCardChanges(cardId, changes);
 
-      // 7. Log sync operation
+      // 7. Update sync metadata
+      await this.updateSyncMetadata(companyId, "maplerad", "cards");
+
+      // 8. Log sync operation
       await this.logCardSync(
         cardId,
         card.customer_id,
@@ -113,7 +118,7 @@ export class CardSyncService {
       this.logger.error("❌ ADVANCED CARD SYNC FAILED", {
         cardId,
         error: error.message,
-        userId: user.userId,
+        companyId,
       });
       throw new BadRequestException(`Card sync failed: ${error.message}`);
     }
@@ -124,7 +129,7 @@ export class CardSyncService {
    */
   async syncCustomerCards(
     customerId: string,
-    user: CurrentUserData,
+    companyId: string,
     options?: {
       force?: boolean;
       maxConcurrency?: number;
@@ -132,19 +137,19 @@ export class CardSyncService {
   ): Promise<any> {
     this.logger.log("👤🔄 ADVANCED CUSTOMER CARDS SYNC FLOW - START", {
       customerId,
-      userId: user.userId,
+      companyId,
       options,
       timestamp: new Date().toISOString(),
     });
 
     try {
       // 1. Validate customer ownership
-      const customer = await this.validateCustomerAccess(customerId, user);
+      const customer = await this.validateCustomerAccess(customerId, companyId);
 
       // 2. Get all customer cards
       const cardsResult = await CardModel.get({
         customer_id: customerId,
-        company_id: user.companyId,
+        company_id: companyId,
       });
 
       if (cardsResult.error) {
@@ -166,12 +171,15 @@ export class CardSyncService {
       const maxConcurrency = options?.maxConcurrency || 3;
       const results = await this.syncCardsConcurrently(
         cards,
-        user,
+        companyId,
         options?.force,
         maxConcurrency
       );
 
-      // 4. Calculate summary statistics
+      // 4. Update sync metadata
+      await this.updateSyncMetadata(companyId, "maplerad", "cards");
+
+      // 5. Calculate summary statistics
       const summary = this.calculateSyncSummary(results);
 
       this.logger.log("✅ ADVANCED CUSTOMER CARDS SYNC FLOW - COMPLETED", {
@@ -194,7 +202,7 @@ export class CardSyncService {
       this.logger.error("❌ ADVANCED CUSTOMER CARDS SYNC FAILED", {
         customerId,
         error: error.message,
-        userId: user.userId,
+        companyId,
       });
       throw new BadRequestException(
         `Customer cards sync failed: ${error.message}`
@@ -203,10 +211,119 @@ export class CardSyncService {
   }
 
   /**
+   * Sync customers with provider (lightweight sync for provider_customer_id mapping)
+   */
+  async syncCustomers(
+    companyId: string,
+    options?: {
+      force?: boolean;
+      startDate?: Date;
+      maxConcurrency?: number;
+    }
+  ): Promise<any> {
+    this.logger.log("👥🔄 CUSTOMER SYNC FLOW - START", {
+      companyId,
+      options,
+      timestamp: new Date().toISOString(),
+    });
+
+    try {
+      // 1. Check if sync is needed
+      const lastSyncDate = await ProviderSyncMetadataModel.getLastSyncDate(
+        companyId,
+        "maplerad",
+        "customers"
+      );
+
+      if (!options?.force && lastSyncDate) {
+        const hoursSinceLastSync =
+          (new Date().getTime() - lastSyncDate.getTime()) / (1000 * 60 * 60);
+
+        if (hoursSinceLastSync < 1) {
+          return {
+            success: true,
+            message: "Customer sync not needed - recently synced",
+            last_sync: lastSyncDate,
+            skipped: true,
+          };
+        }
+      }
+
+      // 2. Fetch customers from Maplerad
+      const mapleradCustomersResult = await MapleradUtils.getCustomers();
+
+      if (mapleradCustomersResult.error) {
+        throw new BadRequestException(
+          `Failed to fetch customers from Maplerad: ${mapleradCustomersResult.error.message}`
+        );
+      }
+
+      const mapleradCustomers = mapleradCustomersResult.output?.data || [];
+
+      if (mapleradCustomers.length === 0) {
+        return {
+          success: true,
+          message: "No customers found in Maplerad",
+          customers_processed: 0,
+        };
+      }
+
+      // 3. Get local customers for this company
+      const localCustomersResult = await CustomerModel.get({
+        company_id: companyId,
+      });
+
+      if (localCustomersResult.error) {
+        throw new BadRequestException("Failed to retrieve company customers");
+      }
+
+      const localCustomers = localCustomersResult.output || [];
+
+      // 4. Match and sync customer mappings
+      const maxConcurrency = options?.maxConcurrency || 5;
+      const results = await this.syncCustomerMappingsWithMaplerad(
+        localCustomers,
+        mapleradCustomers,
+        companyId,
+        maxConcurrency
+      );
+
+      // 5. Update sync metadata
+      await this.updateSyncMetadata(companyId, "maplerad", "customers");
+
+      // 6. Calculate summary
+      const summary = this.calculateCustomerSyncSummary(results);
+
+      this.logger.log("✅ CUSTOMER SYNC FLOW - COMPLETED", {
+        companyId,
+        mapleradCustomers: mapleradCustomers.length,
+        localCustomers: localCustomers.length,
+        mappingsUpdated: summary.updated,
+        mappingsCreated: summary.created,
+        success: true,
+      });
+
+      return {
+        success: true,
+        company_id: companyId,
+        summary,
+        results,
+        synced_at: new Date().toISOString(),
+      };
+    } catch (error: any) {
+      this.logger.error("❌ CUSTOMER SYNC FAILED", {
+        companyId: companyId,
+        error: error.message,
+      });
+      throw new BadRequestException(`Customer sync failed: ${error.message}`);
+    }
+  }
+
+  /**
    * Sync all company cards with advanced MONIX-style features
    */
   async syncCompanyCards(
-    user: CurrentUserData,
+    companyId: string,
     options?: {
       force?: boolean;
       maxConcurrency?: number;
@@ -214,23 +331,20 @@ export class CardSyncService {
     }
   ): Promise<any> {
     this.logger.log("🏢🔄 ADVANCED COMPANY CARDS SYNC FLOW - START", {
-      userId: user.userId,
-      companyId: user.companyId,
+      companyId,
       options,
       timestamp: new Date().toISOString(),
     });
 
     try {
       // 1. Get all customers with cards for this company
-      const customersWithCards = await this.getCustomersWithCards(
-        user.companyId
-      );
+      const customersWithCards = await this.getCustomersWithCards(companyId);
 
       if (customersWithCards.length === 0) {
         return {
           success: true,
           message: "No customers with cards found",
-          company_id: user.companyId,
+          company_id: companyId,
           customers_processed: 0,
           total_cards_synced: 0,
         };
@@ -248,7 +362,7 @@ export class CardSyncService {
       for (const batch of customerBatches) {
         const batchPromises = batch.map(async (customerId: string) => {
           try {
-            const result = await this.syncCustomerCards(customerId, user, {
+            const result = await this.syncCustomerCards(customerId, companyId, {
               force: options?.force,
               maxConcurrency: options?.maxConcurrency,
             });
@@ -275,7 +389,10 @@ export class CardSyncService {
         }
       }
 
-      // 3. Calculate final summary
+      // 3. Update sync metadata
+      await this.updateSyncMetadata(companyId, "maplerad", "cards");
+
+      // 4. Calculate final summary
       const finalSummary = {
         customers_processed: customersWithCards.length,
         successful_customer_syncs: allResults.filter((r) => r.success).length,
@@ -286,23 +403,22 @@ export class CardSyncService {
       };
 
       this.logger.log("✅ ADVANCED COMPANY CARDS SYNC FLOW - COMPLETED", {
-        companyId: user.companyId,
+        companyId: companyId,
         ...finalSummary,
         success: true,
       });
 
       return {
         success: true,
-        company_id: user.companyId,
+        company_id: companyId,
         summary: finalSummary,
         customer_results: allResults,
         synced_at: new Date().toISOString(),
       };
     } catch (error: any) {
       this.logger.error("❌ ADVANCED COMPANY CARDS SYNC FAILED", {
-        companyId: user.companyId,
+        companyId: companyId,
         error: error.message,
-        userId: user.userId,
       });
       throw new BadRequestException(
         `Company cards sync failed: ${error.message}`
@@ -313,19 +429,16 @@ export class CardSyncService {
   /**
    * Check sync status for a card
    */
-  async checkCardSyncStatus(
-    cardId: string,
-    user: CurrentUserData
-  ): Promise<any> {
+  async checkCardSyncStatus(cardId: string, companyId: string): Promise<any> {
     this.logger.log("🔍 CARD SYNC STATUS CHECK", {
       cardId,
-      userId: user.userId,
+      companyId,
       timestamp: new Date().toISOString(),
     });
 
     try {
       // 1. Validate card ownership
-      const card = await this.validateCardAccess(cardId, user);
+      const card = await this.validateCardAccess(cardId, companyId);
 
       // 2. Fetch current data from Maplerad
       const mapleradData = await this.fetchCardFromMaplerad(
@@ -358,7 +471,7 @@ export class CardSyncService {
       this.logger.error("❌ CARD SYNC STATUS CHECK FAILED", {
         cardId,
         error: error.message,
-        userId: user.userId,
+        companyId,
       });
       throw new BadRequestException(
         `Sync status check failed: ${error.message}`
@@ -369,17 +482,16 @@ export class CardSyncService {
   /**
    * Get sync statistics for company
    */
-  async getCompanySyncStatistics(user: CurrentUserData): Promise<any> {
+  async getCompanySyncStatistics(companyId: string): Promise<any> {
     this.logger.log("📊 COMPANY SYNC STATISTICS", {
-      userId: user.userId,
-      companyId: user.companyId,
+      companyId,
       timestamp: new Date().toISOString(),
     });
 
     try {
       // 1. Get all company cards
       const cardsResult = await CardModel.get({
-        company_id: user.companyId,
+        company_id: companyId,
         provider: encodeText("maplerad"),
       });
 
@@ -449,16 +561,15 @@ export class CardSyncService {
 
       return {
         success: true,
-        company_id: user.companyId,
+        company_id: companyId,
         statistics,
         recommendations: this.generateCompanySyncRecommendations(statistics),
         generated_at: new Date().toISOString(),
       };
     } catch (error: any) {
       this.logger.error("❌ COMPANY SYNC STATISTICS FAILED", {
-        companyId: user.companyId,
+        companyId: companyId,
         error: error.message,
-        userId: user.userId,
       });
       throw new BadRequestException(`Sync statistics failed: ${error.message}`);
     }
@@ -471,11 +582,11 @@ export class CardSyncService {
    */
   private async validateCardAccess(
     cardId: string,
-    user: CurrentUserData
+    companyId: string
   ): Promise<any> {
     const cardResult = await CardModel.getOne({
       id: cardId,
-      company_id: user.companyId,
+      company_id: companyId,
     });
 
     if (cardResult.error || !cardResult.output) {
@@ -497,11 +608,11 @@ export class CardSyncService {
    */
   private async validateCustomerAccess(
     customerId: string,
-    user: CurrentUserData
+    companyId: string
   ): Promise<any> {
     const customerResult = await CustomerModel.getOne({
       id: customerId,
-      company_id: user.companyId,
+      company_id: companyId,
     });
 
     if (customerResult.error || !customerResult.output) {
@@ -512,16 +623,45 @@ export class CardSyncService {
   }
 
   /**
-   * Check if sync is needed for a card
+   * Check if sync is needed for a card using sync metadata
    */
-  private isSyncNeeded(card: any): boolean {
-    const now = new Date();
-    const lastUpdate = new Date(card.updated_at);
-    const hoursSinceUpdate =
-      (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
+  private async isSyncNeeded(card: any, companyId: string): Promise<boolean> {
+    try {
+      // Check sync metadata for cards sync type
+      const lastSyncDate = await ProviderSyncMetadataModel.getLastSyncDate(
+        companyId,
+        "maplerad",
+        "cards"
+      );
 
-    // Sync needed if updated more than 1 hour ago
-    return hoursSinceUpdate > 1;
+      if (!lastSyncDate) {
+        // No sync metadata found, sync is needed
+        return true;
+      }
+
+      const now = new Date();
+      const hoursSinceLastSync =
+        (now.getTime() - lastSyncDate.getTime()) / (1000 * 60 * 60);
+
+      // Sync needed if last sync was more than 1 hour ago
+      return hoursSinceLastSync > 1;
+    } catch (error) {
+      this.logger.warn(
+        "Failed to check sync metadata, falling back to card update time",
+        {
+          cardId: card.id,
+          error: error.message,
+        }
+      );
+
+      // Fallback to card update time if sync metadata check fails
+      const now = new Date();
+      const lastUpdate = new Date(card.updated_at);
+      const hoursSinceUpdate =
+        (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
+
+      return hoursSinceUpdate > 1;
+    }
   }
 
   /**
@@ -794,7 +934,7 @@ export class CardSyncService {
    */
   private async syncCardsConcurrently(
     cards: any[],
-    user: CurrentUserData,
+    companyId: string,
     force: boolean = false,
     maxConcurrency: number = 3
   ): Promise<any[]> {
@@ -806,7 +946,7 @@ export class CardSyncService {
 
       const batchPromises = batch.map(async (card: any) => {
         try {
-          const result = await this.syncCard(card.id, user, { force });
+          const result = await this.syncCard(card.id, companyId, { force });
           return { cardId: card.id, result, success: true };
         } catch (error: any) {
           return { cardId: card.id, error: error.message, success: false };
@@ -958,6 +1098,324 @@ export class CardSyncService {
     }
 
     return recommendations;
+  }
+
+  /**
+   * Update sync metadata after successful sync
+   */
+  private async updateSyncMetadata(
+    companyId: string,
+    providerName: string,
+    syncType: string
+  ): Promise<void> {
+    try {
+      await ProviderSyncMetadataModel.upsert(
+        companyId,
+        providerName,
+        syncType,
+        new Date()
+      );
+
+      this.logger.log("📝 Sync metadata updated", {
+        companyId,
+        providerName,
+        syncType,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      this.logger.error("Failed to update sync metadata", {
+        companyId,
+        providerName,
+        syncType,
+        error: error.message,
+      });
+      // Don't throw error here - sync metadata update failure shouldn't break the sync process
+    }
+  }
+
+  /**
+   * Sync customer mappings with Maplerad (matches by email and updates provider_customer_id)
+   */
+  private async syncCustomerMappingsWithMaplerad(
+    localCustomers: any[],
+    mapleradCustomers: any[],
+    companyId: string,
+    maxConcurrency: number = 5
+  ): Promise<any[]> {
+    const results = [];
+
+    // Create email lookup map for Maplerad customers
+    const mapleradEmailMap = new Map();
+    for (const mapleradCustomer of mapleradCustomers) {
+      if (mapleradCustomer.email) {
+        mapleradEmailMap.set(
+          mapleradCustomer.email.toLowerCase(),
+          mapleradCustomer
+        );
+      }
+    }
+
+    // Process local customers in batches to control concurrency
+    for (let i = 0; i < localCustomers.length; i += maxConcurrency) {
+      const batch = localCustomers.slice(i, i + maxConcurrency);
+
+      const batchPromises = batch.map(async (localCustomer: any) => {
+        try {
+          const result = await this.syncCustomerMappingWithMaplerad(
+            localCustomer,
+            mapleradEmailMap,
+            companyId
+          );
+          return { customerId: localCustomer.id, result, success: true };
+        } catch (error: any) {
+          return {
+            customerId: localCustomer.id,
+            error: error.message,
+            success: false,
+          };
+        }
+      });
+
+      const batchResults = await Promise.all(batchPromises);
+      results.push(...batchResults);
+    }
+
+    return results;
+  }
+
+  /**
+   * Sync single customer mapping with Maplerad (matches by email)
+   */
+  private async syncCustomerMappingWithMaplerad(
+    localCustomer: any,
+    mapleradEmailMap: Map<string, any>,
+    companyId: string
+  ): Promise<any> {
+    try {
+      // Find matching Maplerad customer by email
+      const mapleradCustomer = mapleradEmailMap.get(
+        localCustomer.email?.toLowerCase()
+      );
+
+      if (!mapleradCustomer) {
+        return {
+          action: "skipped",
+          message: "No matching Maplerad customer found by email",
+          local_email: localCustomer.email,
+        };
+      }
+
+      // Check if we already have a mapping for this customer and provider
+      const existingMappingResult =
+        await CustomerProviderMappingModel.getByCustomerAndProvider(
+          localCustomer.id,
+          "maplerad"
+        );
+
+      const existingMapping = existingMappingResult.output;
+
+      if (
+        existingMapping &&
+        existingMapping.provider_customer_id === mapleradCustomer.id
+      ) {
+        return {
+          action: "skipped",
+          message: "Customer mapping already exists and is up to date",
+          provider_customer_id: existingMapping.provider_customer_id,
+          local_email: localCustomer.email,
+          maplerad_email: mapleradCustomer.email,
+        };
+      }
+
+      // Upsert the customer provider mapping using the model
+      const mappingResult = await CustomerProviderMappingModel.upsert(
+        localCustomer.id,
+        "maplerad",
+        mapleradCustomer.id
+      );
+
+      if (mappingResult.error) {
+        throw new Error(
+          `Failed to upsert customer mapping: ${mappingResult.error.message}`
+        );
+      }
+
+      return {
+        action: existingMapping ? "updated" : "created",
+        provider_customer_id: mapleradCustomer.id,
+        mapping_id: mappingResult.output?.id,
+        local_email: localCustomer.email,
+        maplerad_email: mapleradCustomer.email,
+      };
+    } catch (error: any) {
+      this.logger.error("Failed to sync customer mapping with Maplerad", {
+        customerId: localCustomer.id,
+        customerEmail: localCustomer.email,
+        error: error.message,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Sync customer mappings concurrently (only updates provider_customer_id)
+   */
+  private async syncCustomerMappingsConcurrently(
+    customers: any[],
+    companyId: string,
+    startDate: Date | null,
+    maxConcurrency: number = 5
+  ): Promise<any[]> {
+    const results = [];
+
+    // Process customers in batches to control concurrency
+    for (let i = 0; i < customers.length; i += maxConcurrency) {
+      const batch = customers.slice(i, i + maxConcurrency);
+
+      const batchPromises = batch.map(async (customer: any) => {
+        try {
+          const result = await this.syncCustomerMapping(
+            customer,
+            companyId,
+            startDate
+          );
+          return { customerId: customer.id, result, success: true };
+        } catch (error: any) {
+          return {
+            customerId: customer.id,
+            error: error.message,
+            success: false,
+          };
+        }
+      });
+
+      const batchResults = await Promise.all(batchPromises);
+      results.push(...batchResults);
+    }
+
+    return results;
+  }
+
+  /**
+   * Sync single customer mapping (only updates provider_customer_id)
+   */
+  private async syncCustomerMapping(
+    customer: any,
+    companyId: string,
+    startDate: Date | null
+  ): Promise<any> {
+    try {
+      // Check if we already have a mapping for this customer and provider
+      const existingMappingResult =
+        await CustomerProviderMappingModel.getByCustomerAndProvider(
+          customer.id,
+          "maplerad"
+        );
+
+      const existingMapping = existingMappingResult.output;
+
+      if (existingMapping) {
+        // Mapping already exists, check if we need to update it
+        if (existingMapping.provider_customer_id) {
+          return {
+            action: "skipped",
+            message: "Customer mapping already exists",
+            provider_customer_id: existingMapping.provider_customer_id,
+          };
+        }
+      }
+
+      // Fetch customer data from Maplerad to get provider_customer_id
+      const mapleradCustomerData = await this.fetchCustomerFromMaplerad(
+        customer.id,
+        startDate
+      );
+
+      if (!mapleradCustomerData?.id) {
+        return {
+          action: "skipped",
+          message: "No provider customer ID found",
+        };
+      }
+
+      // Upsert the customer provider mapping using the model
+      const mappingResult = await CustomerProviderMappingModel.upsert(
+        customer.id,
+        "maplerad",
+        mapleradCustomerData.id
+      );
+
+      if (mappingResult.error) {
+        throw new Error(
+          `Failed to upsert customer mapping: ${mappingResult.error.message}`
+        );
+      }
+
+      return {
+        action: existingMapping ? "updated" : "created",
+        provider_customer_id: mapleradCustomerData.id,
+        mapping_id: mappingResult.output?.id,
+      };
+    } catch (error: any) {
+      this.logger.error("Failed to sync customer mapping", {
+        customerId: customer.id,
+        error: error.message,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch customer data from Maplerad
+   */
+  private async fetchCustomerFromMaplerad(
+    customerId: string,
+    startDate: Date | null
+  ): Promise<any> {
+    try {
+      // This would typically call Maplerad API to get customer data
+      // For now, we'll simulate this with a placeholder
+      // In real implementation, this would call MapleradUtils.getCustomer()
+
+      // Placeholder implementation - replace with actual Maplerad API call
+      const result = {
+        id: `maplerad_customer_${customerId}`,
+        // ... other customer data from Maplerad
+      };
+
+      return result;
+    } catch (error: any) {
+      this.logger.error("Failed to fetch customer from Maplerad", {
+        customerId,
+        error: error.message,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Calculate customer sync summary
+   */
+  private calculateCustomerSyncSummary(results: any[]): any {
+    const summary = {
+      totalCustomers: results.length,
+      successful: results.filter((r) => r.success).length,
+      failed: results.filter((r) => !r.success).length,
+      created: 0,
+      updated: 0,
+      skipped: 0,
+    };
+
+    for (const result of results) {
+      if (result.success && result.result) {
+        const action = result.result.action;
+        if (action === "created") summary.created++;
+        else if (action === "updated") summary.updated++;
+        else if (action === "skipped") summary.skipped++;
+      }
+    }
+
+    return summary;
   }
 
   /**

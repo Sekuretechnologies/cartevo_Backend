@@ -320,17 +320,19 @@ model Transaction {
 
 
 model Syncmetadata {
-  id          String     @id @default(uuid())
-  key         String   
-  value       DateTime   @default(now())
-  company_id   String     @map("company_id")
-  customer_id  String     @map("customer_id")
-  created_at   DateTime   @default(now()) @map("created_at")
-  updated_at   DateTime   @updatedAt @map("updated_at")
+  id            String     @id @default(uuid())
+  provider_name String     @map("provider_name") // e.g., "maplerad", "sudo", "flutterwave"
+  sync_type     String     @map("sync_type") // e.g., "cards", "customers", "card_transactions"
+  last_sync_date DateTime  @default(now()) @map("last_sync_date")
+  company_id    String     @map("company_id")
+  customer_id   String?    @map("customer_id") // Optional for company-level syncs
+  created_at    DateTime   @default(now()) @map("created_at")
+  updated_at    DateTime   @updatedAt @map("updated_at")
 
   company      Company       @relation(fields: [company_id], references: [id])
-  customer     Customer      @relation(fields: [customer_id], references: [id])
+  customer     Customer?     @relation(fields: [customer_id], references: [id])
 
+  @@unique([company_id, provider_name, sync_type])
   @@map("syncmetadata")
 }
 

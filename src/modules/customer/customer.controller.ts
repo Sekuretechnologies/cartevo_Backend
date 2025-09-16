@@ -8,6 +8,7 @@ import {
   UseInterceptors,
   UploadedFiles,
   Put,
+  Query,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -114,9 +115,11 @@ export class CustomerController {
     type: [CustomerResponseDto],
   })
   async findAll(
-    @CurrentUser() user: CurrentUserData
+    @CurrentUser() user: CurrentUserData,
+    @Query("sync") sync?: string
   ): Promise<{ data: any[] }> {
-    return this.customerService.findAllByCompany(user.companyId);
+    const shouldSync = sync === "true";
+    return this.customerService.findAllByCompany(user.companyId, shouldSync);
   }
 
   // @Get("")

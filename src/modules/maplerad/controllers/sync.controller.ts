@@ -35,7 +35,9 @@ export class SyncOperationsController {
       companyId: req.user.companyId,
     });
 
-    const result = await this.cardSyncService.syncCompanyCards(req.user);
+    const result = await this.cardSyncService.syncCompanyCards(
+      req.user.companyId
+    );
 
     return {
       message: "Card synchronization completed",
@@ -54,7 +56,10 @@ export class SyncOperationsController {
       userId: req.user.userId,
     });
 
-    const result = await this.cardSyncService.syncCard(cardId, req.user);
+    const result = await this.cardSyncService.syncCard(
+      cardId,
+      req.user.companyId
+    );
 
     return {
       message: "Card synchronization completed",
@@ -100,7 +105,7 @@ export class SyncOperationsController {
     });
 
     const cardSyncStatus = await this.cardSyncService.getCompanySyncStatistics(
-      req.user
+      req.user.companyId
     );
 
     return {
@@ -121,7 +126,7 @@ export class SyncOperationsController {
     });
 
     const cardStats = await this.cardSyncService.getCompanySyncStatistics(
-      req.user
+      req.user.companyId
     );
 
     return {
@@ -204,9 +209,12 @@ export class SyncOperationsController {
     const results: any = {};
 
     if (resyncOptions.includeCards) {
-      results.cards = await this.cardSyncService.syncCompanyCards(req.user, {
-        force: true,
-      });
+      results.cards = await this.cardSyncService.syncCompanyCards(
+        req.user.companyId,
+        {
+          force: true,
+        }
+      );
     }
 
     if (resyncOptions.includeTransactions) {
