@@ -49,17 +49,26 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
       const user = userResult.output;
 
+      let companyId: any = undefined;
       // Get user's companies and roles
       const userCompanies =
-        user.userCompanyRoles?.map((ucr: any) => ({
-          companyId: ucr.company.id,
-          companyName: ucr.company.name,
-          role: ucr.role.name,
-        })) || [];
+        user.userCompanyRoles?.map((ucr: any) => {
+          if (payload.companyId === ucr.company.id) companyId = ucr.company.id;
+          return {
+            companyId: ucr.company.id,
+            companyName: ucr.company.name,
+            role: ucr.role.name,
+          };
+        }) || [];
+
+      if (!companyId) {
+        throw new UnauthorizedException("Invalid company token");
+      }
 
       return {
         userId: user.id,
         email: user.email,
+        companyId,
         companies: userCompanies,
         type: "user",
       };

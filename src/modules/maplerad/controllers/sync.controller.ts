@@ -31,7 +31,7 @@ export class SyncOperationsController {
   @Post("")
   async syncAllCards(@Request() req: any) {
     console.log("🔄 SYNC CONTROLLER - Sync All Cards Request", {
-      userId: req.user.id,
+      userId: req.user.userId,
       companyId: req.user.companyId,
     });
 
@@ -51,7 +51,7 @@ export class SyncOperationsController {
   async syncCard(@Param("cardId") cardId: string, @Request() req: any) {
     console.log("🔄 SYNC CONTROLLER - Sync Card Request", {
       cardId,
-      userId: req.user.id,
+      userId: req.user.userId,
     });
 
     const result = await this.cardSyncService.syncCard(cardId, req.user);
@@ -76,7 +76,7 @@ export class SyncOperationsController {
   ) {
     console.log("📊 SYNC CONTROLLER - Sync Card Transactions Request", {
       cardId,
-      userId: req.user.id,
+      userId: req.user.userId,
       fromDate,
       toDate,
     });
@@ -96,7 +96,7 @@ export class SyncOperationsController {
   @Get("status")
   async getSyncStatus(@Request() req: any) {
     console.log("📈 SYNC CONTROLLER - Get Sync Status Request", {
-      userId: req.user.id,
+      userId: req.user.userId,
     });
 
     const cardSyncStatus = await this.cardSyncService.getCompanySyncStatistics(
@@ -117,7 +117,7 @@ export class SyncOperationsController {
   @Get("stats")
   async getSyncStats(@Request() req: any) {
     console.log("📈 SYNC CONTROLLER - Get Sync Stats Request", {
-      userId: req.user.id,
+      userId: req.user.userId,
     });
 
     const cardStats = await this.cardSyncService.getCompanySyncStatistics(
@@ -146,7 +146,7 @@ export class SyncOperationsController {
     @Request() req: any
   ) {
     console.log("🔧 SYNC CONTROLLER - Update Sync Config Request", {
-      userId: req.user.id,
+      userId: req.user.userId,
       config,
     });
 
@@ -171,7 +171,7 @@ export class SyncOperationsController {
     @Request() req: any
   ) {
     console.log("🧹 SYNC CONTROLLER - Cleanup Sync Data Request", {
-      userId: req.user.id,
+      userId: req.user.userId,
       cleanupOptions,
     });
 
@@ -197,7 +197,7 @@ export class SyncOperationsController {
     @Request() req: any
   ) {
     console.log("🔄 SYNC CONTROLLER - Force Resync Request", {
-      userId: req.user.id,
+      userId: req.user.userId,
       resyncOptions,
     });
 
@@ -235,7 +235,7 @@ export class SyncOperationsController {
     @Query("type") type?: "cards" | "transactions"
   ) {
     console.log("📋 SYNC CONTROLLER - Get Sync Logs Request", {
-      userId: req.user.id,
+      userId: req.user.userId,
       limit,
       type,
     });

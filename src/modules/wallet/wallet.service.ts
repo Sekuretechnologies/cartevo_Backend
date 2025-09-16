@@ -81,6 +81,8 @@ export class WalletService {
 
   async getAllWallets(companyId?: string) {
     try {
+      console.log("getAllWallets() :: ", companyId);
+
       const filters = companyId ? { company_id: companyId } : {};
       const wallets = await WalletModel.get(filters);
 

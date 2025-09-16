@@ -6,7 +6,7 @@ import {
   setMethodFilter,
 } from "@/utils/shared/common";
 import fnOutput from "@/utils/shared/fnOutputHandler";
-import { Prisma } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { buildPrismaQuery } from "prisma/functions";
 
 export interface CompanyModelInterface {
@@ -19,7 +19,7 @@ export interface CompanyModelInterface {
 
 class CompanyModel {
   static get prisma() {
-    return require("@/modules/prisma/prisma.service").prisma;
+    return new PrismaClient();
   }
 
   static async getOne(filters: FilterObject) {

@@ -1,3 +1,5 @@
+import env from "@/env";
+import { makeMapleradRequest } from "@/utils/cards/maplerad/card";
 import axios from "axios";
 
 export interface MapleradApiResponse<T = any> {
@@ -24,6 +26,38 @@ export interface MapleradCustomerData {
   };
 }
 
+export interface MapleradEnrollCustomerData {
+  first_name: string;
+  last_name: string;
+  email: string;
+  country: string; // Code pays (NG, CM, US, etc.)
+  identification_number: string; // BVN pour Nigeria, etc.
+  dob: string; // Format: 20-10-1988
+
+  phone: {
+    phone_country_code: string; // Ex: +234
+    phone_number: string; // Ex: 8123456789
+  };
+
+  identity: {
+    type: string; // Ex: NIN, CNI, etc.
+    image: string; // URL du document uploadé
+    number: string; // Numéro du document
+    country: string; // Code pays du document
+  };
+
+  address: {
+    street: string;
+    street2?: string; // Optionnel
+    city: string;
+    state: string;
+    country: string; // Code pays
+    postal_code: string;
+  };
+
+  photo?: string; // URL selfie (optionnel)
+}
+
 export interface MapleradCardData {
   customer_id: string;
   currency: string;
@@ -37,13 +71,21 @@ export class MapleradUtils {
 
   private static getAxiosInstance(): any {
     if (!this.axiosInstance) {
-      const baseURL =
-        process.env.MAPLERAD_BASE_URL || "https://api.maplerad.com/v1";
-      const secretKey = process.env.MAPLERAD_SECRET_KEY;
+      const baseURL = env.MAPLERAD_BASE_URL;
+      const secretKey = env.MAPLERAD_SECRET_KEY;
 
       if (!secretKey) {
         throw new Error("MAPLERAD_SECRET_KEY environment variable is required");
       }
+
+      console.log("getAxiosInstance :: ", {
+        baseURL,
+        headers: {
+          Authorization: `Bearer ${secretKey}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      });
 
       this.axiosInstance = axios.create({
         baseURL,
@@ -79,42 +121,56 @@ export class MapleradUtils {
    * Create a customer in Maplerad
    */
   static async createCustomer(
-    customerData: MapleradCustomerData
+    customerData: MapleradEnrollCustomerData
   ): Promise<MapleradApiResponse> {
     try {
       console.log("📤 Creating Maplerad customer:", {
-        firstName: customerData.firstName,
-        lastName: customerData.lastName,
+        firstName: customerData.first_name,
+        lastName: customerData.last_name,
         email: customerData.email,
       });
 
-      const payload = {
-        first_name: customerData.firstName,
-        last_name: customerData.lastName,
-        email: customerData.email,
-        phone: customerData.phone,
-        date_of_birth: customerData.dateOfBirth,
-        address: {
-          street: customerData.address.street,
-          city: customerData.address.city,
-          state: customerData.address.state,
-          country: customerData.address.country,
-          postal_code: customerData.address.postalCode,
-        },
-      };
+      // const payload = {
+      //   first_name: customerData.firstName,
+      //   last_name: customerData.lastName,
+      //   email: customerData.email,
+      //   phone: customerData.phone,
+      //   date_of_birth: customerData.dateOfBirth,
+      //   address: {
+      //     street: customerData.address.street,
+      //     city: customerData.address.city,
+      //     state: customerData.address.state,
+      //     country: customerData.address.country,
+      //     postal_code: customerData.address.postalCode,
+      //   },
+      // };
 
+      // const result = await makeMapleradRequest({
+      //   method: "POST",
+      //   url: "/customers/enroll",
+      //   data: customerData,
+      // });
       const response: any = await this.getAxiosInstance().post(
-        "/customers",
-        payload
+        "/customers/enroll",
+        customerData
       );
 
-      console.log("✅ Maplerad customer created:", response.data);
+      console.log("✅ Maplerad customer created:");
+
+      // return result;
 
       return {
         output: response.data,
       };
     } catch (error: any) {
-      console.error("❌ Maplerad customer creation error:", error);
+      console.error("❌ Maplerad customer creation error:", {
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to create customer",
+        details: error.response?.data,
+        payload: error.config?.data,
+      });
 
       return {
         error: {
@@ -151,7 +207,7 @@ export class MapleradUtils {
       };
 
       const response: any = await this.getAxiosInstance().post(
-        "/cards",
+        "/issuing",
         payload
       );
 
@@ -192,7 +248,7 @@ export class MapleradUtils {
       };
 
       const response: any = await this.getAxiosInstance().post(
-        `/cards/${cardId}/fund`,
+        `/issuing/${cardId}/fund`,
         payload
       );
 
@@ -233,7 +289,7 @@ export class MapleradUtils {
       };
 
       const response: any = await this.getAxiosInstance().post(
-        `/cards/${cardId}/withdraw`,
+        `/issuing/${cardId}/withdraw`,
         payload
       );
 
@@ -271,7 +327,7 @@ export class MapleradUtils {
       const params = includeSensitive ? { include_sensitive: "true" } : {};
 
       const response: any = await this.getAxiosInstance().get(
-        `/cards/${cardId}`,
+        `/issuing/${cardId}`,
         { params }
       );
 
@@ -303,7 +359,7 @@ export class MapleradUtils {
       console.log("📤 Freezing Maplerad card:", { cardId });
 
       const response: any = await this.getAxiosInstance().post(
-        `/cards/${cardId}/freeze`
+        `/issuing/${cardId}/freeze`
       );
 
       console.log("✅ Maplerad card frozen:", response.data);
@@ -334,7 +390,7 @@ export class MapleradUtils {
       console.log("📤 Unfreezing Maplerad card:", { cardId });
 
       const response: any = await this.getAxiosInstance().post(
-        `/cards/${cardId}/unfreeze`
+        `/issuing/${cardId}/unfreeze`
       );
 
       console.log("✅ Maplerad card unfrozen:", response.data);
@@ -365,7 +421,7 @@ export class MapleradUtils {
       console.log("📤 Terminating Maplerad card:", { cardId });
 
       const response: any = await this.getAxiosInstance().post(
-        `/cards/${cardId}/terminate`
+        `/issuing/${cardId}/terminate`
       );
 
       console.log("✅ Maplerad card terminated:", response.data);
@@ -399,7 +455,7 @@ export class MapleradUtils {
       console.log("📤 Getting Maplerad card transactions:", { cardId, params });
 
       const response: any = await this.getAxiosInstance().get(
-        `/cards/${cardId}/transactions`,
+        `/issuing/${cardId}/transactions`,
         { params }
       );
 
@@ -476,7 +532,7 @@ export class MapleradUtils {
       console.log("📤 Getting Maplerad card balance:", { cardId });
 
       const response: any = await this.getAxiosInstance().get(
-        `/cards/${cardId}/balance`
+        `/issuing/${cardId}/balance`
       );
 
       console.log("✅ Maplerad card balance retrieved:", response.data);

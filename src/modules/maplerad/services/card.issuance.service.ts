@@ -5,7 +5,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
-import { CardStatus } from "@prisma/client";
+import { CardStatus, Customer } from "@prisma/client";
 import CardModel from "@/models/prisma/cardModel";
 import CompanyModel from "@/models/prisma/companyModel";
 import CustomerModel from "@/models/prisma/customerModel";
@@ -26,6 +26,8 @@ import { CurrentUserData } from "@/modules/common/decorators/current-user.decora
 import TransactionFeeModel from "@/models/prisma/transactionFeeModel";
 import BalanceTransactionRecordModel from "@/models/prisma/balanceTransactionRecordModel";
 import { TransactionCategory, TransactionType } from "@/types";
+import { CustomerProviderMappingModel } from "@/models";
+import { getFormattedDate } from "@/utils/shared/common";
 
 /**
  * Advanced Card Issuance Service for Maplerad
@@ -476,25 +478,46 @@ export class CardIssuanceService {
    * Ensure Maplerad customer exists
    */
   private async ensureMapleradCustomer(
-    customer: any,
+    customer: Customer,
     companyId: string
   ): Promise<string> {
-    let mapleradCustomerId = customer.maplerad_customer_id;
+    const mapleradCustomerResult = await CustomerProviderMappingModel.getOne({
+      customer_id: customer.id,
+      provider_name: "maplerad",
+    });
+    let mapleradCustomerId =
+      mapleradCustomerResult.output?.provider_customer_id;
+
+    this.logger.debug("Maplerad customer found", {
+      mapleradCustomerResult,
+      mapleradCustomerId,
+    });
 
     if (!mapleradCustomerId) {
       // Create Maplerad customer
       const customerData = {
-        firstName: customer.first_name,
-        lastName: customer.last_name,
+        first_name: customer.first_name,
+        last_name: customer.last_name,
         email: customer.email,
-        phone: customer.phone_number,
-        dateOfBirth: customer.date_of_birth,
+        country: customer.country_iso_code,
+        identification_number: customer.identification_number,
+        dob: getFormattedDate(new Date(customer.date_of_birth)),
+        phone: {
+          phone_country_code: customer.country_phone_code,
+          phone_number: customer.phone_number,
+        },
+        identity: {
+          type: customer.id_document_type,
+          image: customer.id_document_front,
+          number: customer.identification_number,
+          country: customer.country_iso_code,
+        },
         address: {
-          street: customer.address || "",
+          street: customer.street || "",
           city: customer.city || "",
           state: customer.state || "",
           country: customer.country_iso_code,
-          postalCode: customer.postal_code || "00000",
+          postal_code: customer.postal_code || "00000",
         },
       };
 
@@ -514,8 +537,13 @@ export class CardIssuanceService {
       mapleradCustomerId = enrollmentResult.output.id;
 
       // Update local customer record
-      await CustomerModel.update(customer.id, {
-        maplerad_customer_id: mapleradCustomerId,
+      // await CustomerModel.update(customer.id, {
+      //   maplerad_customer_id: mapleradCustomerId,
+      // });
+      await CustomerProviderMappingModel.create({
+        customer_id: customer.id,
+        provider_customer_id: mapleradCustomerId,
+        provider_name: "maplerad",
       });
 
       this.logger.debug("Maplerad customer created", {
