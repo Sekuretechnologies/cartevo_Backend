@@ -829,7 +829,7 @@ export class CardIssuanceService {
       timestamp: new Date().toISOString(),
     });
 
-    const mapleradBrand = dto.brand === "MASTERCARD" ? "mastercard" : "visa";
+    const mapleradBrand = dto.brand === "MASTERCARD" ? "MASTERCARD" : "VISA";
     const cardData = {
       customer_id: mapleradCustomerId,
       currency: "USD",
