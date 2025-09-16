@@ -7,6 +7,7 @@ import {
 } from "@/utils/shared/common";
 import fnOutput from "@/utils/shared/fnOutputHandler";
 import { Prisma, PrismaClient } from "@prisma/client";
+import { Filter } from "firebase-admin/firestore";
 import { buildPrismaQuery } from "prisma/functions";
 
 export interface CompanyModelInterface {
@@ -138,6 +139,98 @@ class CompanyModel {
       return await this.prisma.$transaction(callback);
     } catch (error) {
       throw new Error(`Operation failed: ${error.message}`);
+    }
+  }
+
+  /**
+   *
+   *  Recuperer les companies avec les owners
+   *
+   */
+  static async getWithOwner(filters?: FilterObject) {
+    try {
+      const companies = await this.prisma.company.findMany({
+        where: filters,
+        include: {
+          userCompanyRoles: {
+            where: { role: { name: "owner" } },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  first_name: true,
+                  last_name: true,
+                  email: true,
+                  phone_number: true,
+                  kyc_status: true,
+                  status: true,
+                  // ajoute ici les champs autorisés seulement
+                  gender: true,
+                  nationality: true,
+                  id_document_type: true,
+                  id_number: true,
+                  id_document_front: true,
+                  id_document_back: true,
+                  country_of_residence: true,
+                  state: true,
+                  city: true,
+                  street: true,
+                  postal_code: true,
+                  proof_of_address: true,
+                  created_at: true,
+                  updated_at: true,
+                },
+              },
+              role: true,
+            },
+          },
+        },
+      });
+
+      const formatted = companies.map((c) => {
+        const { userCompanyRoles, ...rest } = c;
+        return {
+          ...rest,
+          owner: userCompanyRoles[0]?.user || null,
+        };
+      });
+
+      return fnOutput.success({ output: formatted });
+    } catch (error) {
+      return fnOutput.error({
+        message: "Error fetching companies with owner: " + error.message,
+        error: { message: error.message },
+      });
+    }
+  }
+
+  /**
+   * Valider KYB
+   */
+  static async approveKyb(companyId: string) {
+    try {
+      const company = await this.prisma.company.update({
+        where: { id: companyId },
+        data: { kyb_status: "APPROVED" },
+      });
+      return fnOutput.success({ output: company });
+    } catch (error: any) {
+      return fnOutput.error({ message: error.message, error });
+    }
+  }
+
+  /**
+   * Annuler KYB
+   */
+  static async rejectkyb(companyId: string) {
+    try {
+      const company = await this.prisma.company.update({
+        where: { id: companyId },
+        data: { kyb_status: "REJECTED" },
+      });
+      return fnOutput.success({ output: company });
+    } catch (error: any) {
+      return fnOutput.error({ message: error.message, error });
     }
   }
 }

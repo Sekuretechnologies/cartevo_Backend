@@ -67,8 +67,9 @@ export class UserService {
     console.log("ownerUser :: ", ownerUser);
 
     if (!ownerUser) {
-      throw new UnauthorizedException("User not found");
+      throw new UnauthorizedException("User not ");
     }
+    console.log("Owneruser", ownerUser);
 
     const isOwner = ownerUser.userCompanyRoles.some(
       (ucr) => ucr.role.name === "owner"

@@ -166,6 +166,59 @@ export class EmailService {
     }
   }
 
+  async rejectKycEmail(
+    email: string,
+    userName: string,
+    rejectionMessage: string
+  ): Promise<boolean> {
+    try {
+      const mailOptions = {
+        from: this.configService.get("FROM_EMAIL") || "noreply@cartevo.co",
+        to: email,
+        subject: `KYC Rejected - CARTEVO`,
+        html: `
+        <p>Bonjour ${userName},</p>
+        <p>Nous vous informons que votre demande de vérification KYC a été <strong>rejetée</strong>.</p>
+        <p><strong>Raison :</strong> ${rejectionMessage}</p>
+        <p>Veuillez vérifier vos informations et soumettre à nouveau votre KYC.</p>
+        <p>Cordialement,<br>L'équipe CARTEVO</p>
+      `,
+        text: `Bonjour ${userName},\n\nVotre demande de vérification KYC a été rejetée.\n\nRaison : ${rejectionMessage}\n\nVeuillez vérifier vos informations et soumettre à nouveau votre KYC.\n\nCordialement,\nL'équipe CARTEVO`,
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log("KYC rejection email sent successfully:", result.messageId);
+      return true;
+    } catch (error) {
+      console.error("Error sending KYC rejection email:", error);
+      throw new BadRequestException("Failed to send KYC rejection email");
+    }
+  }
+
+  async approveKycEmail(email: string, userName: string): Promise<boolean> {
+    try {
+      const mailOptions = {
+        from: this.configService.get("FROM_EMAIL") || "noreply@cartevo.co",
+        to: email,
+        subject: `KYC Approved - CARTEVO`,
+        html: `
+        <p>Bonjour ${userName},</p>
+        <p>Félicitations ! Votre demande de vérification KYC a été <strong>approuvée</strong>.</p>
+        <p>Vous pouvez désormais profiter de toutes les fonctionnalités de votre compte CARTEVO.</p>
+        <p>Cordialement,<br>L'équipe CARTEVO</p>
+      `,
+        text: `Bonjour ${userName},\n\nFélicitations ! Votre demande de vérification KYC a été approuvée.\n\nVous pouvez désormais profiter de toutes les fonctionnalités de votre compte CARTEVO.\n\nCordialement,\nL'équipe CARTEVO`,
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log("KYC approval email sent successfully:", result.messageId);
+      return true;
+    } catch (error) {
+      console.error("Error sending KYC approval email:", error);
+      throw new BadRequestException("Failed to send KYC approval email");
+    }
+  }
+
   private getOtpEmailTemplate(otp: string, userName?: string): string {
     return `
       <!DOCTYPE html>
@@ -384,13 +437,28 @@ export class EmailService {
         to: email,
         subject: "Réinitialisation de votre mot de passe",
         html: `
-        <p>Bonjour, ${userName}</p>
         <p>Vous avez demandé à réinitialiser votre mot de passe.</p>
-        <p>Cliquez sur le lien ci-dessous pour choisir un nouveau mot de passe :</p>
-        <a href="${resetLink}">Réinitialiser mon mot de passe</a>
-        <p>Ce lien expirera dans 15 minutes.</p>
-        <p>Si vous n’avez pas demandé cette réinitialisation, ignorez simplement cet email.</p>
-         <p>© 2025 CARTEVO. Tous droits réservés.</p>
+  <p>Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe :</p>
+  <p>
+    <a href="${resetLink}"
+      style="
+        display: inline-block;
+        padding: 12px 20px;
+        background-color: #1F66FF;
+        color: #ffffff;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: bold;
+      "
+    >
+      Réinitialiser mon mot de passe
+    </a>
+  </p>
+  <p>Si le bouton ne fonctionne pas, copiez-collez ce lien dans votre navigateur :</p>
+  <p><a href="${resetLink}">${resetLink}</a></p>
+  <p>Ce lien expirera dans 15 minutes.</p>
+  <p>Si vous n’avez pas demandé cette réinitialisation, ignorez simplement cet email.</p>
+  <p>© 2025 CARTEVO. Tous droits réservés.</p>
       `,
       };
 
