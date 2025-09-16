@@ -315,7 +315,7 @@ export class WalletController {
           type: "string",
           example: "Test wallets credited successfully",
         },
-        companyWallet: {
+        wallet: {
           type: "object",
           properties: {
             walletId: { type: "string" },
