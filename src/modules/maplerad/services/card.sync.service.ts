@@ -253,7 +253,7 @@ export class CardSyncService {
                 last4: mapleradCard.card_number?.slice(-4) || "****",
                 expiryMonth: mapleradCard.expiry_month || expiry_month || 12,
                 expiryYear: mapleradCard.expiry_year || expiry_year || 99,
-                brand: mapleradCard.brand || "VISA",
+                brand: mapleradCard.issuer || "VISA",
                 status: mapleradCard.status || "ACTIVE",
                 balance: mapleradCard.balance || 0,
                 address: mapleradCard.address,
@@ -953,6 +953,18 @@ export class CardSyncService {
    */
   private detectCardChanges(localCard: any, providerData: any): any {
     const changes: any = {};
+
+    // Brand comparison
+    const localBrand = localCard.brand;
+    const providerBrand = this.mapProviderStatusToLocal(providerData?.issuer);
+
+    if (localBrand !== providerBrand) {
+      changes.brand = {
+        from: localBrand,
+        to: providerBrand,
+        changed: true,
+      };
+    }
 
     // Status comparison
     const localStatus = localCard.status;
