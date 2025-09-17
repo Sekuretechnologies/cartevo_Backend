@@ -255,6 +255,8 @@ export class CardSyncService {
                 brand: mapleradCard.brand || "VISA",
                 status: mapleradCard.status || "ACTIVE",
                 balance: mapleradCard.balance || 0,
+                address: mapleradCard.address,
+                type: mapleradCard.type,
               };
 
               // Create card using CardIssuanceService

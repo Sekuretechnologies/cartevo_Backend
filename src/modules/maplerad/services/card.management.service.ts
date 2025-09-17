@@ -57,7 +57,7 @@ export class CardManagementService {
 
     try {
       // 1. Validate card ownership and status
-      const card = await this.validateCardForManagement(cardId, user);
+      const card = await this.validateCardForManagement(cardId, user.companyId);
 
       // 2. Check if already frozen
       if (card.status === CardStatus.FROZEN) {
@@ -142,7 +142,7 @@ export class CardManagementService {
 
     try {
       // 1. Validate card ownership and status
-      const card = await this.validateCardForManagement(cardId, user);
+      const card = await this.validateCardForManagement(cardId, user.companyId);
 
       // 2. Check if not frozen
       if (card.status !== CardStatus.FROZEN) {
@@ -222,7 +222,7 @@ export class CardManagementService {
 
     try {
       // 1. Validate card ownership and status
-      const card = await this.validateCardForManagement(cardId, user);
+      const card = await this.validateCardForManagement(cardId, user.companyId);
 
       // 2. Check if already terminated
       if (card.status === CardStatus.TERMINATED) {
@@ -342,7 +342,7 @@ export class CardManagementService {
 
     try {
       // 1. Validate card ownership
-      const card = await this.validateCardAccess(cardId, user);
+      const card = await this.validateCardAccess(cardId, user.companyId);
 
       // 2. Get card with sensitive data handling
       let cardData = card;
@@ -721,7 +721,7 @@ export class CardManagementService {
 
     try {
       // 1. Validate card ownership
-      const card = await this.validateCardAccess(cardId, user);
+      const card = await this.validateCardAccess(cardId, user.companyId);
 
       // 2. Build query filters
       const queryFilters: any = { card_id: cardId };
@@ -986,11 +986,11 @@ export class CardManagementService {
    */
   private async validateCardForManagement(
     cardId: string,
-    user: CurrentUserData
+    companyId: string
   ): Promise<any> {
     const cardResult = await CardModel.getOne({
       id: cardId,
-      company_id: user.companyId,
+      company_id: companyId,
     });
 
     if (cardResult.error || !cardResult.output) {
@@ -1012,9 +1012,9 @@ export class CardManagementService {
    */
   private async validateCardAccess(
     cardId: string,
-    user: CurrentUserData
+    companyId: string
   ): Promise<any> {
-    return this.validateCardForManagement(cardId, user);
+    return this.validateCardForManagement(cardId, companyId);
   }
 
   /**
