@@ -177,9 +177,15 @@ export class CustomerController {
   })
   async findCustomerCards(
     @CurrentUser() user: CurrentUserData,
-    @Param("id") id: string
+    @Param("id") id: string,
+    @Query("sync") sync?: string
   ): Promise<{ data: any[] }> {
-    return this.customerService.findCustomerCards(user.companyId, id);
+    const shouldSync = sync === "true";
+    return this.customerService.findCustomerCards(
+      user.companyId,
+      id,
+      shouldSync
+    );
   }
 
   @Get(":id/transactions")

@@ -24,6 +24,7 @@ import { v4 as uuidv4 } from "uuid";
 import { decodeText, encodeText } from "@/utils/shared/encryption";
 import { utcToLocalTime } from "@/utils/date";
 import { MapleradUtils } from "../utils/maplerad.utils";
+import { CardIssuanceService } from "./card.issuance.service";
 import { CurrentUserData } from "@/modules/common/decorators/current-user.decorator";
 
 /**
@@ -34,7 +35,10 @@ import { CurrentUserData } from "@/modules/common/decorators/current-user.decora
 export class CardSyncService {
   private readonly logger = new Logger(CardSyncService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cardIssuanceService: CardIssuanceService
+  ) {}
 
   /**
    * Sync a single card with advanced MONIX-style features
@@ -146,45 +150,178 @@ export class CardSyncService {
       // 1. Validate customer ownership
       const customer = await this.validateCustomerAccess(customerId, companyId);
 
-      // 2. Get all customer cards
-      const cardsResult = await CardModel.get({
+      // 2. Get customer provider mapping to get Maplerad customer ID
+      const mappingResult =
+        await CustomerProviderMappingModel.getByCustomerAndProvider(
+          customerId,
+          "maplerad"
+        );
+
+      let mapleradCustomerId = null;
+      if (mappingResult.output) {
+        mapleradCustomerId = mappingResult.output.provider_customer_id;
+      }
+
+      // 3. Get all customer cards from Maplerad (if we have the mapping)
+      let mapleradCards = [];
+      if (mapleradCustomerId) {
+        this.logger.log("🌐 FETCHING CARDS FROM MAPLERAD", {
+          customerId,
+          mapleradCustomerId,
+          timestamp: new Date().toISOString(),
+        });
+
+        const mapleradCardsResult = await MapleradUtils.getAllCards({
+          customerId: mapleradCustomerId,
+          status: "ACTIVE", // Only sync active cards
+        });
+
+        if (mapleradCardsResult.error) {
+          this.logger.warn("❌ FAILED TO FETCH MAPLERAD CARDS", {
+            customerId,
+            mapleradCustomerId,
+            error: mapleradCardsResult.error.message,
+            timestamp: new Date().toISOString(),
+          });
+        } else {
+          mapleradCards = mapleradCardsResult.output?.data || [];
+          this.logger.log("📊 MAPLERAD CARDS RETRIEVED", {
+            customerId,
+            mapleradCardsCount: mapleradCards.length,
+            timestamp: new Date().toISOString(),
+          });
+        }
+      }
+
+      // 4. Get local customer cards
+      const localCardsResult = await CardModel.get({
         customer_id: customerId,
         company_id: companyId,
       });
 
-      if (cardsResult.error) {
+      if (localCardsResult.error) {
         throw new BadRequestException("Failed to retrieve customer cards");
       }
 
-      const cards = cardsResult.output || [];
+      const localCards = localCardsResult.output || [];
+      this.logger.log("🏠 LOCAL CARDS RETRIEVED", {
+        customerId,
+        localCardsCount: localCards.length,
+        timestamp: new Date().toISOString(),
+      });
 
-      if (cards.length === 0) {
+      // 5. Create missing cards locally
+      const createdCards = [];
+      if (mapleradCards.length > 0) {
+        for (const mapleradCard of mapleradCards) {
+          // Check if card already exists locally
+          const existingCard = localCards.find(
+            (localCard: any) => localCard.provider_card_id === mapleradCard.id
+          );
+
+          if (!existingCard) {
+            this.logger.log("🆕 CREATING MISSING CARD LOCALLY", {
+              customerId,
+              mapleradCardId: mapleradCard.id,
+              cardNumber: mapleradCard.card_number?.slice(-4) || "****",
+              timestamp: new Date().toISOString(),
+            });
+
+            try {
+              // Get customer data for card creation
+              const customer = await this.validateCustomerAccess(
+                customerId,
+                companyId
+              );
+
+              // Create mock finalCard data for createLocalCardRecord
+              const finalCard = {
+                id: mapleradCard.id,
+                cardNumber: mapleradCard.cardNumber || "***",
+                cvv: mapleradCard.cvv || "***",
+                maskedPan: `**** **** **** ${
+                  mapleradCard.maskedPan?.slice(-4) || "****"
+                }`,
+                last4: mapleradCard.card_number?.slice(-4) || "****",
+                expiryMonth: mapleradCard.expiryMonth || 12,
+                expiryYear: mapleradCard.expiryYear || 2099,
+                brand: mapleradCard.brand || "VISA",
+                status: mapleradCard.status || "ACTIVE",
+                balance: mapleradCard.balance || 0,
+              };
+
+              // Create card using CardIssuanceService
+              const cardId = uuidv4();
+              const savedCard =
+                await this.cardIssuanceService.createLocalCardRecord(
+                  cardId,
+                  customer,
+                  { id: companyId }, // Mock company object
+                  {
+                    customer_id: customerId,
+                    brand: mapleradCard.brand || "VISA",
+                    amount: mapleradCard.balance || 0,
+                    name_on_card:
+                      `${customer.first_name} ${customer.last_name}`.toUpperCase(),
+                  },
+                  finalCard
+                );
+
+              if (savedCard) {
+                createdCards.push(savedCard);
+                localCards.push(savedCard); // Add to local cards for syncing
+              }
+
+              this.logger.log("✅ CARD CREATED LOCALLY", {
+                customerId,
+                localCardId: savedCard.id,
+                mapleradCardId: mapleradCard.id,
+                timestamp: new Date().toISOString(),
+              });
+            } catch (createError: any) {
+              this.logger.error("❌ FAILED TO CREATE CARD LOCALLY", {
+                customerId,
+                mapleradCardId: mapleradCard.id,
+                error: createError.message,
+                timestamp: new Date().toISOString(),
+              });
+            }
+          }
+        }
+      }
+
+      // 6. If no cards at all (local or created), return early
+      if (localCards.length === 0) {
         return {
           success: true,
           message: "No cards found for customer",
           customer_id: customerId,
           cards_synced: 0,
+          cards_created: createdCards.length,
         };
       }
 
-      // 3. Sync cards with concurrency control
+      // 7. Sync all cards (existing + newly created) with concurrency control
       const maxConcurrency = options?.maxConcurrency || 3;
       const results = await this.syncCardsConcurrently(
-        cards,
+        localCards,
         companyId,
         options?.force,
         maxConcurrency
       );
 
-      // 4. Update sync metadata
+      // 8. Update sync metadata
       await this.updateSyncMetadata(companyId, "maplerad", "cards");
 
-      // 5. Calculate summary statistics
+      // 9. Calculate summary statistics
       const summary = this.calculateSyncSummary(results);
 
       this.logger.log("✅ ADVANCED CUSTOMER CARDS SYNC FLOW - COMPLETED", {
         customerId,
-        cardsProcessed: cards.length,
+        mapleradCardsFound: mapleradCards.length,
+        localCardsFound: localCards.length - createdCards.length,
+        cardsCreated: createdCards.length,
+        cardsProcessed: localCards.length,
         successfulSyncs: summary.successful,
         changesApplied: summary.totalChanges,
         terminationsProcessed: summary.terminations,
@@ -194,8 +331,14 @@ export class CardSyncService {
       return {
         success: true,
         customer_id: customerId,
-        summary,
+        summary: {
+          ...summary,
+          cards_created: createdCards.length,
+          maplerad_cards_found: mapleradCards.length,
+          local_cards_found: localCards.length - createdCards.length,
+        },
         results,
+        created_cards: createdCards,
         synced_at: new Date().toISOString(),
       };
     } catch (error: any) {

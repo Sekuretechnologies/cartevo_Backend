@@ -424,16 +424,85 @@ export class CustomerService {
 
   async findCustomerCards(
     companyId: string,
-    customerId: string
+    customerId: string,
+    sync: boolean = false
   ): Promise<{ data: any[] }> {
+    this.logger.log("🔍 CUSTOMER CARDS RETRIEVAL - START", {
+      companyId,
+      customerId,
+      sync,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Sync customer cards if requested
+    if (sync) {
+      this.logger.log("🔄 CUSTOMER CARDS SYNC REQUESTED", {
+        companyId,
+        customerId,
+        timestamp: new Date().toISOString(),
+      });
+
+      try {
+        const syncStartTime = Date.now();
+        await this.cardSyncService.syncCustomerCards(customerId, companyId, {
+          force: true,
+          maxConcurrency: 3,
+        });
+        const syncDuration = Date.now() - syncStartTime;
+
+        this.logger.log("✅ CUSTOMER CARDS SYNC COMPLETED", {
+          companyId,
+          customerId,
+          duration: `${syncDuration}ms`,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (syncError: any) {
+        this.logger.error("❌ CUSTOMER CARDS SYNC FAILED", {
+          companyId,
+          customerId,
+          error: syncError.message,
+          timestamp: new Date().toISOString(),
+        });
+
+        this.logger.warn("⚠️ PROCEEDING WITH LOCAL DATA", {
+          companyId,
+          customerId,
+          reason: "Sync failed, using cached data",
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
+
+    this.logger.log("📊 FETCHING CUSTOMER CARDS FROM DATABASE", {
+      companyId,
+      customerId,
+      timestamp: new Date().toISOString(),
+    });
+
     const customerCardsResult = await CardModel.get({
       customer_id: customerId,
       company_id: companyId,
     });
+
     if (customerCardsResult.error || !customerCardsResult.output) {
+      this.logger.error("❌ CUSTOMER CARDS NOT FOUND", {
+        companyId,
+        customerId,
+        error: customerCardsResult.error?.message || "Cards not found",
+        timestamp: new Date().toISOString(),
+      });
       throw new NotFoundException("Customer cards not found");
     }
+
     const customerCards = customerCardsResult.output;
+    this.logger.log("📈 CUSTOMER CARDS RETRIEVED", {
+      companyId,
+      customerId,
+      cardCount: customerCards.length,
+      syncPerformed: sync,
+      timestamp: new Date().toISOString(),
+    });
+
     return { data: customerCards };
   }
 

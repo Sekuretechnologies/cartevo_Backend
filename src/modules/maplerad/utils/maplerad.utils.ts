@@ -595,6 +595,70 @@ export class MapleradUtils {
   }
 
   /**
+   * Get all cards from Maplerad (with optional filtering)
+   */
+  static async getAllCards(options?: {
+    customerId?: string;
+    createdAt?: string;
+    brand?: "VISA" | "MASTERCARD";
+    status?: "ACTIVE" | "DISABLED";
+    page?: number;
+    pageSize?: number;
+  }): Promise<MapleradApiResponse> {
+    try {
+      console.log("📤 Getting all Maplerad cards:", options);
+
+      const params: any = {};
+
+      if (options?.customerId) {
+        params.customer_id = options.customerId;
+      }
+
+      if (options?.createdAt) {
+        params.created_at = options.createdAt;
+      }
+
+      if (options?.brand) {
+        params.brand = options.brand;
+      }
+
+      if (options?.status) {
+        params.status = options.status;
+      }
+
+      if (options?.page) {
+        params.page = options.page;
+      }
+
+      if (options?.pageSize) {
+        params.page_size = options.pageSize;
+      }
+
+      const response: any = await this.getAxiosInstance().get(`/issuing`, {
+        params,
+      });
+
+      console.log("✅ Maplerad cards retrieved:", response.data);
+
+      return {
+        output: response.data,
+      };
+    } catch (error: any) {
+      console.error("❌ Maplerad cards retrieval error:", error);
+
+      return {
+        error: {
+          message:
+            error.response?.data?.message ||
+            error.message ||
+            "Failed to get cards",
+          details: error.response?.data,
+        },
+      };
+    }
+  }
+
+  /**
    * Get real-time card balance
    */
   static async getRealCardBalance(

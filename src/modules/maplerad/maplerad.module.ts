@@ -11,6 +11,7 @@ import { WalletController } from "./controllers/wallet.controller";
 import { MapleradWebhookService } from "./services/maplerad-webhook.service";
 import { WebhookSecurityService } from "./services/webhook-security.service";
 import { WebhookEventRouter } from "./services/webhook-event-router.service";
+import { WebhookWaitingService } from "./services/webhook-waiting.service";
 import { CardEventHandler } from "./services/handlers/card-event.handler";
 import { TransactionEventHandler } from "./services/handlers/transaction-event.handler";
 
@@ -36,6 +37,7 @@ import { CardSyncTransactionService } from "./services/card.sync.transaction.ser
     MapleradWebhookService,
     WebhookSecurityService,
     WebhookEventRouter,
+    WebhookWaitingService,
     CardEventHandler,
     TransactionEventHandler,
 
@@ -52,6 +54,7 @@ import { CardSyncTransactionService } from "./services/card.sync.transaction.ser
     MapleradWebhookService,
     WebhookSecurityService,
     WebhookEventRouter,
+    WebhookWaitingService,
     CardEventHandler,
     TransactionEventHandler,
 

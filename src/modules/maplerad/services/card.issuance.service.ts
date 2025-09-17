@@ -28,6 +28,7 @@ import BalanceTransactionRecordModel from "@/models/prisma/balanceTransactionRec
 import { TransactionCategory, TransactionType } from "@/types";
 import { CustomerProviderMappingModel } from "@/models";
 import { getFormattedDate } from "@/utils/shared/common";
+import { WebhookWaitingService } from "./webhook-waiting.service";
 
 /**
  * Advanced Card Issuance Service for Maplerad
@@ -38,7 +39,10 @@ import { getFormattedDate } from "@/utils/shared/common";
 export class CardIssuanceService {
   private readonly logger = new Logger(CardIssuanceService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private webhookWaitingService: WebhookWaitingService
+  ) {}
 
   /**
    * Issue a retail Maplerad card with advanced features
@@ -880,36 +884,254 @@ export class CardIssuanceService {
   }
 
   /**
-   * Wait for card creation webhook
+   * Wait for card creation webhook using WebhookWaitingService
    */
   private async waitForCardCreationWebhook(reference: string): Promise<any> {
-    // For now, simulate webhook waiting
-    // In production, this would wait for actual webhook
-    this.logger.log("Waiting for Maplerad webhook", {
+    this.logger.log("🕐 WAITING FOR CARD CREATION WEBHOOK - START", {
       reference,
-      timeout: 60000, // 1 minute for demo
+      timestamp: new Date().toISOString(),
     });
 
-    // Simulate webhook delay
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      // Use WebhookWaitingService to wait for the webhook
+      const webhookResult = await this.webhookWaitingService.waitForWebhook(
+        reference,
+        300000 // 5 minutes timeout
+      );
 
-    // For demo purposes, return a mock successful webhook result
-    // In production, this would be handled by the webhook service
+      this.logger.log("✅ WEBHOOK WAIT COMPLETED", {
+        reference,
+        success: webhookResult.success,
+        source: webhookResult.source,
+        waitTime: webhookResult.waitTime,
+        timestamp: new Date().toISOString(),
+      });
+
+      if (webhookResult.success) {
+        // Webhook arrived successfully
+        return {
+          success: true,
+          source: webhookResult.source,
+          data: webhookResult.data,
+          waitTime: webhookResult.waitTime,
+        };
+      } else if (webhookResult.timeout) {
+        // Timeout occurred, fallback to polling
+        this.logger.warn("⏰ WEBHOOK TIMEOUT - FALLBACK TO POLLING", {
+          reference,
+          waitTime: webhookResult.waitTime,
+          timestamp: new Date().toISOString(),
+        });
+
+        const pollResult = await this.fallbackPolling(reference);
+        return pollResult;
+      } else {
+        // Webhook failed
+        this.logger.error("❌ WEBHOOK FAILED", {
+          reference,
+          error: webhookResult.error,
+          timestamp: new Date().toISOString(),
+        });
+
+        throw new BadRequestException(
+          `Card creation webhook failed: ${webhookResult.error}`
+        );
+      }
+    } catch (error: any) {
+      this.logger.error("❌ WEBHOOK WAIT PROCESS FAILED", {
+        reference,
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Try fallback polling as last resort
+      try {
+        this.logger.warn("🔄 ATTEMPTING FALLBACK POLLING", {
+          reference,
+          timestamp: new Date().toISOString(),
+        });
+
+        const pollResult = await this.fallbackPolling(reference);
+        return pollResult;
+      } catch (pollError: any) {
+        this.logger.error("❌ FALLBACK POLLING ALSO FAILED", {
+          reference,
+          pollError: pollError.message,
+          timestamp: new Date().toISOString(),
+        });
+
+        throw new BadRequestException(
+          `Failed to wait for card creation confirmation: ${error.message}`
+        );
+      }
+    }
+  }
+
+  /**
+   * Fallback polling method when webhook waiting fails
+   */
+  private async fallbackPolling(reference: string): Promise<any> {
+    const startTime = Date.now();
+    const maxWaitTime = 60000; // 1 minute for fallback polling
+    const pollInterval = 10000; // 10 seconds between polls
+
+    this.logger.log("🔄 FALLBACK POLLING - START", {
+      reference,
+      maxWaitTime: `${maxWaitTime}ms`,
+      pollInterval: `${pollInterval}ms`,
+      timestamp: new Date().toISOString(),
+    });
+
+    while (Date.now() - startTime < maxWaitTime) {
+      try {
+        const pollResult = await this.pollCardStatus(reference);
+
+        if (pollResult.found) {
+          this.logger.log("✅ CARD FOUND VIA FALLBACK POLLING", {
+            reference,
+            cardData: pollResult.card,
+            totalWaitTime: `${Date.now() - startTime}ms`,
+            timestamp: new Date().toISOString(),
+          });
+
+          return {
+            success: true,
+            source: "polling",
+            data: { card: pollResult.card },
+            waitTime: Date.now() - startTime,
+          };
+        }
+
+        this.logger.log("🔄 CARD NOT READY YET - CONTINUING FALLBACK POLL", {
+          reference,
+          elapsedTime: `${Date.now() - startTime}ms`,
+          timestamp: new Date().toISOString(),
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+      } catch (pollError: any) {
+        this.logger.warn("⚠️ FALLBACK POLLING ERROR", {
+          reference,
+          error: pollError.message,
+          elapsedTime: `${Date.now() - startTime}ms`,
+          timestamp: new Date().toISOString(),
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+      }
+    }
+
+    // Final timeout
+    this.logger.error("⏰ FALLBACK POLLING TIMEOUT", {
+      reference,
+      totalWaitTime: `${Date.now() - startTime}ms`,
+      timestamp: new Date().toISOString(),
+    });
+
     return {
-      success: true,
+      success: false,
+      source: "timeout",
+      error: "Card creation polling timeout",
       data: {
         card: {
-          id: reference, // Use reference as temporary ID
-          status: "ACTIVE",
-          balance: 0, // Will be updated when actual webhook arrives
-          maskedPan: "411111******1111",
-          last4: "1111",
+          id: reference,
+          status: "PENDING",
+          balance: 0,
+          maskedPan: "****-****-****-****",
+          last4: "****",
           expiryMonth: 12,
           expiryYear: 2029,
           brand: "VISA",
         },
       },
+      waitTime: Date.now() - startTime,
+      message:
+        "Card creation may still be processing. Please check status later.",
     };
+  }
+
+  /**
+   * Check if webhook has arrived by examining metadata/logs
+   */
+  private async checkWebhookArrival(reference: string): Promise<{
+    arrived: boolean;
+    data?: any;
+  }> {
+    try {
+      // Check CustomerLogsModel for webhook arrival
+      // In a real implementation, you might have a dedicated webhook tracking table
+      const logsResult = await CustomerLogsModel.get({
+        action: "card_creation_webhook_received",
+        log_json: { reference },
+      });
+
+      if (logsResult.output && logsResult.output.length > 0) {
+        const latestLog = logsResult.output[0];
+        return {
+          arrived: true,
+          data: latestLog.log_json?.webhookData,
+        };
+      }
+
+      return { arrived: false };
+    } catch (error: any) {
+      this.logger.warn("Failed to check webhook arrival", {
+        reference,
+        error: error.message,
+      });
+      return { arrived: false };
+    }
+  }
+
+  /**
+   * Poll Maplerad API for card status
+   */
+  private async pollCardStatus(reference: string): Promise<{
+    found: boolean;
+    card?: any;
+  }> {
+    try {
+      this.logger.log("🔍 POLLING MAPLERAD FOR CARD STATUS", {
+        reference,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Try to get card by reference (this might not work if reference != card ID)
+      // In practice, you might need to store the card ID separately or use a different approach
+      const cardResult = await MapleradUtils.getCard(reference, false);
+
+      if (!cardResult.error && cardResult.output) {
+        const card = cardResult.output;
+
+        // Check if card is in a final state
+        if (card.status === "ACTIVE" || card.status === "DISABLED") {
+          return {
+            found: true,
+            card: {
+              id: card.id,
+              status: card.status,
+              balance: card.balance || 0,
+              maskedPan:
+                card.maskedPan || `****-****-****-${card.last4 || "****"}`,
+              last4: card.last4 || "****",
+              expiryMonth: card.expiryMonth || 12,
+              expiryYear: card.expiryYear || 2029,
+              brand: card.brand || "VISA",
+              cardNumber: card.cardNumber,
+              cvv: card.cvv,
+            },
+          };
+        }
+      }
+
+      return { found: false };
+    } catch (error: any) {
+      this.logger.warn("Card polling failed", {
+        reference,
+        error: error.message,
+      });
+      return { found: false };
+    }
   }
 
   /**
@@ -1038,7 +1260,7 @@ export class CardIssuanceService {
   /**
    * Create local card record
    */
-  private async createLocalCardRecord(
+  async createLocalCardRecord(
     cardId: string,
     customer: any,
     company: any,

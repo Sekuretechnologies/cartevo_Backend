@@ -29,6 +29,8 @@ import {
 import { utcToLocalTime } from "@/utils/date";
 import { MapleradUtils } from "../utils/maplerad.utils";
 import { CurrentUserData } from "@/modules/common/decorators/current-user.decorator";
+import { CardSyncService } from "./card.sync.service";
+import { CardIssuanceService } from "./card.issuance.service";
 
 /**
  * Advanced Card Management Service for Maplerad
@@ -38,7 +40,10 @@ import { CurrentUserData } from "@/modules/common/decorators/current-user.decora
 export class CardManagementService {
   private readonly logger = new Logger(CardManagementService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cardSyncService: CardSyncService
+  ) {}
 
   /**
    * Freeze a Maplerad card with advanced MONIX-style features
@@ -442,19 +447,66 @@ export class CardManagementService {
    */
   async getCustomerCards(
     customerId: string,
-    user: CurrentUserData
+    user: CurrentUserData,
+    syncCards: boolean = false
   ): Promise<any> {
     this.logger.log("👤 ADVANCED GET CUSTOMER CARDS FLOW - START", {
       customerId,
       userId: user.userId,
+      syncCards,
       timestamp: new Date().toISOString(),
     });
 
     try {
-      // 1. Validate customer ownership
+      // 1. Sync customer cards if requested
+      if (syncCards) {
+        this.logger.log(
+          "🔄 SYNC REQUESTED - SYNCING CUSTOMER CARDS BEFORE RETURNING",
+          {
+            customerId,
+            userId: user.userId,
+            timestamp: new Date().toISOString(),
+          }
+        );
+
+        // Use injected CardSyncService
+
+        try {
+          const syncResult = await this.cardSyncService.syncCustomerCards(
+            customerId,
+            user.companyId,
+            {
+              force: true, // Force sync when explicitly requested
+              maxConcurrency: 3,
+            }
+          );
+
+          this.logger.log("✅ CUSTOMER CARDS SYNC COMPLETED", {
+            customerId,
+            syncResult: {
+              totalCardsSynced: syncResult.summary?.totalCards || 0,
+              successfulSyncs: syncResult.summary?.successful || 0,
+              failedSyncs: syncResult.summary?.failed || 0,
+            },
+            timestamp: new Date().toISOString(),
+          });
+        } catch (syncError: any) {
+          this.logger.error(
+            "❌ CUSTOMER CARDS SYNC FAILED - CONTINUING WITH LOCAL DATA",
+            {
+              customerId,
+              syncError: syncError.message,
+              timestamp: new Date().toISOString(),
+            }
+          );
+          // Continue with local data even if sync fails
+        }
+      }
+
+      // 2. Validate customer ownership
       const customer = await this.validateCustomerAccess(customerId, user);
 
-      // 2. Get all customer cards
+      // 3. Get all customer cards
       const cardsResult = await CardModel.get({
         customer_id: customerId,
         company_id: user.companyId,
@@ -466,10 +518,10 @@ export class CardManagementService {
 
       const cards = cardsResult.output || [];
 
-      // 3. Calculate statistics
+      // 4. Calculate statistics
       const statistics = this.calculateCardStatistics(cards);
 
-      // 4. Format cards
+      // 5. Format cards
       const formattedCards = cards.map((card: any) => ({
         id: card.id,
         status: card.status,
@@ -488,6 +540,7 @@ export class CardManagementService {
       this.logger.log("✅ ADVANCED GET CUSTOMER CARDS FLOW - COMPLETED", {
         customerId,
         cardsCount: cards.length,
+        syncPerformed: syncCards,
         success: true,
       });
 
@@ -499,6 +552,7 @@ export class CardManagementService {
         metadata: {
           total_cards: cards.length,
           last_sync: new Date().toISOString(),
+          sync_performed: syncCards,
           provider: "maplerad",
         },
       };
@@ -507,6 +561,7 @@ export class CardManagementService {
         customerId,
         error: error.message,
         userId: user.userId,
+        syncRequested: syncCards,
       });
       throw new BadRequestException(
         `Get customer cards failed: ${error.message}`
@@ -517,15 +572,62 @@ export class CardManagementService {
   /**
    * Get all cards for a company with advanced MONIX-style features
    */
-  async getCompanyCards(user: CurrentUserData): Promise<any> {
+  async getCompanyCards(
+    user: CurrentUserData,
+    syncCards: boolean = false
+  ): Promise<any> {
     this.logger.log("🏢 ADVANCED GET COMPANY CARDS FLOW - START", {
       userId: user.userId,
       companyId: user.companyId,
+      syncCards,
       timestamp: new Date().toISOString(),
     });
 
     try {
-      // 1. Get all company cards
+      // 1. Sync cards if requested
+      if (syncCards) {
+        this.logger.log(
+          "🔄 SYNC REQUESTED - SYNCING COMPANY CARDS BEFORE RETURNING",
+          {
+            companyId: user.companyId,
+            userId: user.userId,
+            timestamp: new Date().toISOString(),
+          }
+        );
+
+        try {
+          const syncResult = await this.cardSyncService.syncCompanyCards(
+            user.companyId,
+            {
+              force: true, // Force sync when explicitly requested
+              maxConcurrency: 3,
+            }
+          );
+
+          this.logger.log("✅ COMPANY CARDS SYNC COMPLETED", {
+            companyId: user.companyId,
+            syncResult: {
+              totalCardsSynced: syncResult.summary?.total_cards_synced || 0,
+              successfulSyncs:
+                syncResult.summary?.successful_customer_syncs || 0,
+              failedSyncs: syncResult.summary?.failed_customer_syncs || 0,
+            },
+            timestamp: new Date().toISOString(),
+          });
+        } catch (syncError: any) {
+          this.logger.error(
+            "❌ COMPANY CARDS SYNC FAILED - CONTINUING WITH LOCAL DATA",
+            {
+              companyId: user.companyId,
+              syncError: syncError.message,
+              timestamp: new Date().toISOString(),
+            }
+          );
+          // Continue with local data even if sync fails
+        }
+      }
+
+      // 2. Get all company cards
       const cardsResult = await CardModel.get({
         company_id: user.companyId,
         provider: encodeText("maplerad"),
@@ -537,13 +639,13 @@ export class CardManagementService {
 
       const cards = cardsResult.output || [];
 
-      // 2. Calculate comprehensive statistics
+      // 3. Calculate comprehensive statistics
       const statistics = this.calculateCompanyCardStatistics(cards);
 
-      // 3. Group cards by customer
+      // 4. Group cards by customer
       const cardsByCustomer = this.groupCardsByCustomer(cards);
 
-      // 4. Format cards
+      // 5. Format cards
       const formattedCards = cards.map((card: any) => ({
         id: card.id,
         customer_id: card.customer_id,
@@ -564,6 +666,7 @@ export class CardManagementService {
         companyId: user.companyId,
         cardsCount: cards.length,
         customersCount: Object.keys(cardsByCustomer).length,
+        syncPerformed: syncCards,
         success: true,
       });
 
@@ -577,6 +680,7 @@ export class CardManagementService {
           total_cards: cards.length,
           total_customers: Object.keys(cardsByCustomer).length,
           last_sync: new Date().toISOString(),
+          sync_performed: syncCards,
           provider: "maplerad",
         },
       };
@@ -585,6 +689,7 @@ export class CardManagementService {
         companyId: user.companyId,
         error: error.message,
         userId: user.userId,
+        syncRequested: syncCards,
       });
       throw new BadRequestException(
         `Get company cards failed: ${error.message}`
