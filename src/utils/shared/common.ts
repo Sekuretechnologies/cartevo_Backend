@@ -630,16 +630,16 @@ export function getCountryPhonePrefix(value: string[]): string {
  * @returns Object with expiry_month and expiry_year as strings
  */
 export function extractExpiryMonthYear(expiry: string): {
-  expiry_month: string;
-  expiry_year: string;
+  expiry_month: number;
+  expiry_year: number;
 } {
-  let expiry_month = "";
-  let expiry_year = "";
+  let expiry_month = 12;
+  let expiry_year = 99;
 
   if (expiry && typeof expiry === "string" && expiry.includes("/")) {
     const [month, year] = expiry.split("/");
-    expiry_month = month?.trim() || "";
-    expiry_year = year?.trim() || "";
+    expiry_month = Number(month?.trim() || 12);
+    expiry_year = Number(year?.trim() || 99);
   }
 
   return {

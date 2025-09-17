@@ -26,8 +26,8 @@ interface CardCreationWebhookData {
     // Additional fields that may be present in actual webhook
     card_number?: string;
     expiry?: string;
-    expiry_month?: string;
-    expiry_year?: string;
+    expiry_month?: number;
+    expiry_year?: number;
     cvv?: string;
     balance_updated_at?: string;
     address?: any;
