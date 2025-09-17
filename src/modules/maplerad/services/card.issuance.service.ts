@@ -34,6 +34,7 @@ import {
   convertAmountToMapleradFormat,
 } from "@/utils/shared/common";
 import { WebhookWaitingService } from "./webhook-waiting.service";
+import { CardSyncService } from "./card.sync.service";
 
 /**
  * Advanced Card Issuance Service for Maplerad
@@ -46,7 +47,8 @@ export class CardIssuanceService {
 
   constructor(
     private prisma: PrismaService,
-    private webhookWaitingService: WebhookWaitingService
+    private webhookWaitingService: WebhookWaitingService,
+    private cardSyncService: CardSyncService
   ) {}
 
   /**
@@ -690,7 +692,7 @@ export class CardIssuanceService {
   /**
    * Ensure Maplerad customer exists
    */
-  private async ensureMapleradCustomer(
+  async ensureMapleradCustomer(
     customer: Customer,
     companyId: string
   ): Promise<string> {
@@ -774,47 +776,119 @@ export class CardIssuanceService {
       );
 
       if (enrollmentResult.error) {
-        this.logger.error("❌ MAPLERAD CUSTOMER CREATION FAILED", {
+        // Check if the error is "customer is already enrolled"
+        if (enrollmentResult.error.message === "customer is already enrolled") {
+          this.logger.warn("⚠️ CUSTOMER ALREADY ENROLLED - SYNCING CUSTOMERS", {
+            customerId: customer.id,
+            error: enrollmentResult.error.message,
+            duration: `${enrollmentDuration}ms`,
+            timestamp: new Date().toISOString(),
+          });
+
+          // Call syncCustomers service to sync the customer mappings
+          this.logger.log("🔄 CALLING SYNC CUSTOMERS SERVICE", {
+            customerId: customer.id,
+            companyId,
+            timestamp: new Date().toISOString(),
+          });
+
+          const syncResult = await this.cardSyncService.syncCustomers(
+            companyId,
+            {
+              force: true, // Force sync to get the latest mappings
+            }
+          );
+
+          this.logger.log("✅ CUSTOMER SYNC COMPLETED", {
+            customerId: customer.id,
+            syncResult: {
+              success: syncResult.success,
+              customersProcessed: syncResult.summary?.totalCustomers || 0,
+              mappingsCreated: syncResult.summary?.created || 0,
+              mappingsUpdated: syncResult.summary?.updated || 0,
+            },
+            timestamp: new Date().toISOString(),
+          });
+
+          // Now try to get the current customer provider_customer_id from mapping
+          this.logger.log("🔍 RETRIEVING UPDATED CUSTOMER MAPPING", {
+            customerId: customer.id,
+            provider: "maplerad",
+            timestamp: new Date().toISOString(),
+          });
+
+          const updatedMappingResult =
+            await CustomerProviderMappingModel.getOne({
+              customer_id: customer.id,
+              provider_name: "maplerad",
+            });
+
+          if (updatedMappingResult.output?.provider_customer_id) {
+            mapleradCustomerId =
+              updatedMappingResult.output.provider_customer_id;
+
+            this.logger.log("✅ RETRIEVED MAPLERAD CUSTOMER ID FROM SYNC", {
+              customerId: customer.id,
+              mapleradCustomerId,
+              timestamp: new Date().toISOString(),
+            });
+          } else {
+            this.logger.error(
+              "❌ FAILED TO GET PROVIDER CUSTOMER ID AFTER SYNC",
+              {
+                customerId: customer.id,
+                mappingResult: updatedMappingResult,
+                timestamp: new Date().toISOString(),
+              }
+            );
+            throw new BadRequestException(
+              "Customer is already enrolled but could not retrieve provider customer ID after sync"
+            );
+          }
+        } else {
+          this.logger.error("❌ MAPLERAD CUSTOMER CREATION FAILED", {
+            customerId: customer.id,
+            error: enrollmentResult.error.message,
+            duration: `${enrollmentDuration}ms`,
+            timestamp: new Date().toISOString(),
+          });
+          throw new BadRequestException(
+            "Failed to enroll customer in Maplerad: " +
+              enrollmentResult.error.message
+          );
+        }
+      } else {
+        // Success case - set mapleradCustomerId from enrollment result
+        mapleradCustomerId = enrollmentResult.output.id;
+
+        this.logger.log("✅ MAPLERAD CUSTOMER CREATED SUCCESSFULLY", {
           customerId: customer.id,
-          error: enrollmentResult.error.message,
+          mapleradCustomerId,
           duration: `${enrollmentDuration}ms`,
           timestamp: new Date().toISOString(),
         });
-        throw new BadRequestException(
-          "Failed to enroll customer in Maplerad: " +
-            enrollmentResult.error.message
-        );
+
+        // Create provider mapping
+        this.logger.log("🔗 CREATING PROVIDER MAPPING RECORD", {
+          customerId: customer.id,
+          mapleradCustomerId,
+          provider: "maplerad",
+          timestamp: new Date().toISOString(),
+        });
+
+        await CustomerProviderMappingModel.create({
+          customer_id: customer.id,
+          provider_customer_id: mapleradCustomerId,
+          provider_name: "maplerad",
+        });
+
+        this.logger.log("✅ PROVIDER MAPPING CREATED", {
+          customerId: customer.id,
+          mapleradCustomerId,
+          mappingId: "created",
+          timestamp: new Date().toISOString(),
+        });
       }
-
-      mapleradCustomerId = enrollmentResult.output.id;
-
-      this.logger.log("✅ MAPLERAD CUSTOMER CREATED SUCCESSFULLY", {
-        customerId: customer.id,
-        mapleradCustomerId,
-        duration: `${enrollmentDuration}ms`,
-        timestamp: new Date().toISOString(),
-      });
-
-      // Create provider mapping
-      this.logger.log("🔗 CREATING PROVIDER MAPPING RECORD", {
-        customerId: customer.id,
-        mapleradCustomerId,
-        provider: "maplerad",
-        timestamp: new Date().toISOString(),
-      });
-
-      await CustomerProviderMappingModel.create({
-        customer_id: customer.id,
-        provider_customer_id: mapleradCustomerId,
-        provider_name: "maplerad",
-      });
-
-      this.logger.log("✅ PROVIDER MAPPING CREATED", {
-        customerId: customer.id,
-        mapleradCustomerId,
-        mappingId: "created",
-        timestamp: new Date().toISOString(),
-      });
     } else {
       this.logger.log("✅ EXISTING MAPLERAD CUSTOMER FOUND", {
         customerId: customer.id,

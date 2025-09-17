@@ -16,6 +16,7 @@ import { v4 as uuidv4 } from "uuid";
 import { FirebaseService } from "@/services/firebase.service";
 import { EmailService } from "@/services/email.service";
 import { CardSyncService } from "@/modules/maplerad/services/card.sync.service";
+import { CardIssuanceService } from "@/modules/maplerad/services/card.issuance.service";
 import CustomerProviderMappingModel from "@/models/prisma/customerProviderMappingModel";
 
 @Injectable()
@@ -24,7 +25,8 @@ export class CustomerService {
 
   constructor(
     private firebaseService: FirebaseService,
-    private cardSyncService: CardSyncService
+    private cardSyncService: CardSyncService,
+    private cardIssuanceService: CardIssuanceService
   ) {}
 
   async create(
@@ -33,7 +35,8 @@ export class CustomerService {
     files?: {
       id_document_front?: any[];
       id_document_back?: any[];
-    }
+    },
+    enrollOnMaplerad: boolean = false
   ): Promise<CustomerResponseDto> {
     // Check if customer already exists for this company
     const existingCustomerResult = await CustomerModel.getOne({
@@ -104,6 +107,52 @@ export class CustomerService {
       throw new ConflictException(customerResult.error.message);
     }
     const customer = customerResult.output;
+
+    // Enroll customer on Maplerad if requested
+    if (enrollOnMaplerad) {
+      this.logger.log("🌐 ENROLLING CUSTOMER ON MAPLERAD", {
+        customerId,
+        companyId,
+        customerEmail: customer.email,
+        timestamp: new Date().toISOString(),
+      });
+
+      try {
+        const enrollmentStartTime = Date.now();
+        const mapleradCustomerId =
+          await this.cardIssuanceService.ensureMapleradCustomer(
+            customer,
+            companyId
+          );
+        const enrollmentDuration = Date.now() - enrollmentStartTime;
+
+        this.logger.log("✅ CUSTOMER ENROLLED ON MAPLERAD SUCCESSFULLY", {
+          customerId,
+          mapleradCustomerId,
+          duration: `${enrollmentDuration}ms`,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (enrollmentError: any) {
+        this.logger.error("❌ MAPLERAD ENROLLMENT FAILED", {
+          customerId,
+          error: enrollmentError.message,
+          timestamp: new Date().toISOString(),
+        });
+
+        // Log the error but don't fail the customer creation
+        // The customer is still created locally, just not enrolled on Maplerad
+        this.logger.warn(
+          "⚠️ CUSTOMER CREATED LOCALLY BUT MAPLERAD ENROLLMENT FAILED",
+          {
+            customerId,
+            companyId,
+            enrollmentError: enrollmentError.message,
+            timestamp: new Date().toISOString(),
+          }
+        );
+      }
+    }
+
     return this.mapToResponseDto(customer);
   }
 
