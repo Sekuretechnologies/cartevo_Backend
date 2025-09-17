@@ -641,7 +641,7 @@ export class MapleradUtils {
       console.log("✅ Maplerad cards retrieved:", response.data);
 
       return {
-        output: response.data,
+        output: response.data?.data,
       };
     } catch (error: any) {
       console.error("❌ Maplerad cards retrieval error:", error);
