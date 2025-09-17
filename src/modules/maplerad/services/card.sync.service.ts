@@ -79,6 +79,10 @@ export class CardSyncService {
         card.provider_card_id,
         options?.includeSensitive
       );
+      console.log(
+        "Fetch latest data from Maplerad : mapleradData :: ",
+        mapleradData
+      );
 
       // 4. Detect changes and calculate differences
       const changes = this.detectCardChanges(card, mapleradData);

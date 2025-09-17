@@ -237,7 +237,7 @@ model Card {
   country         String     // Country of issuance
   country_iso_code String    @map("country_iso_code") // ISO code of the country
   provider_card_id String     @map("provider_card_id") // ID from the card provider
-  // provider_card_account_number String? @map("provider_card_account_number") // Account number from the card provider
+  provider_card_metadata Json? @map("provider_card_metadata") // Metadata from the card provider
   masked_number   String?    @map("masked_number") // Masked card number
   name            String?    // Name on the card
   city            String?    // City of issuance
