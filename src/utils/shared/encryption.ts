@@ -46,7 +46,7 @@ export function decodeText(base64: string): string {
 
 export const signToken = (id: any) => {
   const payload = { value: id };
-  const token = jwtService.sign(payload);
+  const token = jwtService.sign(payload, { secret: env.JWT_SECRET });
   return token;
 };
 
