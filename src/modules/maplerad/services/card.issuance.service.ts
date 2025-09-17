@@ -196,7 +196,8 @@ export class CardIssuanceService {
     const customer = customerResult.output;
     this.logger.log("✅ CUSTOMER DATA RETRIEVED", {
       customerId,
-      customerName: `${customer.first_name} ${customer.last_name}`,
+      customerName:
+        `${customer.first_name} ${customer.last_name}`.toUpperCase(),
       customerEmail: customer.email,
       timestamp: new Date().toISOString(),
     });
@@ -766,6 +767,11 @@ export class CardIssuanceService {
       const enrollmentStartTime = Date.now();
       const enrollmentResult = await MapleradUtils.createCustomer(customerData);
       const enrollmentDuration = Date.now() - enrollmentStartTime;
+
+      console.log(
+        "ensureMapleradCustomer :: enrollmentResult ::",
+        enrollmentResult
+      );
 
       if (enrollmentResult.error) {
         this.logger.error("❌ MAPLERAD CUSTOMER CREATION FAILED", {
