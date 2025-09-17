@@ -24,7 +24,8 @@ import { v4 as uuidv4 } from "uuid";
 import { decodeText, encodeText } from "@/utils/shared/encryption";
 import { utcToLocalTime } from "@/utils/date";
 import { MapleradUtils } from "../utils/maplerad.utils";
-import { CardIssuanceService } from "./card.issuance.service";
+import { CustomerSyncService } from "./customer.sync.service";
+import { CardRecordService } from "./card.record.service";
 import { CurrentUserData } from "@/modules/common/decorators/current-user.decorator";
 import { convertMapleradAmountToMainUnit } from "@/utils/shared/common";
 import { extractExpiryMonthYear } from "@/utils/shared/common";
@@ -40,7 +41,8 @@ export class CardSyncService {
 
   constructor(
     private prisma: PrismaService,
-    private cardIssuanceService: CardIssuanceService
+    private customerSyncService: CustomerSyncService,
+    private cardRecordService: CardRecordService
   ) {}
 
   /**
@@ -261,10 +263,10 @@ export class CardSyncService {
                 type: mapleradCard.type,
               };
 
-              // Create card using CardIssuanceService
+              // Create card using CardRecordService
               const cardId = uuidv4();
               const savedCard =
-                await this.cardIssuanceService.createLocalCardRecord(
+                await this.cardRecordService.createLocalCardRecord(
                   cardId,
                   customer,
                   { id: companyId }, // Mock company object

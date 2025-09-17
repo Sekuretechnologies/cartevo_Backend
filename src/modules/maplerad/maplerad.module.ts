@@ -22,6 +22,8 @@ import { CardWithdrawService } from "./services/card.withdraw.service";
 import { CardManagementService } from "./services/card.management.service";
 import { CardSyncService } from "./services/card.sync.service";
 import { CardSyncTransactionService } from "./services/card.sync.transaction.service";
+import { CustomerSyncService } from "./services/customer.sync.service";
+import { CardRecordService } from "./services/card.record.service";
 
 @Module({
   imports: [PrismaModule],
@@ -48,6 +50,8 @@ import { CardSyncTransactionService } from "./services/card.sync.transaction.ser
     CardManagementService,
     CardSyncService,
     CardSyncTransactionService,
+    CustomerSyncService,
+    CardRecordService,
   ],
   exports: [
     // 🎣 MONIX-STYLE Webhook Services
@@ -65,6 +69,8 @@ import { CardSyncTransactionService } from "./services/card.sync.transaction.ser
     CardManagementService,
     CardSyncService,
     CardSyncTransactionService,
+    CustomerSyncService,
+    CardRecordService,
   ],
 })
 export class MapleradModule {}

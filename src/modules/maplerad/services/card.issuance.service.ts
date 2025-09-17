@@ -34,7 +34,8 @@ import {
   convertAmountToMapleradFormat,
 } from "@/utils/shared/common";
 import { WebhookWaitingService } from "./webhook-waiting.service";
-import { CardSyncService } from "./card.sync.service";
+import { CardRecordService } from "./card.record.service";
+import { CustomerSyncService } from "./customer.sync.service";
 
 /**
  * Advanced Card Issuance Service for Maplerad
@@ -48,7 +49,8 @@ export class CardIssuanceService {
   constructor(
     private prisma: PrismaService,
     private webhookWaitingService: WebhookWaitingService,
-    private cardSyncService: CardSyncService
+    private cardRecordService: CardRecordService,
+    private customerSyncService: CustomerSyncService
   ) {}
 
   /**
@@ -792,7 +794,7 @@ export class CardIssuanceService {
             timestamp: new Date().toISOString(),
           });
 
-          const syncResult = await this.cardSyncService.syncCustomers(
+          const syncResult = await this.customerSyncService.syncCustomers(
             companyId,
             {
               force: true, // Force sync to get the latest mappings
