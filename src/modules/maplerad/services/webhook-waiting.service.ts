@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { EventEmitter } from "events";
 import { MapleradWebhookPayload } from "./webhook.types";
+import { extractExpiryMonthYear } from "@/utils/shared/common";
 
 interface WebhookWaitingResult {
   success: boolean;
@@ -22,6 +23,16 @@ interface CardCreationWebhookData {
     status: "ACTIVE" | "DISABLED";
     balance: number;
     auto_approve: boolean;
+    // Additional fields that may be present in actual webhook
+    card_number?: string;
+    expiry?: string;
+    expiry_month?: string;
+    expiry_year?: string;
+    cvv?: string;
+    balance_updated_at?: string;
+    address?: any;
+    created_at?: string;
+    updated_at?: string;
   };
   reference: string;
   event: string;
@@ -187,6 +198,13 @@ export class WebhookWaitingService {
       };
     }
 
+    // Use type assertion to access additional properties that may be present
+    const card = payload.card as any;
+
+    // Parse expiry field (format: "MM/YY") to extract month and year
+    const expiry = card.expiry || "";
+    const { expiry_month, expiry_year } = extractExpiryMonthYear(expiry);
+
     const cardData: CardCreationWebhookData = {
       card: {
         id: payload.card.id,
@@ -198,6 +216,16 @@ export class WebhookWaitingService {
         status: payload.card.status as "ACTIVE" | "DISABLED",
         balance: payload.card.balance,
         auto_approve: payload.card.auto_approve,
+        // Additional fields that may be present in actual webhook
+        card_number: card.card_number || "",
+        expiry: expiry,
+        expiry_month: expiry_month,
+        expiry_year: expiry_year,
+        cvv: card.cvv || "",
+        balance_updated_at: card.balance_updated_at || "",
+        address: card.address || {},
+        created_at: card.created_at || "",
+        updated_at: card.updated_at || "",
       },
       reference: payload.reference || "",
       event: payload.event,

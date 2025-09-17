@@ -26,6 +26,7 @@ import { utcToLocalTime } from "@/utils/date";
 import { MapleradUtils } from "../utils/maplerad.utils";
 import { CardIssuanceService } from "./card.issuance.service";
 import { CurrentUserData } from "@/modules/common/decorators/current-user.decorator";
+import { extractExpiryMonthYear } from "@/utils/shared/common";
 
 /**
  * Advanced Card Synchronization Service for Maplerad
@@ -214,6 +215,8 @@ export class CardSyncService {
       const createdCards = [];
       if (mapleradCards.length > 0) {
         for (const mapleradCard of mapleradCards) {
+          const expiry = mapleradCard.expiry || "";
+          const { expiry_month, expiry_year } = extractExpiryMonthYear(expiry);
           // Check if card already exists locally
           const existingCard = localCards.find(
             (localCard: any) => localCard.provider_card_id === mapleradCard.id
@@ -237,14 +240,14 @@ export class CardSyncService {
               // Create mock finalCard data for createLocalCardRecord
               const finalCard = {
                 id: mapleradCard.id,
-                cardNumber: mapleradCard.cardNumber || "***",
+                cardNumber: mapleradCard.card_number || "***",
                 cvv: mapleradCard.cvv || "***",
                 maskedPan: `**** **** **** ${
-                  mapleradCard.maskedPan?.slice(-4) || "****"
+                  mapleradCard.masked_pan?.slice(-4) || "****"
                 }`,
                 last4: mapleradCard.card_number?.slice(-4) || "****",
-                expiryMonth: mapleradCard.expiryMonth || 12,
-                expiryYear: mapleradCard.expiryYear || 2099,
+                expiryMonth: mapleradCard.expiry_month || expiry_month || 12,
+                expiryYear: mapleradCard.expiry_year || expiry_year || 99,
                 brand: mapleradCard.brand || "VISA",
                 status: mapleradCard.status || "ACTIVE",
                 balance: mapleradCard.balance || 0,

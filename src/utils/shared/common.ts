@@ -622,3 +622,28 @@ export function getCountryPhonePrefix(value: string[]): string {
   const prefix: string = value?.[0]?.slice(1) || "";
   return prefix;
 }
+
+/** =========================================================== */
+/**
+ * Extract expiry month and year from expiry string (format: "MM/YY")
+ * @param expiry - Expiry string in format "MM/YY" (e.g., "08/30")
+ * @returns Object with expiry_month and expiry_year as strings
+ */
+export function extractExpiryMonthYear(expiry: string): {
+  expiry_month: string;
+  expiry_year: string;
+} {
+  let expiry_month = "";
+  let expiry_year = "";
+
+  if (expiry && typeof expiry === "string" && expiry.includes("/")) {
+    const [month, year] = expiry.split("/");
+    expiry_month = month?.trim() || "";
+    expiry_year = year?.trim() || "";
+  }
+
+  return {
+    expiry_month,
+    expiry_year,
+  };
+}

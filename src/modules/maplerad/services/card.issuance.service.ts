@@ -27,7 +27,10 @@ import TransactionFeeModel from "@/models/prisma/transactionFeeModel";
 import BalanceTransactionRecordModel from "@/models/prisma/balanceTransactionRecordModel";
 import { TransactionCategory, TransactionType } from "@/types";
 import { CustomerProviderMappingModel } from "@/models";
-import { getFormattedDate } from "@/utils/shared/common";
+import {
+  extractExpiryMonthYear,
+  getFormattedDate,
+} from "@/utils/shared/common";
 import { WebhookWaitingService } from "./webhook-waiting.service";
 
 /**
@@ -1105,6 +1108,8 @@ export class CardIssuanceService {
 
         // Check if card is in a final state
         if (card.status === "ACTIVE" || card.status === "DISABLED") {
+          const expiry = card.expiry || "";
+          const { expiry_month, expiry_year } = extractExpiryMonthYear(expiry);
           return {
             found: true,
             card: {
@@ -1112,12 +1117,12 @@ export class CardIssuanceService {
               status: card.status,
               balance: card.balance || 0,
               maskedPan:
-                card.maskedPan || `****-****-****-${card.last4 || "****"}`,
+                card.masked_pan || `****-****-****-${card.last4 || "****"}`,
               last4: card.last4 || "****",
-              expiryMonth: card.expiryMonth || 12,
-              expiryYear: card.expiryYear || 2029,
+              expiryMonth: card.expiry_month || expiry_month || 12,
+              expiryYear: card.expiry_year || expiry_year || 99,
               brand: card.brand || "VISA",
-              cardNumber: card.cardNumber,
+              cardNumber: card.card_umber,
               cvv: card.cvv,
             },
           };
@@ -1290,7 +1295,7 @@ export class CardIssuanceService {
       last4: finalCard.last4,
       cvv: `tkMplr_${encryptedCvv}`,
       expiry_month: finalCard.expiryMonth || 12,
-      expiry_year: finalCard.expiryYear || 2029,
+      expiry_year: finalCard.expiryYear || 99,
       postal_code: customer.postal_code || "00000",
       street: customer.address || "",
       city: customer.city || "",
