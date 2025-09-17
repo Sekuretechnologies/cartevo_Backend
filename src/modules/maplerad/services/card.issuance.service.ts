@@ -908,8 +908,8 @@ export class CardIssuanceService {
       // Use WebhookWaitingService to wait for the webhook
       const webhookResult = await this.webhookWaitingService.waitForWebhook(
         reference,
-        // 30000 // 30 secondes
-        300000 // 5 minutes timeout
+        60000 // 1 minute timeout
+        // 300000 // 5 minutes timeout
       );
 
       this.logger.log("✅ WEBHOOK WAIT COMPLETED", {
