@@ -28,6 +28,7 @@ import { CardIssuanceService } from "./card.issuance.service";
 import { CurrentUserData } from "@/modules/common/decorators/current-user.decorator";
 import { convertMapleradAmountToMainUnit } from "@/utils/shared/common";
 import { extractExpiryMonthYear } from "@/utils/shared/common";
+import { CardBrand } from "@/utils/cards/maplerad/types";
 
 /**
  * Advanced Card Synchronization Service for Maplerad
@@ -956,7 +957,7 @@ export class CardSyncService {
 
     // Brand comparison
     const localBrand = localCard.brand;
-    const providerBrand = this.mapProviderStatusToLocal(providerData?.issuer);
+    const providerBrand = this.mapProviderBrandToLocal(providerData?.issuer);
 
     if (localBrand !== providerBrand) {
       changes.brand = {
@@ -1105,6 +1106,23 @@ export class CardSyncService {
     }
 
     return CardStatus.ACTIVE; // Default
+  }
+
+  /**
+   * Map provider brand to local brand
+   */
+  private mapProviderBrandToLocal(providerBrand: string): CardBrand {
+    if (!providerBrand) return CardBrand.VISA;
+
+    const brand = providerBrand.toLowerCase();
+
+    if (brand.includes("visa")) {
+      return CardBrand.VISA;
+    } else if (brand.includes("mastercard")) {
+      return CardBrand.MASTERCARD;
+    }
+
+    return CardBrand.VISA; // Default
   }
 
   /**
