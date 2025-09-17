@@ -944,7 +944,7 @@ export class CardSyncService {
       );
     }
 
-    return result.output;
+    return result.output?.data;
   }
 
   /**
