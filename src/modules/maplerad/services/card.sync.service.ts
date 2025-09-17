@@ -1135,6 +1135,10 @@ export class CardSyncService {
 
     const updateData: any = {};
 
+    if (changes.brand?.changed) {
+      updateData.brand = changes.brand.to;
+    }
+
     if (changes.status?.changed) {
       updateData.status = changes.status.to;
     }
@@ -1339,8 +1343,12 @@ export class CardSyncService {
 
     if (changeCount === 0) return "none";
 
-    // High priority for status changes or terminations
-    if (changes.status?.changed || changes.terminate_date?.changed) {
+    // High priority for brand or status changes or terminations
+    if (
+      changes.brand?.changed ||
+      changes.status?.changed ||
+      changes.terminate_date?.changed
+    ) {
       return "high";
     }
 
