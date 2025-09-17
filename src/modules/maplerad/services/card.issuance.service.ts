@@ -838,7 +838,14 @@ export class CardIssuanceService {
       timestamp: new Date().toISOString(),
     });
 
-    const mapleradBrand = dto.brand === "MASTERCARD" ? "MASTERCARD" : "VISA";
+    // Map brand to Maplerad format
+    const normalizedBrand = dto.brand.toUpperCase();
+    const mapleradBrand =
+      normalizedBrand === "MASTERCARD"
+        ? "MASTERCARD"
+        : normalizedBrand === "VISA"
+        ? "VISA"
+        : "VISA";
     const cardData = {
       customer_id: mapleradCustomerId,
       currency: "USD",
