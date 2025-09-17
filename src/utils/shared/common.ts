@@ -625,6 +625,37 @@ export function getCountryPhonePrefix(value: string[]): string {
 
 /** =========================================================== */
 /**
+ * 💰 Convert Maplerad amount from cents/kobo to main currency unit
+ * Maplerad returns amounts in the smallest currency unit (cents for USD, kobo for NGN)
+ * @param amount - Amount in cents/kobo from Maplerad
+ * @param currency - Currency code (USD, NGN, EUR, etc.)
+ * @returns Amount in main currency unit (dollars, naira, euros, etc.)
+ */
+export function convertMapleradAmountToMainUnit(
+  amount: number,
+  currency: string
+): number {
+  // Convert from cents/kobo to main unit (divide by 100)
+  return amount / 100;
+}
+
+/**
+ * 💰 Convert amount to Maplerad format (cents/kobo)
+ * Maplerad expects amounts in the smallest currency unit
+ * @param amount - Amount in main currency unit
+ * @param currency - Currency code (USD, NGN, EUR, etc.)
+ * @returns Amount in cents/kobo for Maplerad API
+ */
+export function convertAmountToMapleradFormat(
+  amount: number,
+  currency: string
+): number {
+  // Convert to cents/kobo (multiply by 100)
+  return Math.round(amount * 100);
+}
+
+/** =========================================================== */
+/**
  * Extract expiry month and year from expiry string (format: "MM/YY")
  * @param expiry - Expiry string in format "MM/YY" (e.g., "08/30")
  * @returns Object with expiry_month and expiry_year as strings

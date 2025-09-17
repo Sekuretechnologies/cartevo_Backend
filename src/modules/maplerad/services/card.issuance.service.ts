@@ -30,6 +30,8 @@ import { CustomerProviderMappingModel } from "@/models";
 import {
   extractExpiryMonthYear,
   getFormattedDate,
+  convertMapleradAmountToMainUnit,
+  convertAmountToMapleradFormat,
 } from "@/utils/shared/common";
 import { WebhookWaitingService } from "./webhook-waiting.service";
 
@@ -843,7 +845,7 @@ export class CardIssuanceService {
       type: "VIRTUAL",
       brand: mapleradBrand,
       auto_approve: true,
-      amount: Math.round(dto.amount * 100), // Convert to cents
+      amount: convertAmountToMapleradFormat(dto.amount, "USD"), // Convert to cents using utility
     };
 
     this.logger.log("🌐 CALLING MAPLERAD CARD CREATION API", {
@@ -899,7 +901,8 @@ export class CardIssuanceService {
       // Use WebhookWaitingService to wait for the webhook
       const webhookResult = await this.webhookWaitingService.waitForWebhook(
         reference,
-        300000 // 5 minutes timeout
+        30000 // 30 secondes
+        // 300000 // 5 minutes timeout
       );
 
       this.logger.log("✅ WEBHOOK WAIT COMPLETED", {
@@ -912,12 +915,26 @@ export class CardIssuanceService {
 
       if (webhookResult.success) {
         // Webhook arrived successfully
-        return {
+        const result = {
           success: true,
           source: webhookResult.source,
           data: webhookResult.data,
           waitTime: webhookResult.waitTime,
         };
+
+        this.logger.log("✅ WEBHOOK WAIT SUCCESSFUL - RETURNING RESULT", {
+          reference,
+          result: {
+            success: result.success,
+            source: result.source,
+            waitTime: result.waitTime,
+            hasCardData: !!result.data?.card,
+            cardId: result.data?.card?.id,
+          },
+          timestamp: new Date().toISOString(),
+        });
+
+        return result;
       } else if (webhookResult.timeout) {
         // Timeout occurred, fallback to polling
         this.logger.warn("⏰ WEBHOOK TIMEOUT - FALLBACK TO POLLING", {
@@ -927,6 +944,19 @@ export class CardIssuanceService {
         });
 
         const pollResult = await this.fallbackPolling(reference);
+
+        this.logger.log("🔄 FALLBACK POLLING COMPLETED - RETURNING RESULT", {
+          reference,
+          pollResult: {
+            success: pollResult.success,
+            source: pollResult.source,
+            waitTime: pollResult.waitTime,
+            hasCardData: !!pollResult.data?.card,
+            cardId: pollResult.data?.card?.id,
+          },
+          timestamp: new Date().toISOString(),
+        });
+
         return pollResult;
       } else {
         // Webhook failed
@@ -1159,6 +1189,11 @@ export class CardIssuanceService {
       timestamp: new Date().toISOString(),
     });
 
+    console.log(
+      "processSuccessfulCardCreation : webhookResult :: ",
+      webhookResult
+    );
+
     const finalCard = webhookResult.data.card;
     const cardId = uuidv4();
 
@@ -1177,6 +1212,8 @@ export class CardIssuanceService {
       amount: dto.amount,
       timestamp: new Date().toISOString(),
     });
+
+    console.log("FINAL CARD :: ", finalCard);
 
     const savedCard = await this.createLocalCardRecord(
       cardId,

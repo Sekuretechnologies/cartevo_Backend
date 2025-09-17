@@ -26,6 +26,7 @@ import { utcToLocalTime } from "@/utils/date";
 import { MapleradUtils } from "../utils/maplerad.utils";
 import { CardIssuanceService } from "./card.issuance.service";
 import { CurrentUserData } from "@/modules/common/decorators/current-user.decorator";
+import { convertMapleradAmountToMainUnit } from "@/utils/shared/common";
 import { extractExpiryMonthYear } from "@/utils/shared/common";
 
 /**
@@ -965,9 +966,13 @@ export class CardSyncService {
       };
     }
 
-    // Balance comparison
+    // Balance comparison (convert Maplerad balance from cents to main unit)
     const localBalance = localCard.balance?.toNumber() || 0;
-    const providerBalance = providerData?.balance || 0;
+    const providerBalanceInCents = providerData?.balance || 0;
+    const providerBalance = convertMapleradAmountToMainUnit(
+      providerBalanceInCents,
+      "USD"
+    );
 
     if (Math.abs(localBalance - providerBalance) > 0.01) {
       changes.balance = {
@@ -991,6 +996,7 @@ export class CardSyncService {
         changed: true,
       };
     }
+    console.log("detectCardChanges : CHANGES :: ", changes);
 
     return changes;
   }

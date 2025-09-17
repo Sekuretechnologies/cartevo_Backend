@@ -1,7 +1,10 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { EventEmitter } from "events";
 import { MapleradWebhookPayload } from "./webhook.types";
-import { extractExpiryMonthYear } from "@/utils/shared/common";
+import {
+  extractExpiryMonthYear,
+  convertMapleradAmountToMainUnit,
+} from "@/utils/shared/common";
 
 interface WebhookWaitingResult {
   success: boolean;
