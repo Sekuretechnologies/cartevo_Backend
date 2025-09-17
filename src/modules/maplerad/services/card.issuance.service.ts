@@ -861,7 +861,7 @@ export class CardIssuanceService {
         }
       } else {
         // Success case - set mapleradCustomerId from enrollment result
-        mapleradCustomerId = enrollmentResult.output.id;
+        mapleradCustomerId = enrollmentResult.output.data.id;
 
         this.logger.log("✅ MAPLERAD CUSTOMER CREATED SUCCESSFULLY", {
           customerId: customer.id,

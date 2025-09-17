@@ -61,12 +61,14 @@ export class CustomerController {
     files: {
       id_document_front?: any[];
       id_document_back?: any[];
-    }
+    },
+    @Query("enroll") enroll?: string
   ): Promise<CustomerResponseDto> {
     return this.customerService.create(
       user.companyId,
       createCustomerDto,
-      files
+      files,
+      enroll === "true"
     );
   }
 
