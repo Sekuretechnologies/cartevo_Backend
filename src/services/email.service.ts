@@ -38,7 +38,7 @@ export class EmailService {
       const mailOptions = {
         from: this.configService.get("FROM_EMAIL") || "noreply@cartevo.co",
         to: email,
-        subject: "Code de vérification CARTEVO",
+        subject: `Code de vérification CARTEVO : ${otp}`,
         html: this.getOtpEmailTemplate(otp, userName),
         text: `Votre code de vérification CARTEVO est: ${otp}. Ce code expire dans 10 minutes.`,
       };
