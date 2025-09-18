@@ -331,12 +331,12 @@ export class CardManagementService {
   async getCard(
     cardId: string,
     user: CurrentUserData,
-    revealSensitive?: boolean
+    reveal?: boolean
   ): Promise<any> {
     this.logger.log("🔍 ADVANCED GET CARD FLOW - START", {
       cardId,
       userId: user.userId,
-      revealSensitive,
+      reveal,
       timestamp: new Date().toISOString(),
     });
 
@@ -347,39 +347,7 @@ export class CardManagementService {
       // 2. Get card with sensitive data handling
       let cardData = card;
 
-      if (revealSensitive) {
-        // Fetch real card data from Maplerad
-        const mapleradCardResult = await MapleradUtils.getCard(
-          card.provider_card_id,
-          true
-        );
-
-        if (mapleradCardResult.error) {
-          this.logger.warn(
-            "Could not fetch card from Maplerad:",
-            mapleradCardResult.error
-          );
-        } else {
-          const mapleradCard = mapleradCardResult.output;
-
-          // Update local encrypted data
-          if (mapleradCard?.cardNumber && mapleradCard?.cvv) {
-            const encryptedCardNumber = signToken(mapleradCard.cardNumber);
-            const encryptedCvv = signToken(mapleradCard.cvv);
-
-            await CardModel.update(card.id, {
-              number: `tkMplr_${encryptedCardNumber}`,
-              cvv: `tkMplr_${encryptedCvv}`,
-            });
-
-            cardData = {
-              ...cardData,
-              number: mapleradCard.cardNumber,
-              cvv: mapleradCard.cvv,
-            };
-          }
-        }
-      } else if (card.cvv?.startsWith("tkMplr_")) {
+      if (reveal && card.cvv?.startsWith("tkMplr_")) {
         // Decrypt stored data
         const decryptedCardNumber = decodeToken(
           card.number.replace(/^tkMplr_/, "")
@@ -420,14 +388,14 @@ export class CardManagementService {
       this.logger.log("✅ ADVANCED GET CARD FLOW - COMPLETED", {
         cardId,
         success: true,
-        revealedSensitive: revealSensitive,
+        revealedSensitive: reveal,
       });
 
       return {
         success: true,
         card: formattedCard,
         metadata: {
-          revealed_sensitive: revealSensitive || false,
+          revealed_sensitive: reveal || false,
           provider: decodeText(card.provider),
           last_sync: card.updated_at,
         },
@@ -754,7 +722,7 @@ export class CardManagementService {
       const transactions = transactionsResult.output || [];
 
       // 4. Calculate transaction statistics
-      const statistics = this.calculateTransactionStatistics(transactions);
+      // const statistics = this.calculateTransactionStatistics(transactions);
 
       // 5. Format transactions
       const formattedTransactions = transactions.map((tx: any) => ({
@@ -784,8 +752,8 @@ export class CardManagementService {
 
       return {
         success: true,
-        card_id: cardId,
-        statistics,
+        // card_id: cardId,
+        // statistics,
         transactions: formattedTransactions,
         pagination: {
           limit: filters?.limit || 50,
@@ -793,10 +761,10 @@ export class CardManagementService {
           total: transactions.length,
         },
         filters: filters || {},
-        metadata: {
-          last_sync: new Date().toISOString(),
-          provider: decodeText(card.provider),
-        },
+        // metadata: {
+        //   last_sync: new Date().toISOString(),
+        //   provider: decodeText(card.provider),
+        // },
       };
     } catch (error: any) {
       this.logger.error("❌ ADVANCED GET CARD TRANSACTIONS FAILED", {
