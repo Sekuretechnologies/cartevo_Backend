@@ -633,17 +633,19 @@ export class CardManagementService {
         provider: encodeText("maplerad"),
       });
 
+      console.log("✅  Get all company cards :: ", cardsResult);
+
       if (cardsResult.error) {
         throw new BadRequestException("Failed to retrieve company cards");
       }
 
       const cards = cardsResult.output || [];
 
-      // 3. Calculate comprehensive statistics
-      const statistics = this.calculateCompanyCardStatistics(cards);
+      // // 3. Calculate comprehensive statistics
+      // const statistics = this.calculateCompanyCardStatistics(cards);
 
-      // 4. Group cards by customer
-      const cardsByCustomer = this.groupCardsByCustomer(cards);
+      // // 4. Group cards by customer
+      // const cardsByCustomer = this.groupCardsByCustomer(cards);
 
       // 5. Format cards
       const formattedCards = cards.map((card: any) => ({
@@ -659,30 +661,30 @@ export class CardManagementService {
         updated_at: card.updated_at,
         is_active: card.is_active,
         is_virtual: card.is_virtual,
-        provider: decodeText(card.provider),
+        // provider: decodeText(card.provider),
       }));
 
       this.logger.log("✅ ADVANCED GET COMPANY CARDS FLOW - COMPLETED", {
         companyId: user.companyId,
         cardsCount: cards.length,
-        customersCount: Object.keys(cardsByCustomer).length,
+        // customersCount: Object.keys(cardsByCustomer).length,
         syncPerformed: syncCards,
         success: true,
       });
 
       return {
         success: true,
-        company_id: user.companyId,
-        statistics,
-        cards: formattedCards,
-        cards_by_customer: cardsByCustomer,
-        metadata: {
-          total_cards: cards.length,
-          total_customers: Object.keys(cardsByCustomer).length,
-          last_sync: new Date().toISOString(),
-          sync_performed: syncCards,
-          provider: "maplerad",
-        },
+        // company_id: user.companyId,
+        // statistics,
+        data: formattedCards,
+        // cards_by_customer: cardsByCustomer,
+        // metadata: {
+        //   total_cards: cards.length,
+        //   total_customers: Object.keys(cardsByCustomer).length,
+        //   last_sync: new Date().toISOString(),
+        //   sync_performed: syncCards,
+        //   provider: "maplerad",
+        // },
       };
     } catch (error: any) {
       this.logger.error("❌ ADVANCED GET COMPANY CARDS FAILED", {
