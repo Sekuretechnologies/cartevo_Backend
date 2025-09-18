@@ -742,7 +742,7 @@ export class CardManagementService {
       const transactionsResult = await TransactionModel.get(queryFilters, {
         limit: filters?.limit || 50,
         offset: filters?.offset || 0,
-        orderBy: { created_at: "desc" },
+        // orderBy: { created_at: "desc" },
       });
 
       console.log("GET CARD TRANSACTIONS :: ", transactionsResult);
