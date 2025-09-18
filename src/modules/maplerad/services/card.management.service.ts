@@ -716,7 +716,7 @@ export class CardManagementService {
   ): Promise<any> {
     this.logger.log("📊 ADVANCED GET CARD TRANSACTIONS FLOW - START", {
       cardId,
-      userId: user.userId,
+      userId: user.companyId,
       filters,
       timestamp: new Date().toISOString(),
     });
@@ -744,6 +744,8 @@ export class CardManagementService {
         offset: filters?.offset || 0,
         orderBy: { created_at: "desc" },
       });
+
+      console.log("GET CARD TRANSACTIONS :: ", transactionsResult);
 
       if (transactionsResult.error) {
         throw new BadRequestException("Failed to retrieve card transactions");
