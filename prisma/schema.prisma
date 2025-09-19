@@ -141,6 +141,8 @@ model UserCompanyRole {
   user_id    String   @map("user_id")
   company_id String   @map("company_id")
   role_id    String   @map("role_id")
+  status    UserStatus @default(PENDING)
+  is_active     Boolean  @default(true)
   created_at DateTime @default(now()) @map("created_at")
 
   user    User    @relation(fields: [user_id], references: [id])
@@ -154,7 +156,7 @@ model UserCompanyRole {
 model Wallet {
   id              String   @id @default(uuid())
   balance         Decimal  @default(0) @db.Decimal(15, 2)
-  active          Boolean  @default(true)
+  is_active          Boolean  @default(true) @map("active")
   currency        String
   country         String
   country_iso_code  String   @map("country_iso_code")
@@ -200,7 +202,7 @@ model Customer {
   // number               String?             // Additional identification number
   date_of_birth        DateTime           @map("date_of_birth")
   is_active            Boolean            @default(true) @map("is_active")
-  sudo_customer_id     String?             @map("sudo_customer_id")
+  // sudo_customer_id     String?             @map("sudo_customer_id")
   created_at           DateTime           @default(now()) @map("created_at")
   updated_at           DateTime           @updatedAt @map("updated_at")
 
@@ -235,7 +237,7 @@ model Card {
   country         String     // Country of issuance
   country_iso_code String    @map("country_iso_code") // ISO code of the country
   provider_card_id String     @map("provider_card_id") // ID from the card provider
-  // provider_card_account_number String? @map("provider_card_account_number") // Account number from the card provider
+  provider_card_metadata Json? @map("provider_card_metadata") // Metadata from the card provider
   masked_number   String?    @map("masked_number") // Masked card number
   name            String?    // Name on the card
   city            String?    // City of issuance
@@ -318,17 +320,19 @@ model Transaction {
 
 
 model Syncmetadata {
-  id          String     @id @default(uuid())
-  key         String   
-  value       DateTime   @default(now())
-  company_id   String     @map("company_id")
-  customer_id  String     @map("customer_id")
-  created_at   DateTime   @default(now()) @map("created_at")
-  updated_at   DateTime   @updatedAt @map("updated_at")
+  id            String     @id @default(uuid())
+  provider_name String     @map("provider_name") // e.g., "maplerad", "sudo", "flutterwave"
+  sync_type     String     @map("sync_type") // e.g., "cards", "customers", "card_transactions"
+  last_sync_date DateTime  @default(now()) @map("last_sync_date")
+  company_id    String     @map("company_id")
+  customer_id   String?    @map("customer_id") // Optional for company-level syncs
+  created_at    DateTime   @default(now()) @map("created_at")
+  updated_at    DateTime   @updatedAt @map("updated_at")
 
   company      Company       @relation(fields: [company_id], references: [id])
-  customer     Customer      @relation(fields: [customer_id], references: [id])
+  customer     Customer?     @relation(fields: [customer_id], references: [id])
 
+  @@unique([company_id, provider_name, sync_type])
   @@map("syncmetadata")
 }
 
@@ -408,7 +412,7 @@ model TransactionFee {
   value                Decimal  @db.Decimal(15, 2)
   range_min            Decimal?  @db.Decimal(15, 2)
   range_max            Decimal?  @db.Decimal(15, 2)
-  active               Boolean  @default(true)
+  is_active               Boolean  @default(true) @map("active")
   description          String?
   created_at           DateTime @default(now()) @map("created_at")
   updated_at           DateTime @updatedAt @map("updated_at")

@@ -27,7 +27,15 @@ import TransactionFeeModel from "@/models/prisma/transactionFeeModel";
 import BalanceTransactionRecordModel from "@/models/prisma/balanceTransactionRecordModel";
 import { TransactionCategory, TransactionType } from "@/types";
 import { CustomerProviderMappingModel } from "@/models";
-import { getFormattedDate } from "@/utils/shared/common";
+import {
+  extractExpiryMonthYear,
+  getFormattedDate,
+  convertMapleradAmountToMainUnit,
+  convertAmountToMapleradFormat,
+} from "@/utils/shared/common";
+import { WebhookWaitingService } from "./webhook-waiting.service";
+import { CardRecordService } from "./card.record.service";
+import { CustomerSyncService } from "./customer.sync.service";
 
 /**
  * Advanced Card Issuance Service for Maplerad
@@ -38,7 +46,12 @@ import { getFormattedDate } from "@/utils/shared/common";
 export class CardIssuanceService {
   private readonly logger = new Logger(CardIssuanceService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private webhookWaitingService: WebhookWaitingService,
+    private cardRecordService: CardRecordService,
+    private customerSyncService: CustomerSyncService
+  ) {}
 
   /**
    * Issue a retail Maplerad card with advanced features
@@ -85,10 +98,11 @@ export class CardIssuanceService {
 
       let mapleradCallSucceeded = false;
       let cardResult: any = null;
+      let mapleradCustomerId: string;
 
       try {
         // 6. Ensure Maplerad customer exists
-        const mapleradCustomerId = await this.ensureMapleradCustomer(
+        mapleradCustomerId = await this.ensureMapleradCustomer(
           customer,
           user.companyId
         );
@@ -112,7 +126,9 @@ export class CardIssuanceService {
 
         // 9. Wait for webhook confirmation
         const webhookResult = await this.waitForCardCreationWebhook(
-          cardResult.reference
+          cardResult.reference,
+          customer.id,
+          mapleradCustomerId
         );
 
         // 9. Process successful creation
@@ -160,13 +176,41 @@ export class CardIssuanceService {
     customerId: string,
     partialDto: Partial<CreateCardDto>
   ): Promise<CreateCardDto> {
+    this.logger.log("🔍 AUTO-FILLING USER INFO - START", {
+      customerId,
+      providedFields: Object.keys(partialDto),
+      timestamp: new Date().toISOString(),
+    });
+
+    this.logger.log("📊 FETCHING CUSTOMER DATA FROM DATABASE", {
+      customerId,
+      timestamp: new Date().toISOString(),
+    });
+
     const customerResult = await CustomerModel.getOne({ id: customerId });
     if (customerResult.error || !customerResult.output) {
+      this.logger.error("❌ CUSTOMER NOT FOUND FOR AUTO-FILL", {
+        customerId,
+        error: customerResult.error?.message || "Customer not found",
+        timestamp: new Date().toISOString(),
+      });
       throw new NotFoundException("Customer not found");
     }
+
     const customer = customerResult.output;
+    this.logger.log("✅ CUSTOMER DATA RETRIEVED", {
+      customerId,
+      customerName:
+        `${customer.first_name} ${customer.last_name}`.toUpperCase(),
+      customerEmail: customer.email,
+      timestamp: new Date().toISOString(),
+    });
 
     // Build complete DTO with auto-filled fields
+    const originalBrand = partialDto.brand;
+    const originalAmount = partialDto.amount;
+    const originalNameOnCard = partialDto.name_on_card;
+
     const completeDto: CreateCardDto = {
       customer_id: customerId,
       brand: partialDto.brand || "VISA",
@@ -176,14 +220,26 @@ export class CardIssuanceService {
         `${customer.first_name} ${customer.last_name}`.toUpperCase(),
     };
 
-    this.logger.debug("Auto-filled card creation data", {
+    // Track which fields were auto-filled
+    const autoFilledFields: string[] = [];
+    if (!originalBrand) autoFilledFields.push("brand");
+    if (!originalAmount) autoFilledFields.push("amount");
+    if (!originalNameOnCard) autoFilledFields.push("name_on_card");
+
+    this.logger.log("🔄 AUTO-FILL COMPLETED", {
       customerId,
-      originalFields: Object.keys(partialDto),
-      autoFilledFields: Object.keys(completeDto).filter(
-        (key) =>
-          !Object.keys(partialDto).includes(key) ||
-          partialDto[key as keyof CreateCardDto] === undefined
-      ),
+      originalFields: {
+        brand: originalBrand,
+        amount: originalAmount,
+        nameOnCard: originalNameOnCard,
+      },
+      autoFilledFields,
+      finalDto: {
+        brand: completeDto.brand,
+        amount: completeDto.amount,
+        nameOnCard: completeDto.name_on_card,
+      },
+      timestamp: new Date().toISOString(),
     });
 
     return completeDto;
@@ -196,20 +252,61 @@ export class CardIssuanceService {
     dto: CreateCardDto,
     user: CurrentUserData
   ): Promise<void> {
+    this.logger.log("🔍 VALIDATING CARD REQUEST - START", {
+      customerId: dto.customer_id,
+      brand: dto.brand,
+      amount: dto.amount,
+      userId: user.userId,
+      companyId: user.companyId,
+      timestamp: new Date().toISOString(),
+    });
+
     // Validate customer exists and belongs to company
+    this.logger.log("👤 CHECKING CUSTOMER ACCESS", {
+      customerId: dto.customer_id,
+      userId: user.userId,
+      companyId: user.companyId,
+      timestamp: new Date().toISOString(),
+    });
+
     const customerResult = await CustomerModel.getOne({
       id: dto.customer_id,
     });
     if (customerResult.error || !customerResult.output) {
+      this.logger.error("❌ CUSTOMER NOT FOUND", {
+        customerId: dto.customer_id,
+        error: customerResult.error?.message || "Customer not found",
+        timestamp: new Date().toISOString(),
+      });
       throw new NotFoundException("Customer not found");
     }
     const customer = customerResult.output;
 
     if (customer.company_id !== user.companyId) {
+      this.logger.error("🚫 ACCESS DENIED TO CUSTOMER", {
+        customerId: dto.customer_id,
+        customerCompanyId: customer.company_id,
+        userCompanyId: user.companyId,
+        userId: user.userId,
+        timestamp: new Date().toISOString(),
+      });
       throw new BadRequestException("Access denied to customer");
     }
 
+    this.logger.log("✅ CUSTOMER ACCESS VERIFIED", {
+      customerId: dto.customer_id,
+      customerName: `${customer.first_name} ${customer.last_name}`,
+      customerCompanyId: customer.company_id,
+      timestamp: new Date().toISOString(),
+    });
+
     // Validate customer age (18+)
+    this.logger.log("🎂 VALIDATING CUSTOMER AGE", {
+      customerId: dto.customer_id,
+      birthDate: customer.date_of_birth,
+      timestamp: new Date().toISOString(),
+    });
+
     const actualDate = new Date(Date.now() + 3600 * 1000);
     const birthdate: any = customer.date_of_birth;
     const differenceEnMilliseconds =
@@ -218,11 +315,30 @@ export class CardIssuanceService {
       differenceEnMilliseconds / (365.25 * 24 * 60 * 60 * 1000)
     );
 
+    this.logger.log("📅 CALCULATED CUSTOMER AGE", {
+      customerId: dto.customer_id,
+      age,
+      birthDate: customer.date_of_birth,
+      timestamp: new Date().toISOString(),
+    });
+
     if (age < 18) {
+      this.logger.error("❌ CUSTOMER TOO YOUNG", {
+        customerId: dto.customer_id,
+        age,
+        requiredAge: 18,
+        timestamp: new Date().toISOString(),
+      });
       throw new BadRequestException("Customer must be at least 18 years old");
     }
 
     // Check card limit (max 5 cards per customer)
+    this.logger.log("🔢 CHECKING CARD LIMIT", {
+      customerId: dto.customer_id,
+      companyId: user.companyId,
+      timestamp: new Date().toISOString(),
+    });
+
     const cardSizeResult = await CardModel.count({
       customer_id: dto.customer_id,
       status: { not: CardStatus.TERMINATED },
@@ -230,20 +346,68 @@ export class CardIssuanceService {
     });
     const cardSize = Number(cardSizeResult.output || 0);
 
+    this.logger.log("📊 CURRENT CARD COUNT", {
+      customerId: dto.customer_id,
+      currentCards: cardSize,
+      maxAllowed: 5,
+      timestamp: new Date().toISOString(),
+    });
+
     if (cardSize >= 5) {
+      this.logger.error("❌ CARD LIMIT EXCEEDED", {
+        customerId: dto.customer_id,
+        currentCards: cardSize,
+        maxAllowed: 5,
+        timestamp: new Date().toISOString(),
+      });
       throw new BadRequestException("Maximum 5 cards allowed per customer");
     }
 
     // Validate amount (minimum 2 USD)
+    this.logger.log("💰 VALIDATING CARD AMOUNT", {
+      customerId: dto.customer_id,
+      amount: dto.amount,
+      minimumAmount: 2,
+      timestamp: new Date().toISOString(),
+    });
+
     if (dto.amount < 2) {
+      this.logger.error("❌ AMOUNT TOO LOW", {
+        customerId: dto.customer_id,
+        amount: dto.amount,
+        minimumAmount: 2,
+        timestamp: new Date().toISOString(),
+      });
       throw new BadRequestException("Minimum card funding amount is 2 USD");
     }
 
     // Validate brand
+    this.logger.log("🏷️ VALIDATING CARD BRAND", {
+      customerId: dto.customer_id,
+      brand: dto.brand,
+      validBrands: ["VISA", "MASTERCARD"],
+      timestamp: new Date().toISOString(),
+    });
+
     const validBrands = ["VISA", "MASTERCARD"];
     if (!validBrands.includes(dto.brand.toUpperCase())) {
+      this.logger.error("❌ INVALID CARD BRAND", {
+        customerId: dto.customer_id,
+        brand: dto.brand,
+        validBrands,
+        timestamp: new Date().toISOString(),
+      });
       throw new BadRequestException("Brand must be VISA or MASTERCARD");
     }
+
+    this.logger.log("✅ CARD REQUEST VALIDATION COMPLETED", {
+      customerId: dto.customer_id,
+      brand: dto.brand,
+      amount: dto.amount,
+      age,
+      currentCards: cardSize,
+      timestamp: new Date().toISOString(),
+    });
   }
 
   /**
@@ -439,21 +603,62 @@ export class CardIssuanceService {
     amount: number,
     description: string
   ): Promise<number> {
+    this.logger.log("🔐 FUND RESERVATION - START", {
+      companyId,
+      amount,
+      description,
+      timestamp: new Date().toISOString(),
+    });
+
     // Get USD wallet
+    this.logger.log("💰 FETCHING USD WALLET", {
+      companyId,
+      currency: "USD",
+      timestamp: new Date().toISOString(),
+    });
+
     const usdWalletResult = await WalletModel.getOne({
       company_id: companyId,
       currency: "USD",
-      active: true,
+      is_active: true,
     });
+
     if (usdWalletResult.error || !usdWalletResult.output) {
+      this.logger.error("❌ USD WALLET NOT FOUND", {
+        companyId,
+        error: usdWalletResult.error?.message || "Wallet not found",
+        timestamp: new Date().toISOString(),
+      });
       throw new BadRequestException("USD wallet not found");
     }
-    const usdWallet = usdWalletResult.output;
 
+    const usdWallet = usdWalletResult.output;
     const walletBalance = usdWallet.balance.toNumber();
 
+    this.logger.log("✅ WALLET RETRIEVED", {
+      companyId,
+      walletId: usdWallet.id,
+      currentBalance: walletBalance,
+      timestamp: new Date().toISOString(),
+    });
+
     // Check sufficient balance
+    this.logger.log("🔍 CHECKING SUFFICIENT BALANCE", {
+      companyId,
+      requiredAmount: amount,
+      availableBalance: walletBalance,
+      hasSufficientFunds: walletBalance >= amount,
+      timestamp: new Date().toISOString(),
+    });
+
     if (walletBalance < amount) {
+      this.logger.error("❌ INSUFFICIENT FUNDS", {
+        companyId,
+        requiredAmount: amount,
+        availableBalance: walletBalance,
+        shortfall: amount - walletBalance,
+        timestamp: new Date().toISOString(),
+      });
       throw new BadRequestException(
         `Insufficient balance. Required: $${amount}, Available: $${walletBalance}`
       );
@@ -461,14 +666,26 @@ export class CardIssuanceService {
 
     // Reserve funds by updating wallet balance
     const newBalance = walletBalance - amount;
-    await WalletModel.update(usdWallet.id, { balance: newBalance });
-
-    this.logger.debug("Funds reserved securely", {
+    this.logger.log("🔄 RESERVING FUNDS", {
       companyId,
+      walletId: usdWallet.id,
       amount,
       previousBalance: walletBalance,
       newBalance,
       description,
+      timestamp: new Date().toISOString(),
+    });
+
+    await WalletModel.update(usdWallet.id, { balance: newBalance });
+
+    this.logger.log("✅ FUNDS RESERVED SECURELY", {
+      companyId,
+      walletId: usdWallet.id,
+      amount,
+      previousBalance: walletBalance,
+      newBalance,
+      description,
+      timestamp: new Date().toISOString(),
     });
 
     return walletBalance; // Return original balance
@@ -477,23 +694,46 @@ export class CardIssuanceService {
   /**
    * Ensure Maplerad customer exists
    */
-  private async ensureMapleradCustomer(
+  async ensureMapleradCustomer(
     customer: Customer,
     companyId: string
   ): Promise<string> {
+    this.logger.log("👤 ENSURING MAPLERAD CUSTOMER EXISTS - START", {
+      customerId: customer.id,
+      companyId,
+      customerEmail: customer.email,
+      timestamp: new Date().toISOString(),
+    });
+
+    this.logger.log("🔍 CHECKING EXISTING MAPLERAD CUSTOMER MAPPING", {
+      customerId: customer.id,
+      provider: "maplerad",
+      timestamp: new Date().toISOString(),
+    });
+
     const mapleradCustomerResult = await CustomerProviderMappingModel.getOne({
       customer_id: customer.id,
       provider_name: "maplerad",
     });
+
     let mapleradCustomerId =
       mapleradCustomerResult.output?.provider_customer_id;
 
-    this.logger.debug("Maplerad customer found", {
-      mapleradCustomerResult,
-      mapleradCustomerId,
+    this.logger.log("📊 MAPPING LOOKUP RESULT", {
+      customerId: customer.id,
+      mappingExists: !!mapleradCustomerResult.output,
+      mapleradCustomerId: mapleradCustomerId || "none",
+      timestamp: new Date().toISOString(),
     });
 
     if (!mapleradCustomerId) {
+      this.logger.log("🆕 MAPLERAD CUSTOMER NOT FOUND - CREATING NEW", {
+        customerId: customer.id,
+        customerName: `${customer.first_name} ${customer.last_name}`,
+        customerEmail: customer.email,
+        timestamp: new Date().toISOString(),
+      });
+
       // Create Maplerad customer
       const customerData = {
         first_name: customer.first_name,
@@ -521,36 +761,149 @@ export class CardIssuanceService {
         },
       };
 
+      this.logger.log("🌐 CALLING MAPLERAD CUSTOMER CREATION API", {
+        customerId: customer.id,
+        customerEmail: customer.email,
+        country: customer.country_iso_code,
+        timestamp: new Date().toISOString(),
+      });
+
+      const enrollmentStartTime = Date.now();
       const enrollmentResult = await MapleradUtils.createCustomer(customerData);
+      const enrollmentDuration = Date.now() - enrollmentStartTime;
+
+      console.log(
+        "ensureMapleradCustomer :: enrollmentResult ::",
+        enrollmentResult
+      );
 
       if (enrollmentResult.error) {
-        this.logger.error("Failed to create Maplerad customer", {
+        // Check if the error is "customer is already enrolled"
+        if (enrollmentResult.error.message === "customer is already enrolled") {
+          this.logger.warn("⚠️ CUSTOMER ALREADY ENROLLED - SYNCING CUSTOMERS", {
+            customerId: customer.id,
+            error: enrollmentResult.error.message,
+            duration: `${enrollmentDuration}ms`,
+            timestamp: new Date().toISOString(),
+          });
+
+          // Call syncCustomers service to sync the customer mappings
+          this.logger.log("🔄 CALLING SYNC CUSTOMERS SERVICE", {
+            customerId: customer.id,
+            companyId,
+            timestamp: new Date().toISOString(),
+          });
+
+          const syncResult = await this.customerSyncService.syncCustomers(
+            companyId,
+            {
+              force: true, // Force sync to get the latest mappings
+            }
+          );
+
+          this.logger.log("✅ CUSTOMER SYNC COMPLETED", {
+            customerId: customer.id,
+            syncResult: {
+              success: syncResult.success,
+              customersProcessed: syncResult.summary?.totalCustomers || 0,
+              mappingsCreated: syncResult.summary?.created || 0,
+              mappingsUpdated: syncResult.summary?.updated || 0,
+            },
+            timestamp: new Date().toISOString(),
+          });
+
+          // Now try to get the current customer provider_customer_id from mapping
+          this.logger.log("🔍 RETRIEVING UPDATED CUSTOMER MAPPING", {
+            customerId: customer.id,
+            provider: "maplerad",
+            timestamp: new Date().toISOString(),
+          });
+
+          const updatedMappingResult =
+            await CustomerProviderMappingModel.getOne({
+              customer_id: customer.id,
+              provider_name: "maplerad",
+            });
+
+          if (updatedMappingResult.output?.provider_customer_id) {
+            mapleradCustomerId =
+              updatedMappingResult.output.provider_customer_id;
+
+            this.logger.log("✅ RETRIEVED MAPLERAD CUSTOMER ID FROM SYNC", {
+              customerId: customer.id,
+              mapleradCustomerId,
+              timestamp: new Date().toISOString(),
+            });
+          } else {
+            this.logger.error(
+              "❌ FAILED TO GET PROVIDER CUSTOMER ID AFTER SYNC",
+              {
+                customerId: customer.id,
+                mappingResult: updatedMappingResult,
+                timestamp: new Date().toISOString(),
+              }
+            );
+            throw new BadRequestException(
+              "Customer is already enrolled but could not retrieve provider customer ID after sync"
+            );
+          }
+        } else {
+          this.logger.error("❌ MAPLERAD CUSTOMER CREATION FAILED", {
+            customerId: customer.id,
+            error: enrollmentResult.error.message,
+            duration: `${enrollmentDuration}ms`,
+            timestamp: new Date().toISOString(),
+          });
+          throw new BadRequestException(
+            "Failed to enroll customer in Maplerad: " +
+              enrollmentResult.error.message
+          );
+        }
+      } else {
+        // Success case - set mapleradCustomerId from enrollment result
+        mapleradCustomerId = enrollmentResult.output.data.id;
+
+        this.logger.log("✅ MAPLERAD CUSTOMER CREATED SUCCESSFULLY", {
           customerId: customer.id,
-          error: enrollmentResult.error.message,
+          mapleradCustomerId,
+          duration: `${enrollmentDuration}ms`,
+          timestamp: new Date().toISOString(),
         });
-        throw new BadRequestException(
-          "Failed to enroll customer in Maplerad: " +
-            enrollmentResult.error.message
-        );
+
+        // Create provider mapping
+        this.logger.log("🔗 CREATING PROVIDER MAPPING RECORD", {
+          customerId: customer.id,
+          mapleradCustomerId,
+          provider: "maplerad",
+          timestamp: new Date().toISOString(),
+        });
+
+        await CustomerProviderMappingModel.create({
+          customer_id: customer.id,
+          provider_customer_id: mapleradCustomerId,
+          provider_name: "maplerad",
+        });
+
+        this.logger.log("✅ PROVIDER MAPPING CREATED", {
+          customerId: customer.id,
+          mapleradCustomerId,
+          mappingId: "created",
+          timestamp: new Date().toISOString(),
+        });
       }
-
-      mapleradCustomerId = enrollmentResult.output.id;
-
-      // Update local customer record
-      // await CustomerModel.update(customer.id, {
-      //   maplerad_customer_id: mapleradCustomerId,
-      // });
-      await CustomerProviderMappingModel.create({
-        customer_id: customer.id,
-        provider_customer_id: mapleradCustomerId,
-        provider_name: "maplerad",
-      });
-
-      this.logger.debug("Maplerad customer created", {
+    } else {
+      this.logger.log("✅ EXISTING MAPLERAD CUSTOMER FOUND", {
         customerId: customer.id,
         mapleradCustomerId,
+        timestamp: new Date().toISOString(),
       });
     }
+
+    this.logger.log("👤 ENSURING MAPLERAD CUSTOMER EXISTS - COMPLETED", {
+      customerId: customer.id,
+      mapleradCustomerId,
+      timestamp: new Date().toISOString(),
+    });
 
     return mapleradCustomerId;
   }
@@ -562,26 +915,51 @@ export class CardIssuanceService {
     mapleradCustomerId: string,
     dto: CreateCardDto
   ): Promise<any> {
-    const mapleradBrand = dto.brand === "MASTERCARD" ? "mastercard" : "visa";
+    this.logger.log("💳 CREATING MAPLERAD CARD - START", {
+      mapleradCustomerId,
+      brand: dto.brand,
+      amount: dto.amount,
+      nameOnCard: dto.name_on_card,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Map brand to Maplerad format
+    const normalizedBrand = dto.brand.toUpperCase();
+    const mapleradBrand =
+      normalizedBrand === "MASTERCARD"
+        ? "MASTERCARD"
+        : normalizedBrand === "VISA"
+        ? "VISA"
+        : "VISA";
     const cardData = {
       customer_id: mapleradCustomerId,
       currency: "USD",
-      type: "virtual",
+      type: "VIRTUAL",
       brand: mapleradBrand,
-      amount: Math.round(dto.amount * 100), // Convert to cents
+      auto_approve: true,
+      amount: convertAmountToMapleradFormat(dto.amount, "USD"), // Convert to cents using utility
     };
 
-    this.logger.debug("Creating Maplerad card", {
-      customerId: mapleradCustomerId,
+    this.logger.log("🌐 CALLING MAPLERAD CARD CREATION API", {
+      mapleradCustomerId,
       brand: mapleradBrand,
-      amount: cardData.amount,
+      amountInCents: cardData.amount,
+      amountInDollars: dto.amount,
+      timestamp: new Date().toISOString(),
     });
 
+    const cardCreationStartTime = Date.now();
     const cardResult = await MapleradUtils.createCard(cardData);
+    const cardCreationDuration = Date.now() - cardCreationStartTime;
 
     if (cardResult.error) {
-      this.logger.error("Maplerad card creation failed", {
+      this.logger.error("❌ MAPLERAD CARD CREATION FAILED", {
+        mapleradCustomerId,
+        brand: mapleradBrand,
+        amount: dto.amount,
         error: cardResult.error.message,
+        duration: `${cardCreationDuration}ms`,
+        timestamp: new Date().toISOString(),
       });
       throw new BadRequestException(
         "Failed to create card: " + cardResult.error.message
@@ -589,45 +967,366 @@ export class CardIssuanceService {
     }
 
     const mapleradCard = cardResult.output;
-    this.logger.log("Maplerad card creation initiated", {
-      cardId: mapleradCard.id,
+    this.logger.log("✅ MAPLERAD CARD CREATION SUCCESSFUL", {
+      mapleradCustomerId,
+      mapleradCardId: mapleradCard.id,
       reference: mapleradCard.reference,
+      brand: mapleradBrand,
+      amount: dto.amount,
+      duration: `${cardCreationDuration}ms`,
+      timestamp: new Date().toISOString(),
     });
 
     return mapleradCard;
   }
 
   /**
-   * Wait for card creation webhook
+   * Wait for card creation webhook using WebhookWaitingService
    */
-  private async waitForCardCreationWebhook(reference: string): Promise<any> {
-    // For now, simulate webhook waiting
-    // In production, this would wait for actual webhook
-    this.logger.log("Waiting for Maplerad webhook", {
+  private async waitForCardCreationWebhook(
+    reference: string,
+    customerId: string,
+    mapleradCustomerId?: string
+  ): Promise<any> {
+    this.logger.log("🕐 WAITING FOR CARD CREATION WEBHOOK - START", {
       reference,
-      timeout: 60000, // 1 minute for demo
+      timestamp: new Date().toISOString(),
     });
 
-    // Simulate webhook delay
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      // Use WebhookWaitingService to wait for the webhook
+      const webhookResult = await this.webhookWaitingService.waitForWebhook(
+        reference,
+        30000 // 30 seconds
+        // 60000 // 1 minute timeout
+        // 300000 // 5 minutes timeout
+      );
 
-    // For demo purposes, return a mock successful webhook result
-    // In production, this would be handled by the webhook service
+      this.logger.log("✅ WEBHOOK WAIT COMPLETED", {
+        reference,
+        success: webhookResult.success,
+        source: webhookResult.source,
+        waitTime: webhookResult.waitTime,
+        timestamp: new Date().toISOString(),
+      });
+
+      if (webhookResult.success) {
+        // Webhook arrived successfully
+        const result = {
+          success: true,
+          source: webhookResult.source,
+          data: webhookResult.data,
+          waitTime: webhookResult.waitTime,
+        };
+
+        this.logger.log("✅ WEBHOOK WAIT SUCCESSFUL - RETURNING RESULT", {
+          reference,
+          result: {
+            success: result.success,
+            source: result.source,
+            waitTime: result.waitTime,
+            hasCardData: !!result.data?.card,
+            cardId: result.data?.card?.id,
+          },
+          timestamp: new Date().toISOString(),
+        });
+
+        return result;
+      } else if (webhookResult.timeout) {
+        // Timeout occurred, fallback to polling
+        this.logger.warn("⏰ WEBHOOK TIMEOUT - FALLBACK TO POLLING", {
+          reference,
+          waitTime: webhookResult.waitTime,
+          timestamp: new Date().toISOString(),
+        });
+
+        const pollResult = await this.fallbackPolling(
+          reference,
+          customerId,
+          mapleradCustomerId
+        );
+
+        this.logger.log("🔄 FALLBACK POLLING COMPLETED - RETURNING RESULT", {
+          reference,
+          pollResult: {
+            success: pollResult.success,
+            source: pollResult.source,
+            waitTime: pollResult.waitTime,
+            hasCardData: !!pollResult.data?.card,
+            cardId: pollResult.data?.card?.id,
+          },
+          timestamp: new Date().toISOString(),
+        });
+
+        return pollResult;
+      } else {
+        // Webhook failed
+        this.logger.error("❌ WEBHOOK FAILED", {
+          reference,
+          error: webhookResult.error,
+          timestamp: new Date().toISOString(),
+        });
+
+        throw new BadRequestException(
+          `Card creation webhook failed: ${webhookResult.error}`
+        );
+      }
+    } catch (error: any) {
+      this.logger.error("❌ WEBHOOK WAIT PROCESS FAILED", {
+        reference,
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Try fallback polling as last resort
+      try {
+        this.logger.warn("🔄 ATTEMPTING FALLBACK POLLING", {
+          reference,
+          timestamp: new Date().toISOString(),
+        });
+
+        const pollResult = await this.fallbackPolling(
+          reference,
+          customerId,
+          mapleradCustomerId
+        );
+        return pollResult;
+      } catch (pollError: any) {
+        this.logger.error("❌ FALLBACK POLLING ALSO FAILED", {
+          reference,
+          pollError: pollError.message,
+          timestamp: new Date().toISOString(),
+        });
+
+        throw new BadRequestException(
+          `Failed to wait for card creation confirmation: ${error.message}`
+        );
+      }
+    }
+  }
+
+  /**
+   * Fallback polling method when webhook waiting fails
+   * Enhanced to check for any new cards the customer may have acquired
+   */
+  private async fallbackPolling(
+    reference: string,
+    customerId: string,
+    mapleradCustomerId: string
+  ): Promise<any> {
+    const startTime = Date.now();
+    const maxWaitTime = 60000; // 1 minute for fallback polling
+    const pollInterval = 10000; // 10 seconds between polls
+
+    this.logger.log("🔄 FALLBACK POLLING - START", {
+      reference,
+      maxWaitTime: `${maxWaitTime}ms`,
+      pollInterval: `${pollInterval}ms`,
+      timestamp: new Date().toISOString(),
+    });
+
+    // // Extract customer ID from logs or metadata
+    // let customerId: string | null = null;
+    // try {
+    //   const logsResult = await CustomerLogsModel.get({
+    //     action: "card_creation_pending",
+    //     log_json: { reference },
+    //   });
+
+    //   if (logsResult.output && logsResult.output.length > 0) {
+    //     const log = logsResult.output[0];
+    //     customerId = log.customer_id;
+    //   }
+    // } catch (error: any) {
+    //   this.logger.warn("⚠️ FAILED TO EXTRACT CUSTOMER ID FROM LOGS", {
+    //     reference,
+    //     error: error.message,
+    //     timestamp: new Date().toISOString(),
+    //   });
+    // }
+
+    while (Date.now() - startTime < maxWaitTime) {
+      try {
+        // const pollResult = await this.pollCardStatus(reference);
+
+        // if (pollResult.found) {
+        //   this.logger.log("✅ CARD FOUND VIA FALLBACK POLLING", {
+        //     reference,
+        //     cardData: pollResult.card,
+        //     totalWaitTime: `${Date.now() - startTime}ms`,
+        //     timestamp: new Date().toISOString(),
+        //   });
+
+        //   return {
+        //     success: true,
+        //     source: "polling",
+        //     data: { card: pollResult.card },
+        //     waitTime: Date.now() - startTime,
+        //   };
+        // }
+
+        // If specific card not found and we have customer info, check for new cards
+        if (mapleradCustomerId) {
+          const newCardCheck = await this.checkForNewCustomerCards(
+            customerId,
+            mapleradCustomerId,
+            reference
+          );
+
+          if (newCardCheck.found) {
+            this.logger.log("🎯 NEW CARD FOUND FOR CUSTOMER", {
+              reference,
+              // customerId,
+              newCardId: newCardCheck.card.id,
+              newCardStatus: newCardCheck.card.status,
+              totalWaitTime: `${Date.now() - startTime}ms`,
+              timestamp: new Date().toISOString(),
+            });
+
+            return {
+              success: true,
+              source: "polling_new_card",
+              data: { card: newCardCheck.card },
+              waitTime: Date.now() - startTime,
+              message: "Found newly created card for customer",
+            };
+          }
+        }
+
+        this.logger.log("🔄 CARD NOT READY YET - CONTINUING FALLBACK POLL", {
+          reference,
+          elapsedTime: `${Date.now() - startTime}ms`,
+          customerId,
+          mapleradCustomerId,
+          timestamp: new Date().toISOString(),
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+      } catch (pollError: any) {
+        this.logger.warn("⚠️ FALLBACK POLLING ERROR", {
+          reference,
+          error: pollError.message,
+          elapsedTime: `${Date.now() - startTime}ms`,
+          timestamp: new Date().toISOString(),
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+      }
+    }
+
+    // Final timeout
+    this.logger.error("⏰ FALLBACK POLLING TIMEOUT", {
+      reference,
+      totalWaitTime: `${Date.now() - startTime}ms`,
+      timestamp: new Date().toISOString(),
+    });
+
     return {
-      success: true,
+      success: false,
+      source: "timeout",
+      error: "Card creation polling timeout",
       data: {
         card: {
-          id: reference, // Use reference as temporary ID
-          status: "ACTIVE",
-          balance: 0, // Will be updated when actual webhook arrives
-          maskedPan: "411111******1111",
-          last4: "1111",
+          id: reference,
+          status: "PENDING",
+          balance: 0,
+          maskedPan: "****-****-****-****",
+          last4: "****",
           expiryMonth: 12,
           expiryYear: 2029,
           brand: "VISA",
         },
       },
+      waitTime: Date.now() - startTime,
+      message:
+        "Card creation may still be processing. Please check status later.",
     };
+  }
+
+  /**
+   * Check if webhook has arrived by examining metadata/logs
+   */
+  private async checkWebhookArrival(reference: string): Promise<{
+    arrived: boolean;
+    data?: any;
+  }> {
+    try {
+      // Check CustomerLogsModel for webhook arrival
+      // In a real implementation, you might have a dedicated webhook tracking table
+      const logsResult = await CustomerLogsModel.get({
+        action: "card_creation_webhook_received",
+        log_json: { reference },
+      });
+
+      if (logsResult.output && logsResult.output.length > 0) {
+        const latestLog = logsResult.output[0];
+        return {
+          arrived: true,
+          data: latestLog.log_json?.webhookData,
+        };
+      }
+
+      return { arrived: false };
+    } catch (error: any) {
+      this.logger.warn("Failed to check webhook arrival", {
+        reference,
+        error: error.message,
+      });
+      return { arrived: false };
+    }
+  }
+
+  /**
+   * Poll Maplerad API for card status
+   */
+  private async pollCardStatus(reference: string): Promise<{
+    found: boolean;
+    card?: any;
+  }> {
+    try {
+      this.logger.log("🔍 POLLING MAPLERAD FOR CARD STATUS", {
+        reference,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Try to get card by reference (this might not work if reference != card ID)
+      // In practice, you might need to store the card ID separately or use a different approach
+      const cardResult = await MapleradUtils.getCard(reference, false);
+
+      if (!cardResult.error && cardResult.output) {
+        const card = cardResult.output;
+
+        // Check if card is in a final state
+        if (card.status === "ACTIVE" || card.status === "DISABLED") {
+          const expiry = card.expiry || "";
+          const { expiry_month, expiry_year } = extractExpiryMonthYear(expiry);
+          return {
+            found: true,
+            card: {
+              id: card.id,
+              status: card.status,
+              balance: card.balance || 0,
+              maskedPan:
+                card.masked_pan || `****-****-****-${card.last4 || "****"}`,
+              last4: card.last4 || "****",
+              expiryMonth: card.expiry_month || expiry_month || 12,
+              expiryYear: card.expiry_year || expiry_year || 99,
+              brand: card.brand || "VISA",
+              cardNumber: card.card_umber,
+              cvv: card.cvv,
+            },
+          };
+        }
+      }
+
+      return { found: false };
+    } catch (error: any) {
+      this.logger.warn("Card polling failed", {
+        reference,
+        error: error.message,
+      });
+      return { found: false };
+    }
   }
 
   /**
@@ -641,10 +1340,41 @@ export class CardIssuanceService {
     feeCalculation: any,
     originalBalance: number
   ): Promise<any> {
+    this.logger.log("🎯 PROCESSING SUCCESSFUL CARD CREATION - START", {
+      customerId: customer.id,
+      companyId: company.id,
+      amount: dto.amount,
+      brand: dto.brand,
+      isFirstCard: feeCalculation.isFirstCard,
+      timestamp: new Date().toISOString(),
+    });
+
+    console.log(
+      "processSuccessfulCardCreation : webhookResult :: ",
+      webhookResult
+    );
+
     const finalCard = webhookResult.data.card;
+    const cardId = uuidv4();
+
+    this.logger.log("🆔 GENERATED CARD ID", {
+      cardId,
+      customerId: customer.id,
+      mapleradCardId: finalCard.id,
+      timestamp: new Date().toISOString(),
+    });
 
     // Create local card record
-    const cardId = uuidv4();
+    this.logger.log("💾 CREATING LOCAL CARD RECORD", {
+      cardId,
+      customerId: customer.id,
+      brand: dto.brand,
+      amount: dto.amount,
+      timestamp: new Date().toISOString(),
+    });
+
+    console.log("FINAL CARD :: ", finalCard);
+
     const savedCard = await this.createLocalCardRecord(
       cardId,
       customer,
@@ -653,7 +1383,23 @@ export class CardIssuanceService {
       finalCard
     );
 
+    this.logger.log("✅ LOCAL CARD RECORD CREATED", {
+      cardId,
+      maskedNumber: savedCard.masked_number,
+      last4: savedCard.last4,
+      timestamp: new Date().toISOString(),
+    });
+
     // Create transactions
+    this.logger.log("💸 CREATING CARD TRANSACTIONS", {
+      cardId,
+      customerId: customer.id,
+      issuanceFee: feeCalculation.issuanceFee,
+      fundingAmount: dto.amount,
+      totalAmount: feeCalculation.totalAmount,
+      timestamp: new Date().toISOString(),
+    });
+
     await this.createCardTransactions(
       cardId,
       customer,
@@ -663,10 +1409,24 @@ export class CardIssuanceService {
       originalBalance
     );
 
+    this.logger.log("✅ CARD TRANSACTIONS CREATED", {
+      cardId,
+      transactionsCreated: 2, // fee + funding
+      timestamp: new Date().toISOString(),
+    });
+
     // Log success
+    this.logger.log("📝 LOGGING CARD CREATION SUCCESS", {
+      cardId,
+      customerId: customer.id,
+      amount: dto.amount,
+      brand: dto.brand,
+      timestamp: new Date().toISOString(),
+    });
+
     await this.logCardCreationSuccess(cardId, customer, dto, feeCalculation);
 
-    return {
+    const result = {
       status: "success",
       message: feeCalculation.isFirstCard
         ? "First card created successfully!"
@@ -686,12 +1446,23 @@ export class CardIssuanceService {
       },
       autoFilledFields: [], // Could track which fields were auto-filled
     };
+
+    this.logger.log("🎉 SUCCESSFUL CARD CREATION PROCESSING COMPLETED", {
+      cardId,
+      customerId: customer.id,
+      amount: dto.amount,
+      brand: dto.brand,
+      isFirstCard: feeCalculation.isFirstCard,
+      timestamp: new Date().toISOString(),
+    });
+
+    return result;
   }
 
   /**
    * Create local card record
    */
-  private async createLocalCardRecord(
+  async createLocalCardRecord(
     cardId: string,
     customer: any,
     company: any,
@@ -721,7 +1492,7 @@ export class CardIssuanceService {
       last4: finalCard.last4,
       cvv: `tkMplr_${encryptedCvv}`,
       expiry_month: finalCard.expiryMonth || 12,
-      expiry_year: finalCard.expiryYear || 2029,
+      expiry_year: finalCard.expiryYear || 99,
       postal_code: customer.postal_code || "00000",
       street: customer.address || "",
       city: customer.city || "",
@@ -729,6 +1500,7 @@ export class CardIssuanceService {
       country_iso_code: customer.country_iso_code,
       is_active: true,
       is_virtual: true,
+      provider_card_metadata: finalCard,
     });
 
     if (newCardResult.error) {
@@ -756,7 +1528,7 @@ export class CardIssuanceService {
     const usdWalletResult = await WalletModel.getOne({
       company_id: company.id,
       currency: "USD",
-      active: true,
+      is_active: true,
     });
     if (usdWalletResult.error || !usdWalletResult.output) {
       throw new BadRequestException(
@@ -978,6 +1750,146 @@ export class CardIssuanceService {
   }
 
   /**
+   * Check for new customer cards that may not be saved locally
+   */
+  private async checkForNewCustomerCards(
+    customerId: string,
+    mapleradCustomerId: string,
+    reference: string
+  ): Promise<{ found: boolean; card?: any }> {
+    try {
+      this.logger.log("🔍 CHECKING FOR NEW CUSTOMER CARDS", {
+        customerId,
+        mapleradCustomerId,
+        reference,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Get all cards from Maplerad for this customer
+      const mapleradCardsResult = await MapleradUtils.getAllCards({
+        customerId: mapleradCustomerId,
+        status: "ACTIVE", // Focus on active cards
+      });
+
+      if (mapleradCardsResult.error) {
+        this.logger.warn("⚠️ FAILED TO FETCH MAPLERAD CARDS", {
+          customerId,
+          mapleradCustomerId,
+          error: mapleradCardsResult.error.message,
+          timestamp: new Date().toISOString(),
+        });
+        return { found: false };
+      }
+
+      const mapleradCards = mapleradCardsResult.output?.data || [];
+      this.logger.log("📊 MAPLERAD CARDS RETRIEVED", {
+        customerId,
+        mapleradCustomerId,
+        mapleradCardsCount: mapleradCards.length,
+        timestamp: new Date().toISOString(),
+      });
+
+      if (mapleradCards.length === 0) {
+        return { found: false };
+      }
+
+      // Get local cards for this customer
+      const localCardsResult = await CardModel.get({
+        customer_id: customerId,
+        provider: encodeText("maplerad"),
+      });
+
+      const localCards = localCardsResult.output || [];
+      const localProviderCardIds = new Set(
+        localCards.map((card: any) => card.provider_card_id)
+      );
+
+      this.logger.log("🏠 LOCAL CARDS COMPARISON", {
+        customerId,
+        localCardsCount: localCards.length,
+        localProviderCardIds: Array.from(localProviderCardIds),
+        timestamp: new Date().toISOString(),
+      });
+
+      // Find the most recent card that is not saved locally
+      let mostRecentNewCard: any = null;
+      let mostRecentTimestamp = 0;
+
+      for (const mapleradCard of mapleradCards) {
+        // Skip if card is already saved locally
+        if (localProviderCardIds.has(mapleradCard.id)) {
+          continue;
+        }
+
+        // Check if this card is more recent than the current most recent
+        const cardTimestamp = new Date(mapleradCard.created_at || 0).getTime();
+        if (cardTimestamp > mostRecentTimestamp) {
+          mostRecentTimestamp = cardTimestamp;
+          mostRecentNewCard = mapleradCard;
+        }
+      }
+
+      if (mostRecentNewCard) {
+        this.logger.log("🎯 MOST RECENT NEW CARD FOUND", {
+          customerId,
+          mapleradCustomerId,
+          newCardId: mostRecentNewCard.id,
+          newCardStatus: mostRecentNewCard.status,
+          newCardCreatedAt: mostRecentNewCard.created_at,
+          reference,
+          timestamp: new Date().toISOString(),
+        });
+
+        // Convert Maplerad card format to our internal format
+        const expiry = mostRecentNewCard.expiry || "";
+        const { expiry_month, expiry_year } = extractExpiryMonthYear(expiry);
+
+        const cardData = {
+          id: mostRecentNewCard.id,
+          status: mostRecentNewCard.status,
+          balance: convertMapleradAmountToMainUnit(
+            mostRecentNewCard.balance || 0,
+            "USD"
+          ),
+          maskedPan:
+            mostRecentNewCard.masked_pan ||
+            `****-****-****-${mostRecentNewCard.last4 || "****"}`,
+          last4: mostRecentNewCard.last4 || "****",
+          expiryMonth: mostRecentNewCard.expiry_month || expiry_month || 12,
+          expiryYear: mostRecentNewCard.expiry_year || expiry_year || 99,
+          brand: mostRecentNewCard.brand || "VISA",
+          cardNumber: mostRecentNewCard.card_number,
+          cvv: mostRecentNewCard.cvv,
+          created_at: mostRecentNewCard.created_at,
+          updated_at: mostRecentNewCard.updated_at,
+        };
+
+        return { found: true, card: cardData };
+      }
+
+      this.logger.log("🚫 NO NEW CARDS FOUND FOR CUSTOMER", {
+        customerId,
+        mapleradCustomerId,
+        mapleradCardsCount: mapleradCards.length,
+        localCardsCount: localCards.length,
+        reference,
+        timestamp: new Date().toISOString(),
+      });
+
+      return { found: false };
+    } catch (error: any) {
+      this.logger.error("❌ ERROR CHECKING FOR NEW CUSTOMER CARDS", {
+        customerId,
+        mapleradCustomerId,
+        reference,
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+      return { found: false };
+    }
+  }
+
+  /**
    * Refund reserved funds
    */
   private async refundReservedFunds(
@@ -987,7 +1899,7 @@ export class CardIssuanceService {
     const usdWalletResult = await WalletModel.getOne({
       company_id: companyId,
       currency: "USD",
-      active: true,
+      is_active: true,
     });
 
     if (usdWalletResult.output) {

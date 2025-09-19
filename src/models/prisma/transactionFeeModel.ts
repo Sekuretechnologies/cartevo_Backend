@@ -198,7 +198,7 @@ class TransactionFeeModel {
       company_id: companyId,
       transaction_type: transactionType.toUpperCase(),
       transaction_category: transactionCategory.toUpperCase(),
-      // active: true,
+      // is_active: true,
     };
     if (countryIsoCode) where.country_iso_code = countryIsoCode.toUpperCase();
     if (currency) where.currency = currency.toUpperCase();
