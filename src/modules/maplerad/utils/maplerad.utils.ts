@@ -430,7 +430,7 @@ export class MapleradUtils {
     try {
       console.log("📤 Freezing Maplerad card:", { cardId });
 
-      const response: any = await this.getAxiosInstance().post(
+      const response: any = await this.getAxiosInstance().patch(
         `/issuing/${cardId}/freeze`
       );
 
@@ -461,7 +461,7 @@ export class MapleradUtils {
     try {
       console.log("📤 Unfreezing Maplerad card:", { cardId });
 
-      const response: any = await this.getAxiosInstance().post(
+      const response: any = await this.getAxiosInstance().patch(
         `/issuing/${cardId}/unfreeze`
       );
 

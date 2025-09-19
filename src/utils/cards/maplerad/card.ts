@@ -363,7 +363,7 @@ const enableCard = async (cardId: string): Promise<OutputProps> => {
 const freezeCard = async (cardId: string): Promise<OutputProps> => {
   try {
     const result = await makeMapleradRequest({
-      method: "PUT",
+      method: "PATCH",
       url: `/issuing/${cardId}/freeze`,
       data: {},
     });
@@ -386,7 +386,7 @@ const freezeCard = async (cardId: string): Promise<OutputProps> => {
 const unfreezeCard = async (cardId: string): Promise<OutputProps> => {
   try {
     const result = await makeMapleradRequest({
-      method: "PUT",
+      method: "PATCH",
       url: `/issuing/${cardId}/unfreeze`,
       data: {},
     });
