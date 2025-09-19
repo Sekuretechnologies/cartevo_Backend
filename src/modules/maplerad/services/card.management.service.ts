@@ -744,6 +744,8 @@ export class CardManagementService {
         provider: decodeText(tx.provider),
         order_id: tx.order_id,
         failure_reason: tx.failure_reason,
+        card: tx.card,
+        customer: tx.customer,
       }));
 
       this.logger.log("✅ ADVANCED GET CARD TRANSACTIONS FLOW - COMPLETED", {
