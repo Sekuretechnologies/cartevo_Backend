@@ -6,6 +6,7 @@ import { ConfigService } from "@nestjs/config";
 import { AppModule } from "./app.module";
 import { writeFileSync } from "fs";
 import * as YAML from "yamljs";
+import helmet from "helmet";
 ``;
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -34,6 +35,25 @@ async function bootstrap() {
     origin: true,
     credentials: true,
   });
+
+  // Security headers with Helmet
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          imgSrc: ["'self'", "data:", "https:"],
+        },
+      },
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
+      },
+    })
+  );
 
   // Swagger documentation
   const config = new DocumentBuilder()
