@@ -78,7 +78,7 @@ module.exports = {
       max_memory_restart: "1G",
       env: {
         NODE_ENV: "production",
-        PORT: 3001,
+        PORT: 3002,
       },
       error_file: "./logs/err.log",
       out_file: "./logs/out.log",
@@ -91,14 +91,35 @@ module.exports = {
 
 ### 9. Install and Configure Nginx
 
-#### Install Nginx
+#### Check if Nginx is already installed
+
+```bash
+# Check if Nginx is installed
+nginx -v
+
+# Check if Nginx service is running
+sudo systemctl status nginx
+
+# If not installed, proceed with installation
+```
+
+#### Install Nginx (if not already installed)
 
 ```bash
 sudo apt update
 sudo apt install nginx
 ```
 
-#### Install Certbot for SSL
+#### Check if Certbot is already installed
+
+```bash
+# Check if Certbot is installed
+certbot --version
+
+# If not installed, proceed with installation
+```
+
+#### Install Certbot for SSL (if not already installed)
 
 ```bash
 sudo apt install certbot python3-certbot-nginx
@@ -118,7 +139,7 @@ server {
     server_name apisandbox.cartevo.co;
 
     location / {
-        proxy_pass http://localhost:3001;
+        proxy_pass http://localhost:3002;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
