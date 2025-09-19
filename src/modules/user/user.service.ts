@@ -717,7 +717,7 @@ export class UserService {
     let userRole = role;
 
     if (!userRole && user.userCompanyRoles) {
-      userRole = user.userCompanyRoles[0]?.role?.name || "user";
+      userRole = user.userCompanyRoles[0]?.role?.name || "member";
     }
 
     if (!userRole) {
@@ -734,7 +734,7 @@ export class UserService {
         throw new BadRequestException(userWithRoleResult.error.message);
       }
       const userWithRole = userWithRoleResult.output;
-      userRole = userWithRole?.userCompanyRoles[0]?.role?.name || "user";
+      userRole = userWithRole?.userCompanyRoles[0]?.role?.name || "member";
     }
 
     return {

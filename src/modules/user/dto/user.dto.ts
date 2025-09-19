@@ -22,11 +22,13 @@ export class CreateUserDto {
   @ApiProperty({
     description: "User role within the company",
     example: "admin",
-    enum: ["admin", "user"],
+    enum: ["admin", "member"],
   })
   @IsString()
   @IsNotEmpty()
-  @IsEnum(["admin", "user"], { message: "Role must be either admin or user" })
+  @IsEnum(["admin", "member"], {
+    message: "Role must be either admin or member",
+  })
   role: string;
 }
 
@@ -149,12 +151,14 @@ export class UpdateUserDto {
   @ApiProperty({
     description: "User role within the company",
     example: "admin",
-    enum: ["admin", "user"],
+    enum: ["admin", "member"],
     required: false,
   })
   @IsString()
   @IsOptional()
-  @IsEnum(["admin", "user"], { message: "Role must be either admin or user" })
+  @IsEnum(["admin", "member"], {
+    message: "Role must be either admin or member",
+  })
   role?: string;
 }
 
