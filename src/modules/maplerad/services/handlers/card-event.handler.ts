@@ -14,6 +14,7 @@ import {
   TransactionType,
   TransactionStatus,
 } from "@/types";
+import { WebhookWaitingService } from "../webhook-waiting.service";
 
 /**
  * MONIX-Style Card Event Handler
@@ -22,6 +23,8 @@ import {
 @Injectable()
 export class CardEventHandler {
   private readonly logger = new Logger(CardEventHandler.name);
+
+  constructor(private readonly webhookWaitingService: WebhookWaitingService) {}
 
   /**
    * 🎯 MONIX-STYLE: Process card-related webhook events
@@ -75,6 +78,14 @@ export class CardEventHandler {
     });
 
     try {
+      // Notify WebhookWaitingService first
+      if (payload.reference) {
+        this.webhookWaitingService.notifyWebhookReceived(
+          payload.reference,
+          payload
+        );
+      }
+
       // Create card in database
       const newCard = await CardModel.create({
         id: uuidv4(),
@@ -121,6 +132,15 @@ export class CardEventHandler {
       };
     } catch (error: any) {
       this.logger.error("❌ Card creation webhook failed:", error.message);
+
+      // Notify WebhookWaitingService of failure
+      if (payload.reference) {
+        this.webhookWaitingService.notifyWebhookReceived(
+          payload.reference,
+          payload
+        );
+      }
+
       return {
         success: false,
         message: `Failed to process card creation: ${error.message}`,
@@ -139,6 +159,14 @@ export class CardEventHandler {
       reference: payload.reference,
       reason: payload.reason,
     });
+
+    // Notify WebhookWaitingService of failure
+    if (payload.reference) {
+      this.webhookWaitingService.notifyWebhookReceived(
+        payload.reference,
+        payload
+      );
+    }
 
     // Log failure
     await CustomerLogsModel.create({

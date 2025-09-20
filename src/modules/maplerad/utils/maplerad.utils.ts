@@ -66,6 +66,15 @@ export interface MapleradCardData {
   amount: number;
 }
 
+export interface MapleradCreateCardData {
+  customer_id: string; // ID du customer (requis)
+  currency: string; // Devise (requis) - USD pour cartes virtuelles
+  type: string; // Type de carte (requis) - VIRTUAL
+  auto_approve: boolean; // Auto-approve (requis) - doit être true
+  brand?: string; // Brand optionnel - VISA ou MASTERCARD (défaut: VISA)
+  amount?: number; // Montant de pré-financement en centimes (défaut: 200 = $2.00)
+}
+
 export class MapleradUtils {
   private static axiosInstance: any;
 
@@ -186,29 +195,92 @@ export class MapleradUtils {
   }
 
   /**
+   * Get customers
+   */
+  static async getCustomers(
+    includeSensitive: boolean = false
+  ): Promise<MapleradApiResponse> {
+    try {
+      console.log("📤 Getting Maplerad card:", { includeSensitive });
+
+      const params = includeSensitive ? { include_sensitive: "true" } : {};
+
+      const response: any = await this.getAxiosInstance().get(`/customers`, {
+        params,
+      });
+
+      console.log("✅ Maplerad customers retrieved:", response.data);
+
+      return {
+        output: response.data,
+      };
+    } catch (error: any) {
+      console.error("❌ Maplerad customers retrieval error:", error);
+
+      return {
+        error: {
+          message:
+            error.response?.data?.message ||
+            error.message ||
+            "Failed to get customers",
+          details: error.response?.data,
+        },
+      };
+    }
+  }
+
+  /**
+   * Get one customer
+   */
+  static async getOneCustomer(
+    customerId: string,
+    includeSensitive: boolean = false
+  ): Promise<MapleradApiResponse> {
+    try {
+      console.log("📤 Getting Maplerad customer:", {
+        customerId,
+        includeSensitive,
+      });
+
+      const params = includeSensitive ? { include_sensitive: "true" } : {};
+
+      const response: any = await this.getAxiosInstance().get(
+        `/customers/${customerId}`,
+        { params }
+      );
+
+      console.log("✅ Maplerad customer retrieved:", response.data);
+
+      return {
+        output: response.data,
+      };
+    } catch (error: any) {
+      console.error("❌ Maplerad customer retrieval error:", error);
+
+      return {
+        error: {
+          message:
+            error.response?.data?.message ||
+            error.message ||
+            "Failed to get customer",
+          details: error.response?.data,
+        },
+      };
+    }
+  }
+
+  /**
    * Create a virtual card in Maplerad
    */
   static async createCard(
-    cardData: MapleradCardData
+    cardData: MapleradCreateCardData
   ): Promise<MapleradApiResponse> {
     try {
-      console.log("📤 Creating Maplerad card:", {
-        customerId: cardData.customer_id,
-        brand: cardData.brand,
-        amount: cardData.amount,
-      });
-
-      const payload = {
-        customer_id: cardData.customer_id,
-        currency: cardData.currency,
-        type: cardData.type,
-        brand: cardData.brand,
-        amount: cardData.amount,
-      };
+      console.log("📤 Creating Maplerad card:", cardData);
 
       const response: any = await this.getAxiosInstance().post(
         "/issuing",
-        payload
+        cardData
       );
 
       console.log("✅ Maplerad card created:", response.data);
@@ -358,7 +430,7 @@ export class MapleradUtils {
     try {
       console.log("📤 Freezing Maplerad card:", { cardId });
 
-      const response: any = await this.getAxiosInstance().post(
+      const response: any = await this.getAxiosInstance().patch(
         `/issuing/${cardId}/freeze`
       );
 
@@ -389,7 +461,7 @@ export class MapleradUtils {
     try {
       console.log("📤 Unfreezing Maplerad card:", { cardId });
 
-      const response: any = await this.getAxiosInstance().post(
+      const response: any = await this.getAxiosInstance().patch(
         `/issuing/${cardId}/unfreeze`
       );
 
@@ -523,6 +595,70 @@ export class MapleradUtils {
   }
 
   /**
+   * Get all cards from Maplerad (with optional filtering)
+   */
+  static async getAllCards(options?: {
+    customerId?: string;
+    createdAt?: string;
+    brand?: "VISA" | "MASTERCARD";
+    status?: "ACTIVE" | "DISABLED";
+    page?: number;
+    pageSize?: number;
+  }): Promise<MapleradApiResponse> {
+    try {
+      console.log("📤 Getting all Maplerad cards:", options);
+
+      const params: any = {};
+
+      if (options?.customerId) {
+        params.customer_id = options.customerId;
+      }
+
+      if (options?.createdAt) {
+        params.created_at = options.createdAt;
+      }
+
+      if (options?.brand) {
+        params.brand = options.brand;
+      }
+
+      if (options?.status) {
+        params.status = options.status;
+      }
+
+      if (options?.page) {
+        params.page = options.page;
+      }
+
+      if (options?.pageSize) {
+        params.page_size = options.pageSize;
+      }
+
+      const response: any = await this.getAxiosInstance().get(`/issuing`, {
+        params,
+      });
+
+      console.log("✅ Maplerad cards retrieved:", response.data);
+
+      return {
+        output: response.data,
+      };
+    } catch (error: any) {
+      console.error("❌ Maplerad cards retrieval error:", error);
+
+      return {
+        error: {
+          message:
+            error.response?.data?.message ||
+            error.message ||
+            "Failed to get cards",
+          details: error.response?.data,
+        },
+      };
+    }
+  }
+
+  /**
    * Get real-time card balance
    */
   static async getRealCardBalance(
@@ -550,6 +686,47 @@ export class MapleradUtils {
             error.message ||
             "Failed to get card balance",
           details: error.response?.data,
+        },
+      };
+    }
+  }
+
+  /**
+   * Credit test wallet
+   */
+  static async creditTestWallet(
+    amount: number,
+    currency: string = "USD"
+  ): Promise<MapleradApiResponse> {
+    try {
+      console.log("📤 Crediting Maplerad test wallet:", { amount, currency });
+
+      const payload = {
+        amount: Math.round(amount * 100), // Convert to cents
+        currency: currency.toUpperCase(),
+      };
+
+      const response: any = await this.getAxiosInstance().post(
+        "/test/wallet/credit",
+        payload
+      );
+
+      console.log("✅ Maplerad test wallet credited:", response.data);
+
+      return {
+        output: response.data,
+      };
+    } catch (error: any) {
+      console.error("❌ Maplerad test wallet credit error:", error);
+
+      return {
+        error: {
+          message:
+            error.response?.data?.message ||
+            error.message ||
+            "Failed to credit test wallet",
+          details: error.response?.data,
+          payload: error.config?.data,
         },
       };
     }

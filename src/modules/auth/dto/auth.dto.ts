@@ -232,6 +232,9 @@ export class ValidateInvitationResponseDto {
   };
 
   @ApiProperty({ required: false })
+  user_id?: string;
+
+  @ApiProperty({ required: false })
   role?: string;
 
   @ApiProperty({ required: false })

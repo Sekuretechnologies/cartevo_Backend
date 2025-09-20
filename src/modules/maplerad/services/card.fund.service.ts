@@ -284,7 +284,7 @@ export class CardFundService {
     const usdWalletResult = await WalletModel.getOne({
       company_id: companyId,
       currency: "USD",
-      active: true,
+      is_active: true,
     });
     if (usdWalletResult.error || !usdWalletResult.output) {
       throw new BadRequestException("USD wallet not found");
@@ -388,7 +388,7 @@ export class CardFundService {
     const usdWalletResult = await WalletModel.getOne({
       company_id: companyId,
       currency: "USD",
-      active: true,
+      is_active: true,
     });
     if (usdWalletResult.output) {
       await WalletModel.update(usdWalletResult.output.id, {
@@ -427,7 +427,7 @@ export class CardFundService {
     const usdWalletResult = await WalletModel.getOne({
       company_id: company.id,
       currency: "USD",
-      active: true,
+      is_active: true,
     });
     if (usdWalletResult.error || !usdWalletResult.output) {
       throw new BadRequestException(
@@ -576,7 +576,7 @@ export class CardFundService {
     const usdWalletResult = await WalletModel.getOne({
       company_id: companyId,
       currency: "USD",
-      active: true,
+      is_active: true,
     });
 
     if (usdWalletResult.output) {

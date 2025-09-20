@@ -58,6 +58,7 @@ class TransactionModel {
         wallet: true,
         user: true,
         customer: true,
+        card: true,
         // balanceTransactionRecords: true,
         ...include,
       };

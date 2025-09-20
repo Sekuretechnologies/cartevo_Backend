@@ -64,10 +64,8 @@ class CompanyModel {
       if (inputCompany.country) {
         companyData.country = sanitizeTextInput(inputCompany.country);
       }
-      if (inputCompany.email) {
-        companyData.email = sanitizeTextInput(inputCompany.email);
-      }
       const company = await this.prisma.company.create({ data: companyData });
+      0;
       return fnOutput.success({ code: 201, output: company });
     } catch (error: any) {
       return fnOutput.error({

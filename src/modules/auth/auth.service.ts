@@ -124,9 +124,10 @@ export class AuthService {
       // Multiple companies found - return list of companies for user to choose
       const companies = await Promise.all(
         users.map(async (user) => {
-          // Get user's companies through UserCompanyRole
+          // Get user's active companies through UserCompanyRole
           const userCompanyRolesResult = await UserCompanyRoleModel.get({
             user_id: user.id,
+            is_active: true,
           });
 
           if (userCompanyRolesResult.error || !userCompanyRolesResult.output) {
@@ -219,6 +220,9 @@ export class AuthService {
       },
       {
         userCompanyRoles: {
+          where: {
+            is_active: true,
+          },
           include: {
             role: true,
             company: true,
@@ -661,6 +665,7 @@ export class AuthService {
         const userCompanyRoleResult = await UserCompanyRoleModel.getOne({
           user_id: users[0].id, // Assuming single user for now, but this needs to be updated for multi-user scenario
           company_id: loginDto.company_id,
+          is_active: true,
         });
 
         if (userCompanyRoleResult.error || !userCompanyRoleResult.output) {
@@ -771,6 +776,7 @@ export class AuthService {
       const userCompanyRoleResult = await UserCompanyRoleModel.getOne({
         user_id: userId,
         company_id: selectCompanyDto.company_id,
+        is_active: true,
       });
 
       if (userCompanyRoleResult.error || !userCompanyRoleResult.output) {
@@ -785,6 +791,9 @@ export class AuthService {
         },
         {
           userCompanyRoles: {
+            where: {
+              is_active: true,
+            },
             include: {
               role: true,
               company: true,
@@ -877,7 +886,7 @@ export class AuthService {
       // Check if invitation still exists and is pending
       const invitation = await UserModel.getOne({
         id: decoded.invitation_id,
-        status: UserStatus.PENDING,
+        // status: UserStatus.PENDING,
       });
 
       if (!invitation.output) {
@@ -887,7 +896,7 @@ export class AuthService {
       // Check if user already exists
       const existingUsers = await UserModel.get({
         email: decoded.email,
-        status: UserStatus.ACTIVE,
+        // status: UserStatus.ACTIVE,
       });
 
       const userExists = existingUsers.output.length > 0;
@@ -900,6 +909,7 @@ export class AuthService {
       return {
         valid: true,
         invitation_id: decoded.invitation_id,
+        user_id: existingUsers.output?.[0],
         email: decoded.email,
         company: {
           id: company.output.id,
@@ -935,7 +945,7 @@ export class AuthService {
 
       const user = await UserModel.getOne({
         email: email,
-        status: UserStatus.ACTIVE,
+        // status: UserStatus.ACTIVE,
       });
 
       if (!user.output) {
@@ -964,16 +974,21 @@ export class AuthService {
 
       // Add user to new company
       const roleRecord = await RoleModel.getOne({ name: role });
-      await UserCompanyRoleModel.create({
-        user_id: user.output.id,
-        company_id: company.id,
-        role_id: roleRecord.output.id,
-      });
+      await UserCompanyRoleModel.update(
+        {
+          user_id: user.output.id,
+          company_id: company.id,
+          // role_id: roleRecord.output.id,
+        },
+        {
+          status: UserStatus.ACTIVE,
+        }
+      );
 
       // Mark invitation as used
-      await UserModel.update(invitation_id, {
-        status: UserStatus.INACTIVE,
-      });
+      // await UserModel.update(invitation_id, {
+      //   status: UserStatus.INACTIVE,
+      // });
 
       // Generate access token for the new company
       const payload = {

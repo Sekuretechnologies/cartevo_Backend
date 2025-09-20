@@ -22,11 +22,13 @@ export class CreateUserDto {
   @ApiProperty({
     description: "User role within the company",
     example: "admin",
-    enum: ["admin", "user"],
+    enum: ["admin", "member"],
   })
   @IsString()
   @IsNotEmpty()
-  @IsEnum(["admin", "user"], { message: "Role must be either admin or user" })
+  @IsEnum(["admin", "member"], {
+    message: "Role must be either admin or member",
+  })
   role: string;
 }
 
@@ -39,23 +41,41 @@ export class RegisterUserDto {
   @IsNotEmpty()
   email: string;
 
+  // @ApiProperty({
+  //   description: "Invitation code received via email",
+  //   example: "INV_1234567890",
+  // })
+  // @IsString()
+  // @IsNotEmpty()
+  // invitation_code: string;
+
   @ApiProperty({
-    description: "Invitation code received via email",
-    example: "INV_1234567890",
+    description: "Invitation token from the email link",
+    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   })
   @IsString()
   @IsNotEmpty()
-  invitation_code: string;
+  token: string;
 
   @ApiProperty({
-    description: "User full name",
+    description: "User first name",
     example: "John Doe",
   })
   @IsString()
   @IsNotEmpty()
   @MinLength(2)
   @MaxLength(255)
-  full_name: string;
+  first_name: string;
+
+  @ApiProperty({
+    description: "User last name",
+    example: "John Doe",
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  @MaxLength(255)
+  last_name: string;
 
   @ApiProperty({
     description:
@@ -131,12 +151,14 @@ export class UpdateUserDto {
   @ApiProperty({
     description: "User role within the company",
     example: "admin",
-    enum: ["admin", "user"],
+    enum: ["admin", "member"],
     required: false,
   })
   @IsString()
   @IsOptional()
-  @IsEnum(["admin", "user"], { message: "Role must be either admin or user" })
+  @IsEnum(["admin", "member"], {
+    message: "Role must be either admin or member",
+  })
   role?: string;
 }
 

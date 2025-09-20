@@ -38,7 +38,7 @@ export class EmailService {
       const mailOptions = {
         from: this.configService.get("FROM_EMAIL") || "noreply@cartevo.co",
         to: email,
-        subject: "Code de vérification CARTEVO",
+        subject: `Code de vérification CARTEVO : ${otp}`,
         html: this.getOtpEmailTemplate(otp, userName),
         text: `Votre code de vérification CARTEVO est: ${otp}. Ce code expire dans 10 minutes.`,
       };
@@ -84,14 +84,15 @@ export class EmailService {
     email: string,
     invitationToken: string,
     companyName: string,
-    inviterName?: string
+    inviterName?: string,
+    isExistingUser?: boolean
   ): Promise<boolean> {
     try {
       // Generate invitation URLs
       const frontendUrl =
         this.configService.get("FRONTEND_URL") || "http://localhost:3000";
       const acceptInvitationUrl = `${frontendUrl}/invitation/accept?token=${invitationToken}`;
-      const registerUrl = `${frontendUrl}/invitation/accept?token=${invitationToken}`;
+      const registerUrl = `${frontendUrl}/register-invitation/accept?token=${invitationToken}`;
 
       const mailOptions = {
         from: this.configService.get("FROM_EMAIL") || "noreply@cartevo.co",
@@ -102,7 +103,8 @@ export class EmailService {
           registerUrl,
           invitationToken,
           companyName,
-          inviterName
+          inviterName,
+          isExistingUser
         ),
         text: `You've been invited to join ${companyName} on CARTEVO. Click here to accept: ${acceptInvitationUrl}`,
       };
@@ -314,65 +316,256 @@ export class EmailService {
     registerUrl: string,
     invitationToken: string,
     companyName: string,
-    inviterName?: string
+    inviterName?: string,
+    isExistingUser?: boolean
   ): string {
+    const primaryUrl = isExistingUser ? acceptInvitationUrl : registerUrl;
+    const buttonText = isExistingUser ? "Accept Invitation" : "Join Company";
+    const headline = isExistingUser ? "Welcome Back!" : "You're Invited!";
+    const subheadline = isExistingUser
+      ? `Accept your invitation to join ${companyName}`
+      : `Join ${companyName} on CARTEVO`;
+
+    const mainDescription = isExistingUser
+      ? `You've been invited to join <strong>${companyName}</strong> on CARTEVO. Sign in to your existing account to accept this invitation and get immediate access.`
+      : `You've been invited to join <strong>${companyName}</strong> on CARTEVO. Create your account to get started with powerful financial management tools.`;
+
+    const benefits = [
+      "Manage virtual cards and transactions",
+      "Real-time financial insights",
+      "Secure payment processing",
+      "Advanced reporting tools",
+    ];
+
     return `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Invitation to join ${companyName}</title>
+        <title>Invitation to join ${companyName} on CARTEVO</title>
         <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background-color: #007bff; color: white; padding: 20px; text-align: center; }
-          .content { padding: 30px; background-color: #f9f9f9; }
-          .invitation-link { display: inline-block; background-color: #007bff; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; text-align: center; }
-          .invitation-link:hover { background-color: #0056b3; }
-          .secondary-text { color: #666; font-size: 14px; margin: 15px 0; }
-          .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+          }
+          .container {
+            max-width: 650px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          }
+          .header {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+            position: relative;
+          }
+          .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="80" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="60" cy="30" r="1" fill="rgba(255,255,255,0.1)"/></svg>') repeat;
+            opacity: 0.3;
+          }
+          .header-content {
+            position: relative;
+            z-index: 1;
+          }
+          .logo {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+          }
+          .main-content {
+            padding: 40px 30px;
+            background-color: #ffffff;
+          }
+          .invitation-card {
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
+            border: 1px solid #e3f2fd;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 20px 0;
+            text-align: center;
+          }
+          .invitation-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+          }
+          .invitation-link {
+            display: inline-block;
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            padding: 18px 40px;
+            text-decoration: none;
+            border-radius: 8px;
+            margin: 25px 0;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+            transition: all 0.3s ease;
+          }
+          .invitation-link:hover {
+            background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+            box-shadow: 0 6px 16px rgba(0, 123, 255, 0.4);
+            transform: translateY(-2px);
+          }
+          .benefits-section {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 25px 0;
+          }
+          .benefits-title {
+            color: #007bff;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+          }
+          .benefits-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+          }
+          .benefits-list li {
+            padding: 8px 0;
+            padding-left: 20px;
+            position: relative;
+            color: #555;
+          }
+          .benefits-list li::before {
+            content: '✓';
+            color: #28a745;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+          }
+          .security-notice {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 14px;
+            color: #856404;
+          }
+          .footer {
+            background-color: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+          }
+          .footer-links {
+            margin: 15px 0;
+          }
+          .footer-links a {
+            color: #007bff;
+            text-decoration: none;
+            margin: 0 10px;
+            font-size: 14px;
+          }
+          .footer-links a:hover {
+            text-decoration: underline;
+          }
+          .copyright {
+            color: #6c757d;
+            font-size: 12px;
+            margin-top: 15px;
+          }
+          .url-display {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 12px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            color: #495057;
+          }
+          @media (max-width: 600px) {
+            .container { margin: 10px; }
+            .header, .main-content, .footer { padding: 20px; }
+            .invitation-link { padding: 15px 30px; font-size: 14px; }
+          }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <h1>CARTEVO</h1>
+            <div class="header-content">
+              <div class="logo">CARTEVO</div>
+              <h1 style="margin: 10px 0; font-size: 24px;">${headline}</h1>
+              <p style="margin: 0; opacity: 0.9;">${subheadline}</p>
+            </div>
           </div>
-          <div class="content">
-            <h2>You're invited to join ${companyName}!</h2>
 
-            <p>Hi there,</p>
+          <div class="main-content">
+            <div class="invitation-card">
+              <div class="invitation-icon">🎉</div>
+              <h2 style="margin: 0 0 15px 0; color: #007bff;">${companyName} Invitation</h2>
+              <p style="margin: 0; font-size: 16px; line-height: 1.5;">
+                ${
+                  inviterName
+                    ? `<strong>${inviterName}</strong> has invited you to join`
+                    : "You have been invited to join"
+                }
+                <strong>${companyName}</strong> on CARTEVO
+              </p>
+            </div>
 
-            <p>
-              <strong>${
-                inviterName || "A team member"
-              }</strong> has invited you to join
-              <strong>${companyName}</strong> on CARTEVO.
+            <p style="font-size: 16px; line-height: 1.6;">${mainDescription}</p>
+
+            <div style="text-align: center;">
+              <a href="${primaryUrl}" class="invitation-link">
+                ${buttonText}
+              </a>
+            </div>
+
+            <div class="benefits-section">
+              <h3 class="benefits-title">What you'll get with CARTEVO:</h3>
+              <ul class="benefits-list">
+                ${benefits.map((benefit) => `<li>${benefit}</li>`).join("")}
+              </ul>
+            </div>
+
+            <div class="security-notice">
+              <strong>Security Notice:</strong> This invitation link expires in 7 days for your security.
+              If you didn't expect this invitation, please ignore this email.
+            </div>
+
+            <p style="margin-bottom: 5px;"><strong>Having trouble with the button?</strong></p>
+            <p style="margin-top: 5px; color: #666; font-size: 14px;">
+              Copy and paste this link into your browser:
             </p>
-
-            <p>Click the button below to accept the invitation and get access to ${companyName}:</p>
-            <a href="${acceptInvitationUrl}" class="invitation-link">
-              Accept Invitation & Sign In
-            </a>
-            <p class="secondary-text">
-              You'll be asked to sign in with your existing account to confirm.
-            </p>
-
-            <p><strong>What happens next?</strong></p>
-            <ul>
-              <li>You'll be redirected to CARTEVO</li>
-              <li>Sign in with your existing credentials</li>
-              <li>Get immediate access to ${companyName}</li>
-            </ul>
-
-            <p>This invitation link expires in 7 days for security reasons.</p>
-
-            <p>If the button doesn't work, copy and paste this link into your browser:</p>
-            <p><small>${acceptInvitationUrl}</small></p>
+            <div class="url-display">${primaryUrl}</div>
           </div>
+
           <div class="footer">
-            <p>© 2025 CARTEVO. All rights reserved.</p>
+            <div class="footer-links">
+              <a href="#">Privacy Policy</a> |
+              <a href="#">Terms of Service</a> |
+              <a href="#">Support</a>
+            </div>
+            <div class="copyright">
+              <p>© 2025 CARTEVO. All rights reserved.</p>
+              <p style="margin: 5px 0 0 0; font-size: 11px;">
+                This email was sent to you because someone invited you to join ${companyName} on CARTEVO.
+              </p>
+            </div>
           </div>
         </div>
       </body>
