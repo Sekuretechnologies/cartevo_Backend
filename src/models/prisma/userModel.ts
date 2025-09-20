@@ -225,6 +225,37 @@ class UserModel {
       throw new Error(`Operation failed: ${error.message}`);
     }
   }
+
+  // // Valider le kyc
+  // static async approveKyc(userId: string) {
+  //   try {
+  //     const user = await prisma.user.update({
+  //       where: { id: userId },
+  //       data: { kyc_status: "APPROVED" },
+  //     });
+
+  //     return fnOutput.success({ output: user });
+  //   } catch (error: any) {
+  //     return fnOutput.error({ message: error.message, error });
+  //   }
+  // }
+
+  // /**
+  //  * Annuler le kyc
+  //  */
+
+  // static async rejectKyc(userId: string) {
+  //   try {
+  //     const user = await prisma.user.update({
+  //       where: { id: userId },
+  //       data: { kyc_status: "REJECTED" },
+  //     });
+
+  //     return fnOutput.success({ output: user });
+  //   } catch (error: any) {
+  //     return fnOutput.error({ message: error.message, error });
+  //   }
+  // }
 }
 
 export default UserModel;
