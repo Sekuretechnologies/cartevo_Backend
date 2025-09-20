@@ -215,7 +215,7 @@ export class EmailService {
       return true;
     } catch (error) {
       console.error("Error sending KYC approval email:", error);
-      throw new BadRequestException("Failed to send KYC approval email");
+      throw new BadRequestException("Failed to send email");
     }
   }
 
@@ -437,37 +437,40 @@ export class EmailService {
         to: email,
         subject: "Réinitialisation de votre mot de passe",
         html: `
-        <p>Vous avez demandé à réinitialiser votre mot de passe.</p>
-  <p>Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe :</p>
-  <p>
-    <a href="${resetLink}"
-      style="
-        display: inline-block;
-        padding: 12px 20px;
-        background-color: #1F66FF;
-        color: #ffffff;
-        text-decoration: none;
-        border-radius: 6px;
-        font-weight: bold;
-      "
-    >
-      Réinitialiser mon mot de passe
-    </a>
-  </p>
-  <p>Si le bouton ne fonctionne pas, copiez-collez ce lien dans votre navigateur :</p>
-  <p><a href="${resetLink}">${resetLink}</a></p>
-  <p>Ce lien expirera dans 15 minutes.</p>
-  <p>Si vous n’avez pas demandé cette réinitialisation, ignorez simplement cet email.</p>
-  <p>© 2025 CARTEVO. Tous droits réservés.</p>
+        <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333;">
+          <p>Bonjour ${userName || ""},</p>
+          <p>Vous avez demandé la réinitialisation de votre mot de passe pour votre compte CARTEVO.</p>
+          <p>Pour définir un nouveau mot de passe, cliquez sur le bouton ci-dessous :</p>
+          <p style="text-align: center; margin: 20px 0;">
+            <a href="${resetLink}"
+              style="
+                display: inline-block;
+                padding: 12px 24px;
+                background-color: #1F66FF;
+                color: #ffffff !important;
+                text-decoration: none;
+                border-radius: 6px;
+                font-weight: bold;
+              ">
+              Réinitialiser mon mot de passe
+            </a>
+          </p>
+          <p>Si le bouton ne fonctionne pas, copiez et collez le lien suivant dans votre navigateur :</p>
+          <p><a href="${resetLink}" style="color:#1F66FF;">${resetLink}</a></p>
+          <p><strong>Important :</strong> ce lien est valable pendant 15 minutes.</p>
+          <p>Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail en toute sécurité.</p>
+          <br>
+          <p style="font-size: 12px; color: #999;">© 2025 CARTEVO – Tous droits réservés.</p>
+        </div>
       `,
       };
 
       const result = await this.transporter.sendMail(mailOptions);
-      console.log("resetLink email sent successfully:", result.messageId);
+      console.log("Reset password email sent successfully:", result.messageId);
       return true;
     } catch (error) {
-      console.error("Error sending resetLink email:", error);
-      throw new BadRequestException("Failed to send ResetLink email");
+      console.error("Error sending reset password email:", error);
+      throw new BadRequestException("Failed to send password reset email");
     }
   }
 

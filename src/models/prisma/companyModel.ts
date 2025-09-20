@@ -1,4 +1,3 @@
-// src/models/prisma/companyModel.ts
 import { FilterObject } from "@/types";
 import {
   sanitizeName,
@@ -6,8 +5,7 @@ import {
   setMethodFilter,
 } from "@/utils/shared/common";
 import fnOutput from "@/utils/shared/fnOutputHandler";
-import { Prisma, PrismaClient } from "@prisma/client";
-import { Filter } from "firebase-admin/firestore";
+import { KybStatus, KycStatus, Prisma, PrismaClient } from "@prisma/client";
 import { buildPrismaQuery } from "prisma/functions";
 
 export interface CompanyModelInterface {
@@ -147,7 +145,10 @@ class CompanyModel {
    *  Recuperer les companies avec les owners
    *
    */
-  static async getWithOwner(filters?: FilterObject) {
+  static async getWithOwner(
+    filters: any = {},
+    statusFilter?: "pending" | "approved" | "rejected" | "none"
+  ) {
     try {
       const companies = await this.prisma.company.findMany({
         where: filters,
@@ -155,67 +156,83 @@ class CompanyModel {
           userCompanyRoles: {
             where: { role: { name: "owner" } },
             include: {
+              role: true,
               user: {
                 select: {
                   id: true,
                   first_name: true,
                   last_name: true,
+                  address: true,
                   email: true,
                   phone_number: true,
-                  kyc_status: true,
-                  status: true,
-                  // ajoute ici les champs autorisés seulement
-                  gender: true,
                   nationality: true,
                   id_document_type: true,
                   id_number: true,
                   id_document_front: true,
                   id_document_back: true,
+                  proof_of_address: true,
                   country_of_residence: true,
                   state: true,
                   city: true,
                   street: true,
                   postal_code: true,
-                  proof_of_address: true,
-                  created_at: true,
-                  updated_at: true,
+                  kyc_status: true,
                 },
               },
-              role: true,
             },
           },
         },
       });
 
-      const formatted = companies.map((c) => {
-        const { userCompanyRoles, ...rest } = c;
-        return {
-          ...rest,
-          owner: userCompanyRoles[0]?.user || null,
-        };
-      });
+      const formatted = companies
+        .map((c) => {
+          const { userCompanyRoles, ...rest } = c;
+          const owner = userCompanyRoles[0]?.user;
+
+          const kycStatus = owner?.kyc_status as KycStatus | undefined;
+          const kybStatus = c.kyb_status as KybStatus | undefined;
+
+          let status: "pending" | "approved" | "rejected" | "none";
+
+          if (
+            kycStatus === KycStatus.REJECTED &&
+            kybStatus === KybStatus.REJECTED
+          ) {
+            status = "rejected";
+          } else if (
+            kycStatus === KycStatus.APPROVED &&
+            kybStatus === KybStatus.APPROVED
+          ) {
+            status = "approved";
+          } else if (
+            kycStatus === KycStatus.NONE &&
+            kybStatus === KybStatus.NONE
+          ) {
+            status = "none";
+          } else if (
+            (kycStatus === KycStatus.REJECTED &&
+              kybStatus === KybStatus.NONE) ||
+            (kycStatus === KycStatus.NONE && kybStatus === KybStatus.REJECTED)
+          ) {
+            status = "rejected";
+          } else {
+            status = "pending";
+          }
+
+          return {
+            ...rest,
+            owner,
+            status,
+          };
+        })
+        .filter((c) => (statusFilter ? c.status === statusFilter : true));
 
       return fnOutput.success({ output: formatted });
-    } catch (error) {
-      return fnOutput.error({
-        message: "Error fetching companies with owner: " + error.message,
-        error: { message: error.message },
-      });
-    }
-  }
-
-  /**
-   * Valider KYB
-   */
-  static async approveKyb(companyId: string) {
-    try {
-      const company = await this.prisma.company.update({
-        where: { id: companyId },
-        data: { kyb_status: "APPROVED" },
-      });
-      return fnOutput.success({ output: company });
     } catch (error: any) {
-      return fnOutput.error({ message: error.message, error });
+      return fnOutput.error({
+        message: "Error fetching companies with owner",
+        error,
+      });
     }
   }
 

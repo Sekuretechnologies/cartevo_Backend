@@ -452,7 +452,7 @@ export class AuthService {
         expiresIn: "15m",
       });
 
-      const frontUrl = process.env.FRONTEND_URL || "localhost:3000";
+      const frontUrl = process.env.FRONTEND_URL;
 
       const resetLink = `${frontUrl}/reset-password?token=${token}`;
 

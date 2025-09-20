@@ -12,8 +12,8 @@ import { KycStatus } from "@prisma/client";
 export class AdminService {
   constructor(private emailService: EmailService) {}
 
-  async getAllCompanies() {
-    const result = await CompanyModel.getWithOwner();
+  async getAllCompanies(status?: "pending" | "approved" | "none") {
+    const result = await CompanyModel.getWithOwner({}, status);
     if (result.error) {
       throw new NotFoundException(result.error.message);
     }
@@ -49,7 +49,7 @@ export class AdminService {
         kycDto.message
       );
     } else {
-      await this.emailService.approveKycEmail(userEmail, userName);
+      // await this.emailService.approveKycEmail(userEmail, userName);
     }
 
     const result = await UserModel.update(kycDto.userId, {
