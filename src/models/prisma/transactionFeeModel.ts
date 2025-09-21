@@ -247,10 +247,10 @@ class TransactionFeeModel {
     try {
       const feeResult = await this.getTransactionFee(
         companyId,
+        transactionCategory,
         transactionType,
-        transactionCategory
-        // countryIsoCode,
-        // currency
+        countryIsoCode,
+        currency
       );
 
       console.log("feeResult --------------- :: ", feeResult);

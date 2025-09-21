@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,51 +8,429 @@ datasource db {
 }
 
 model Company {
-  id           String   @id @default(uuid())
-  name         String
-  country      String?
-  email        String?   @unique
-  client_id     String?   @unique @map("client_id")
-  client_key    String?   @map("client_key")
-  webhook_url    String?   @map("webhook_url")
-  webhook_is_active      Boolean  @default(true) @map("webhook_is_active")
-  // card_price    Decimal  @default(5.00) @map("card_price") @db.Decimal(10, 2)
-  // card_fund_rate Decimal  @default(1.02) @map("card_fund_rate") @db.Decimal(5, 4)
-  is_active      Boolean  @default(true) @map("is_active")
-  step          Int      @default(1) // 1 = personal info completed, 2 = business info completed
-  kyb_status    KybStatus @default(NONE) @map("kyb_status") // KYB (Know Your Business) status
-  access_level                String?  @map("access_level")
-  // Business information fields (Step 2)
-  business_name         String?  @map("business_name")
-  business_phone_number String?  @map("business_phone_number")
-  business_address      String?  @map("business_address")
-  business_type         String?  @map("business_type")
-  country_iso_code      String?  @map("country_iso_code")
-  country_phone_code    String?  @map("country_phone_code")
-  country_currency    String?  @map("country_currency")
-  tax_id_number         String?  @map("tax_id_number")
-  business_website      String?  @map("business_website")
-  business_description  String?  @map("business_description")
-  source_of_funds       String?  @map("source_of_funds")
-  share_holding_document String? @map("share_holding_document")
-  incorporation_certificate String? @map("incorporation_certificate")
-  business_proof_of_address String? @map("business_proof_of_address")
-  memart                String?  @map("memart")
-  
-  created_at     DateTime @default(now()) @map("created_at")
-  updated_at     DateTime @updatedAt @map("updated_at")
+  id                        String            @id @default(uuid())
+  name                      String
+  country                   String?
+  email                     String?           @unique
+  client_id                 String?           @unique @map("client_id")
+  client_key                String?           @map("client_key")
+  is_active                 Boolean           @default(true) @map("is_active")
+  created_at                DateTime          @default(now()) @map("created_at")
+  updated_at                DateTime          @updatedAt @map("updated_at")
+  business_address          String?           @map("business_address")
+  business_description      String?           @map("business_description")
+  business_name             String?           @map("business_name")
+  business_phone_number     String?           @map("business_phone_number")
+  business_proof_of_address String?           @map("business_proof_of_address")
+  business_type             String?           @map("business_type")
+  business_website          String?           @map("business_website")
+  incorporation_certificate String?           @map("incorporation_certificate")
+  memart                    String?           @map("memart")
+  share_holding_document    String?           @map("share_holding_document")
+  source_of_funds           String?           @map("source_of_funds")
+  step                      Int               @default(1)
+  tax_id_number             String?           @map("tax_id_number")
+  kyb_status                KybStatus         @default(NONE) @map("kyb_status")
+  country_currency          String?           @map("country_currency")
+  country_iso_code          String?           @map("country_iso_code")
+  country_phone_code        String?           @map("country_phone_code")
+  webhook_url               String?           @map("webhook_url")
+  webhook_is_active         Boolean           @default(true) @map("webhook_is_active")
+  access_level              String?           @map("access_level")
+  cards                     Card[]
+  customers                 Customer[]
+  exchangeRates             ExchangeRate[]
+  onboardingSteps           OnboardingStep[]
+  syncmetadatas             Syncmetadata[]
+  transactionFees           TransactionFee[]
+  transactions              Transaction[]
+  userCompanyRoles          UserCompanyRole[]
+  wallets                   Wallet[]
+  pendingWithdrawals        PendingWithdrawal[]
 
-  customers        Customer[]
-  cards            Card[]
-  transactions     Transaction[]
-  wallets          Wallet[]
-  userCompanyRoles UserCompanyRole[]
-  syncmetadatas    Syncmetadata[]
-  exchangeRates    ExchangeRate[]
-  transactionFees  TransactionFee[]
-
-  onboardingSteps OnboardingStep[]
   @@map("companies")
+}
+
+model User {
+  id                   String            @id @default(uuid())
+  full_name            String?           @map("full_name")
+  email                String            @unique
+  password             String?
+  created_at           DateTime          @default(now()) @map("created_at")
+  updated_at           DateTime          @updatedAt @map("updated_at")
+  address              String?
+  invitation_code      String?           @unique @map("invitation_code")
+  otp                  String?
+  otp_expires          DateTime?         @map("otp_expires")
+  status               UserStatus        @default(PENDING)
+  step                 Int               @default(1)
+  city                 String?
+  country_of_residence String?           @map("country_of_residence")
+  first_name           String?           @map("first_name")
+  gender               String?
+  id_document_back     String?           @map("id_document_back")
+  id_document_front    String?           @map("id_document_front")
+  id_document_type     String?           @map("id_document_type")
+  id_number            String?           @map("id_number")
+  last_name            String?           @map("last_name")
+  nationality          String?
+  phone_number         String?           @map("phone_number")
+  postal_code          String?           @map("postal_code")
+  proof_of_address     String?           @map("proof_of_address")
+  role_in_company      String?           @map("role_in_company")
+  state                String?
+  street               String?
+  kyc_status           KycStatus         @default(NONE) @map("kyc_status")
+  transactions         Transaction[]
+  userCompanyRoles     UserCompanyRole[]
+
+  @@map("users")
+}
+
+model Role {
+  id               String            @id @default(uuid())
+  name             String            @unique
+  created_at       DateTime          @default(now()) @map("created_at")
+  updated_at       DateTime          @updatedAt @map("updated_at")
+  userCompanyRoles UserCompanyRole[]
+
+  @@map("roles")
+}
+
+model UserCompanyRole {
+  id         String     @id @default(uuid())
+  user_id    String     @map("user_id")
+  company_id String     @map("company_id")
+  role_id    String     @map("role_id")
+  created_at DateTime   @default(now()) @map("created_at")
+  is_active  Boolean    @default(true) @map("is_active")
+  status     UserStatus @default(PENDING) @map("status")
+  company    Company    @relation(fields: [company_id], references: [id])
+  role       Role       @relation(fields: [role_id], references: [id])
+  user       User       @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, company_id, role_id])
+  @@map("user_company_roles")
+}
+
+model Wallet {
+  id                 String              @id @default(uuid())
+  balance            Decimal             @default(0) @db.Decimal(15, 2)
+  payin_balance      Decimal             @default(0) @db.Decimal(15, 2) @map("payin_balance")
+  payout_balance     Decimal             @default(0) @db.Decimal(15, 2) @map("payout_balance")
+  payin_amount       Decimal             @default(0) @db.Decimal(15, 2) @map("payin_amount")
+  payout_amount      Decimal             @default(0) @db.Decimal(15, 2) @map("payout_amount")
+  active             Boolean             @default(true)
+  currency           String
+  country            String
+  country_iso_code   String              @map("country_iso_code")
+  company_id         String              @map("company_id")
+  created_at         DateTime            @default(now()) @map("created_at")
+  updated_at         DateTime            @updatedAt @map("updated_at")
+  country_phone_code String?             @map("country_phone_code")
+  transactions       Transaction[]
+  phoneNumbers       WalletPhoneNumber[]
+  transferRequestsFrom TransferRequest[] @relation("TransferRequestFrom")
+  transferRequestsTo TransferRequest[] @relation("TransferRequestTo")
+  pendingWithdrawals PendingWithdrawal[]
+  company            Company             @relation(fields: [company_id], references: [id])
+
+  @@map("wallets")
+}
+
+model Customer {
+  id                    String                    @id @default(uuid())
+  company_id            String                    @map("company_id")
+  email                 String
+  is_active             Boolean                   @default(true) @map("is_active")
+  created_at            DateTime                  @default(now()) @map("created_at")
+  updated_at            DateTime                  @updatedAt @map("updated_at")
+  city                  String
+  country               String
+  date_of_birth         DateTime                  @map("date_of_birth")
+  first_name            String                    @map("first_name")
+  identification_number String                    @map("identification_number")
+  last_name             String                    @map("last_name")
+  phone_number          String                    @map("phone_number")
+  postal_code           String                    @map("postal_code")
+  state                 String
+  street                String
+  country_iso_code      String                    @map("country_iso_code")
+  country_phone_code    String                    @map("country_phone_code")
+  id_document_back      String?                   @map("id_document_back")
+  id_document_front     String                    @map("id_document_front")
+  id_document_type      String
+  cards                 Card[]
+  providerMappings      CustomerProviderMapping[]
+  company               Company                   @relation(fields: [company_id], references: [id])
+  notifications         Notification[]
+  syncmetadatas         Syncmetadata[]
+  transactions          Transaction[]
+
+  @@unique([company_id, email])
+  @@map("customers")
+}
+
+model Card {
+  id                     String        @id @default(uuid())
+  company_id             String        @map("company_id")
+  customer_id            String        @map("customer_id")
+  balance                Decimal       @default(0) @db.Decimal(15, 2)
+  status                 CardStatus    @default(ACTIVE)
+  created_at             DateTime      @default(now()) @map("created_at")
+  updated_at             DateTime      @updatedAt @map("updated_at")
+  number                 String        @unique
+  bin                    String?       @map("bin")
+  brand                  String?       @map("brand")
+  city                   String?
+  country                String
+  country_iso_code       String        @map("country_iso_code")
+  currency               String
+  cvv                    String
+  description            String?
+  event                  String?       @map("event_id")
+  expiry_month           Int           @map("expiry_month")
+  expiry_year            Int           @map("expiry_year")
+  is_active              Boolean       @default(true) @map("is_active")
+  is_physical            Boolean       @default(false) @map("is_physical")
+  is_virtual             Boolean       @default(false) @map("is_virtual")
+  last4                  String?       @map("last4")
+  masked_number          String?       @map("masked_number")
+  name                   String?
+  postal_code            String?       @map("postal_code")
+  provider               String?
+  provider_card_id       String        @map("provider_card_id")
+  reference              String?       @map("reference")
+  state_code             String?       @map("state_code")
+  street                 String?
+  provider_card_metadata Json?         @map("provider_card_metadata")
+  company                Company       @relation(fields: [company_id], references: [id])
+  customer               Customer      @relation(fields: [customer_id], references: [id])
+  transactions           Transaction[]
+
+  @@map("cards")
+}
+
+model Transaction {
+  id                        String                     @id @default(uuid())
+  amount                    Decimal                    @db.Decimal(15, 2)
+  created_at                DateTime                   @default(now()) @map("created_at")
+  card_balance_after        Decimal?                   @map("card_balance_after") @db.Decimal(15, 2)
+  card_balance_before       Decimal?                   @map("card_balance_before") @db.Decimal(15, 2)
+  reference                 String?
+  wallet_balance_after      Decimal?                   @map("wallet_balance_after") @db.Decimal(15, 2)
+  wallet_balance_before     Decimal?                   @map("wallet_balance_before") @db.Decimal(15, 2)
+  card_id                   String?                    @map("card_id")
+  category                  String                     @map("category")
+  currency                  String                     @map("currency")
+  customer_id               String?                    @map("customer_id")
+  description               String?                    @map("description")
+  mcc                       String?                    @map("mcc")
+  merchant                  Json?                      @map("merchant")
+  mid                       String?                    @map("mid")
+  order_id                  String?                    @map("order_id")
+  provider                  String?                    @map("provider")
+  status                    String                     @default("PENDING") @map("status")
+  updated_at                DateTime                   @updatedAt @map("updated_at")
+  type                      String                     @map("type")
+  reason                    String?                    @map("reason")
+  company_id                String                     @map("company_id")
+  wallet_id                 String?                    @map("wallet_id")
+  operator                  String?                    @map("operator")
+  phone_number              String?                    @map("phone_number")
+  user_id                   String?                    @map("user_id")
+  amount_with_fee           Decimal?                   @map("amount_with_fee") @db.Decimal(15, 2)
+  fee_amount                Decimal?                   @map("fee_amount") @db.Decimal(15, 2)
+  fee_id                    String?                    @map("fee_id")
+  net_amount                Decimal?                   @map("net_amount") @db.Decimal(15, 2)
+  balanceTransactionRecords BalanceTransactionRecord[]
+  notifications             Notification[]
+  card                      Card?                      @relation(fields: [card_id], references: [id])
+  company                   Company                    @relation(fields: [company_id], references: [id])
+  customer                  Customer?                  @relation(fields: [customer_id], references: [id])
+  user                      User?                      @relation(fields: [user_id], references: [id])
+  wallet                    Wallet?                    @relation(fields: [wallet_id], references: [id])
+
+  @@map("transactions")
+}
+
+model Syncmetadata {
+  id             String    @id @default(uuid())
+  company_id     String    @map("company_id")
+  customer_id    String?   @map("customer_id")
+  created_at     DateTime  @default(now()) @map("created_at")
+  updated_at     DateTime  @updatedAt @map("updated_at")
+  last_sync_date DateTime  @default(now()) @map("last_sync_date")
+  provider_name  String    @map("provider_name")
+  sync_type      String    @map("sync_type")
+  company        Company   @relation(fields: [company_id], references: [id])
+  customer       Customer? @relation(fields: [customer_id], references: [id])
+
+  @@unique([company_id, provider_name, sync_type])
+  @@map("syncmetadata")
+}
+
+model Notification {
+  id             String       @id @default(uuid())
+  customer_id    String?
+  transaction_id String?
+  title          String
+  text           String
+  category       String?
+  created_by     String?
+  created_at     DateTime     @default(now())
+  customer       Customer?    @relation(fields: [customer_id], references: [id])
+  transaction    Transaction? @relation(fields: [transaction_id], references: [id])
+
+  @@map("notifications")
+}
+
+model CustomerLogs {
+  id                    String   @id @default(uuid())
+  created_at            DateTime @default(now())
+  log_json              Json?
+  log_txt               String?
+  action                String?
+  company_id            String?
+  customer_id           String?
+  transaction_id        String?
+  status                String?
+  customer_phone_number String?
+  reference             String?
+}
+
+model UserLogs {
+  id                    String   @id @default(uuid())
+  created_at            DateTime @default(now())
+  log_json              Json?
+  log_txt               String?
+  action                String?
+  company_id            String?
+  customer_id           String?
+  transaction_id        String?
+  status                String?
+  customer_phone_number String?
+  reference             String?
+}
+
+model ExchangeRate {
+  id            String   @id @default(uuid())
+  company_id    String   @map("company_id")
+  from_currency String   @map("from_currency")
+  to_currency   String   @map("to_currency")
+  rate          Decimal  @db.Decimal(15, 8)
+  source        String?
+  description   String?
+  is_active     Boolean  @default(true) @map("is_active")
+  created_at    DateTime @default(now()) @map("created_at")
+  updated_at    DateTime @updatedAt @map("updated_at")
+  company       Company  @relation(fields: [company_id], references: [id])
+
+  @@unique([company_id, from_currency, to_currency])
+  @@map("exchange_rates")
+}
+
+model TransactionFee {
+  id                   String   @id @default(uuid())
+  company_id           String   @map("company_id")
+  transaction_type     String   @map("transaction_type")
+  transaction_category String   @map("transaction_category")
+  country_iso_code     String   @map("country_iso_code")
+  currency             String
+  fee_percentage       Decimal? @map("fee_percentage") @db.Decimal(5, 4)
+  fee_fixed            Decimal? @map("fee_fixed") @db.Decimal(15, 2)
+  type                 FeeType
+  value                Decimal  @db.Decimal(15, 2)
+  active               Boolean  @default(true)
+  description          String?
+  created_at           DateTime @default(now()) @map("created_at")
+  updated_at           DateTime @updatedAt @map("updated_at")
+  range_max            Decimal? @db.Decimal(15, 2)
+  range_min            Decimal? @db.Decimal(15, 2)
+  company              Company  @relation(fields: [company_id], references: [id])
+
+  @@unique([company_id, transaction_type, transaction_category, country_iso_code, currency])
+  @@map("transaction_fees")
+}
+
+model OnboardingStep {
+  id          String     @id @default(uuid())
+  company_id  String     @map("company_id")
+  name        String
+  slug        String
+  status      StepStatus @default(PENDING)
+  order       Int        @default(0)
+  description String?
+  created_at  DateTime   @default(now()) @map("created_at")
+  updated_at  DateTime   @updatedAt @map("updated_at")
+  company     Company    @relation(fields: [company_id], references: [id])
+
+  @@unique([company_id, slug])
+  @@map("onboarding_steps")
+}
+
+model WalletPhoneNumber {
+  id                 String   @id @default(uuid())
+  wallet_id          String   @map("wallet_id")
+  country_iso_code   String   @map("country_iso_code")
+  country_phone_code String   @map("country_phone_code")
+  currency           String
+  phone_number       String   @map("phone_number")
+  operator           String
+  created_at         DateTime @default(now()) @map("created_at")
+  updated_at         DateTime @updatedAt @map("updated_at")
+  wallet             Wallet   @relation(fields: [wallet_id], references: [id], onDelete: Cascade)
+
+  @@unique([wallet_id, phone_number])
+  @@map("wallet_phone_numbers")
+}
+
+model WalletPhoneOperator {
+  id                 String   @id @default(uuid())
+  country_iso_code   String   @map("country_iso_code")
+  country_phone_code String   @map("country_phone_code")
+  currency           String
+  operator_code      String   @map("operator_code")
+  operator_name      String   @map("operator_name")
+  otp_required       Boolean  @default(false) @map("otp_required")
+  ussd_code          String?  @map("ussd_code")
+  created_at         DateTime @default(now()) @map("created_at")
+  updated_at         DateTime @updatedAt @map("updated_at")
+
+  @@unique([country_iso_code, currency, operator_code])
+  @@map("wallet_phone_operators")
+}
+
+model BalanceTransactionRecord {
+  id             String      @id @default(uuid())
+  transaction_id String      @map("transaction_id")
+  entity_type    String      @map("entity_type")
+  entity_id      String      @map("entity_id")
+  old_balance    Decimal     @default(0) @db.Decimal(15, 2)
+  new_balance    Decimal     @default(0) @db.Decimal(15, 2)
+  amount_changed Decimal     @default(0) @db.Decimal(15, 2)
+  currency       String
+  change_type    String?     @map("change_type")
+  description    String?
+  created_at     DateTime    @default(now()) @map("created_at")
+  transaction    Transaction @relation(fields: [transaction_id], references: [id], onDelete: Cascade)
+
+  @@map("balance_transaction_records")
+}
+
+model CustomerProviderMapping {
+  id                   String   @id @default(uuid())
+  customer_id          String   @map("customer_id")
+  provider_name        String   @map("provider_name")
+  provider_customer_id String   @map("provider_customer_id")
+  metadata             Json?    @map("metadata")
+  is_active            Boolean  @default(true) @map("is_active")
+  created_at           DateTime @default(now()) @map("created_at")
+  updated_at           DateTime @updatedAt @map("updated_at")
+  customer             Customer @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+
+  @@unique([customer_id, provider_name])
+  @@map("customer_provider_mappings")
 }
 
 enum UserStatus {
@@ -84,135 +459,11 @@ enum FeeType {
   RANGE
 }
 
-model User {
-  id             String     @id @default(uuid())
-  full_name       String?    @map("full_name")
-  first_name     String?    @map("first_name")
-  last_name      String?    @map("last_name")
-  email          String
-  address        String?
-  password       String?
-  step           Int        @default(1)
-  status         UserStatus @default(PENDING)
-  kyc_status     KycStatus  @default(NONE) @map("kyc_status") // KYC (Know Your Customer) status
-  invitation_code String?    @unique @map("invitation_code")
-  otp            String?
-  otp_expires     DateTime?  @map("otp_expires")
-
-  // Personal information fields (Step 1)
-  role_in_company    String?    @map("role_in_company")
-  phone_number       String?    @map("phone_number")
-  gender             String?
-  nationality        String?
-  id_document_type   String?    @map("id_document_type")
-  id_number          String?    @map("id_number")
-  id_document_front  String?    @map("id_document_front")
-  id_document_back   String?    @map("id_document_back")
-  country_of_residence String?  @map("country_of_residence")
-  state              String?
-  city               String?
-  street             String?
-  postal_code        String?    @map("postal_code")
-  proof_of_address   String?    @map("proof_of_address")
-
-  created_at      DateTime   @default(now()) @map("created_at")
-  updated_at      DateTime   @updatedAt @map("updated_at")
-
-  userCompanyRoles UserCompanyRole[]
-  transactions Transaction[]
-
-  @@unique([email])
-  @@map("users")
-}
-
-model Role {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  created_at DateTime @default(now()) @map("created_at")
-  updated_at DateTime @updatedAt @map("updated_at")
-
-  userCompanyRoles UserCompanyRole[]
-
-  @@map("roles")
-}
-
-model UserCompanyRole {
-  id        String   @id @default(uuid())
-  user_id    String   @map("user_id")
-  company_id String   @map("company_id")
-  role_id    String   @map("role_id")
-  created_at DateTime @default(now()) @map("created_at")
-
-  user    User    @relation(fields: [user_id], references: [id])
-  company Company @relation(fields: [company_id], references: [id])
-  role    Role    @relation(fields: [role_id], references: [id])
-
-  @@unique([user_id, company_id, role_id])
-  @@map("user_company_roles")
-}
-
-model Wallet {
-  id              String   @id @default(uuid())
-  balance         Decimal  @default(0) @db.Decimal(15, 2)
-  active          Boolean  @default(true)
-  currency        String
-  country         String
-  country_iso_code  String   @map("country_iso_code")
-  country_phone_code String? @map("country_phone_code")
-  company_id       String   @map("company_id")
-  created_at       DateTime @default(now()) @map("created_at")
-  updated_at       DateTime @updatedAt @map("updated_at")
-
-  company Company @relation(fields: [company_id], references: [id])
-  transactions Transaction[]
-  phoneNumbers WalletPhoneNumber[]
-
-  @@map("wallets")
-}
-
 enum IdentificationType {
   NIN
   PASSPORT
   VOTERS_CARD
   DRIVERS_LICENSE
-}
-
-model Customer {
-  id                   String             @id @default(uuid())
-  company_id           String             @map("company_id")
-  first_name           String             @map("first_name")
-  last_name            String             @map("last_name")
-  country              String
-  email                String
-  street               String
-  city                 String
-  state                String
-  postal_code          String             @map("postal_code")
-  country_iso_code     String             @map("country_iso_code") // ISO code of the country
-  country_phone_code   String             @map("country_phone_code") // Phone code of the country
-  phone_number         String             @map("phone_number")
-  identification_number String             @map("identification_number")
-  id_document_front     String             @map("id_document_front")
-  id_document_back      String?            @map("id_document_back") // Optional back side of the ID document
-  id_document_type     String
-  // image                String?            // URL or path to identification document
-  // photo                String?            // URL or path to customer photo
-  // number               String?             // Additional identification number
-  date_of_birth        DateTime           @map("date_of_birth")
-  is_active            Boolean            @default(true) @map("is_active")
-  sudo_customer_id     String?             @map("sudo_customer_id")
-  created_at           DateTime           @default(now()) @map("created_at")
-  updated_at           DateTime           @updatedAt @map("updated_at")
-
-  company      Company       @relation(fields: [company_id], references: [id])
-  cards        Card[]
-  notifications Notification[]
-  transactions Transaction[]
-  syncmetadatas Syncmetadata[]
-  providerMappings CustomerProviderMapping[]
-
-  @@unique([company_id, email])
-  @@map("customers")
 }
 
 enum CardStatus {
@@ -221,219 +472,17 @@ enum CardStatus {
   TERMINATED
 }
 
-model Card {
-  id              String     @id @default(uuid())
-  company_id      String     @map("company_id")
-  customer_id     String     @map("customer_id")
-  status          CardStatus @default(ACTIVE)
-  balance         Decimal    @default(0) @db.Decimal(15, 2)
-  number          String     @unique // Card number
-  cvv             String     // Card verification value
-  expiry_month    Int        @map("expiry_month") // Expiry month (1-12)
-  expiry_year     Int        @map("expiry_year") // Expiry year (4 digits)
-  currency        String     // Currency of the card
-  country         String     // Country of issuance
-  country_iso_code String    @map("country_iso_code") // ISO code of the country
-  provider_card_id String     @map("provider_card_id") // ID from the card provider
-  // provider_card_account_number String? @map("provider_card_account_number") // Account number from the card provider
-  masked_number   String?    @map("masked_number") // Masked card number
-  name            String?    // Name on the card
-  city            String?    // City of issuance
-  state_code      String?    @map("state_code") // State code of issuance
-  postal_code     String?    @map("postal_code") // Postal code of issuance
-  street          String?    // Street address of issuance
-  provider        String?    // Card provider (e.g., "stripe", "flutterwave", etc.)
-  brand           String?     @map("brand") // Type of card (e.g., "visa", "mastercard", etc.)
-  bin             String?     @map("bin") // BIN of the card (Bank Identification Number)
-  last4           String?     @map("last4") // Last 4 digits of the card number from the provider
-  description     String?     // Description of the card
-  event           String?     @map("event_id") // Event from the card provider
-  reference        String?     @map("reference") // Reference ID from the card provider
-  is_active       Boolean    @default(true) @map("is_active") // Indicates if the card is active
-  is_virtual     Boolean    @default(false) @map("is_virtual") // Indicates if the card is virtual
-  is_physical    Boolean    @default(false) @map("is_physical") // Indicates if the card is physical  
-  created_at      DateTime   @default(now()) @map("created_at")
-  updated_at      DateTime   @updatedAt @map("updated_at")
-
-  company        Company       @relation(fields: [company_id], references: [id])
-  customer      Customer      @relation(fields: [customer_id], references: [id])
-  transactions Transaction[]
-
-  @@map("cards")
-}
-
 enum TransactionType {
   CREATE
   FUND
   WITHDRAW
   FREEZE
   TERMINATE
-}
-
-model Transaction {
-  id                  String          @id @default(uuid())
-  category            String          @map("category")
-  type                String          @map("type")
-  mcc                 String?         @map("mcc")
-  mid                 String?          @map("mid")
-  merchant            Json?          @map("merchant")
-  card_id             String?          @map("card_id")
-  wallet_id          String?          @map("wallet_id")
-  customer_id         String?          @map("customer_id")
-  user_id             String?          @map("user_id")
-  company_id          String             @map("company_id")
-  order_id            String?         @map("order_id")
-  provider            String?         @map("provider")
-  phone_number        String?         @map("phone_number")
-  operator            String?         @map("operator")
-  status              String          @default("PENDING") @map("status")
-  description         String?         @map("description")
-  reason              String?         @map("reason")
-  card_balance_before  Decimal?         @map("card_balance_before") @db.Decimal(15, 2)
-  card_balance_after   Decimal?         @map("card_balance_after") @db.Decimal(15, 2)
-  wallet_balance_before Decimal?         @map("wallet_balance_before") @db.Decimal(15, 2)
-  wallet_balance_after  Decimal?         @map("wallet_balance_after") @db.Decimal(15, 2)
-  amount              Decimal          @db.Decimal(15, 2)
-  currency            String           @map("currency")
-  fee_amount          Decimal?         @db.Decimal(15, 2) @map("fee_amount")
-  fee_id              String?          @map("fee_id")
-  net_amount          Decimal?         @db.Decimal(15, 2) @map("net_amount")
-  amount_with_fee     Decimal?         @db.Decimal(15, 2) @map("amount_with_fee")
-  reference           String?
-  created_at           DateTime        @default(now()) @map("created_at")
-  updated_at           DateTime        @updatedAt @map("updated_at")
-
-  card Card? @relation(fields: [card_id], references: [id])
-  wallet Wallet? @relation(fields: [wallet_id], references: [id])
-  user User? @relation(fields: [user_id], references: [id])
-  customer Customer? @relation(fields: [customer_id], references: [id])
-  company Company @relation(fields: [company_id], references: [id])
-
-  notifications Notification[]
-  balanceTransactionRecords BalanceTransactionRecord[]
-
-  @@map("transactions")
-}
-
-
-
-model Syncmetadata {
-  id          String     @id @default(uuid())
-  key         String   
-  value       DateTime   @default(now())
-  company_id   String     @map("company_id")
-  customer_id  String     @map("customer_id")
-  created_at   DateTime   @default(now()) @map("created_at")
-  updated_at   DateTime   @updatedAt @map("updated_at")
-
-  company      Company       @relation(fields: [company_id], references: [id])
-  customer     Customer      @relation(fields: [customer_id], references: [id])
-
-  @@map("syncmetadata")
-}
-
-
-model Notification {
-  id                   String   @id @default(uuid())  
-  customer_id          String?
-  transaction_id       String?
-  title                String
-  text                 String
-  category             String?
-  created_by           String?
-  created_at           DateTime @default(now())
-
-  customer     Customer?      @relation(fields: [customer_id], references: [id])
-  transaction  Transaction?   @relation(fields: [transaction_id], references: [id])
-
-  @@map("notifications")
-}
-
-model CustomerLogs {
-  id                  String   @id @default(uuid())
-  created_at          DateTime @default(now())
-  reference           String?
-  log_json            Json?
-  log_txt             String?
-  action              String?
-  company_id          String?
-  customer_id         String?
-  transaction_id      String?
-  status              String?
-  customer_phone_number String?
-}
-
-model UserLogs {
-  id                  String   @id @default(uuid())
-  created_at          DateTime @default(now())
-  reference           String?
-  log_json            Json?
-  log_txt             String?
-  action              String?
-  company_id          String?
-  customer_id         String?
-  transaction_id      String?
-  status              String?
-  customer_phone_number String?
-}
-
-model ExchangeRate {
-  id            String   @id @default(uuid())
-  company_id    String   @map("company_id")
-  from_currency String   @map("from_currency")
-  to_currency   String   @map("to_currency")
-  rate          Decimal  @db.Decimal(15, 8)
-  source        String?
-  description   String?
-  is_active     Boolean  @default(true) @map("is_active")
-  created_at    DateTime @default(now()) @map("created_at")
-  updated_at    DateTime @updatedAt @map("updated_at")
-
-  company Company @relation(fields: [company_id], references: [id])
-
-  @@unique([company_id, from_currency, to_currency])
-  @@map("exchange_rates")
-}
-
-model TransactionFee {
-  id                   String   @id @default(uuid())
-  company_id           String   @map("company_id")
-  transaction_type     String   @map("transaction_type")
-  transaction_category String   @map("transaction_category")
-  country_iso_code     String   @map("country_iso_code")
-  currency             String
-  fee_percentage       Decimal? @map("fee_percentage") @db.Decimal(5, 4)
-  fee_fixed            Decimal? @map("fee_fixed") @db.Decimal(15, 2)
-  type                 FeeType
-  value                Decimal  @db.Decimal(15, 2)
-  range_min            Decimal?  @db.Decimal(15, 2)
-  range_max            Decimal?  @db.Decimal(15, 2)
-  active               Boolean  @default(true)
-  description          String?
-  created_at           DateTime @default(now()) @map("created_at")
-  updated_at           DateTime @updatedAt @map("updated_at")
-
-  company Company @relation(fields: [company_id], references: [id])
-
-  @@unique([company_id, transaction_type, transaction_category, country_iso_code, currency])
-  @@map("transaction_fees")
-}
-
-model OnboardingStep {
-  id          String   @id @default(uuid())
-  company_id  String   @map("company_id")
-  name        String   // Step name (e.g., "Personal Information", "KYC Completion")
-  slug        String   // URL-friendly slug (e.g., "personal_info", "kyc_completion")
-  status      StepStatus @default(PENDING) // Current status of the step
-  order       Int      @default(0) // Order for display purposes
-  description String?  // Optional description of the step
-  created_at  DateTime @default(now()) @map("created_at")
-  updated_at  DateTime @updatedAt @map("updated_at")
-
-  company Company @relation(fields: [company_id], references: [id])
-
-  @@unique([company_id, slug])
-  @@map("onboarding_steps")
+  PAYIN_TO_PAYOUT
+  PAYOUT_TO_PAYIN
+  WALLET_TO_WALLET
+  EXTERNAL_WITHDRAW
+  CROSS_CURRENCY_TRANSFER
 }
 
 enum StepStatus {
@@ -443,70 +492,53 @@ enum StepStatus {
   FAILED
 }
 
-model WalletPhoneNumber {
-  id                String   @id @default(uuid())
-  wallet_id         String   @map("wallet_id")
-  country_iso_code  String   @map("country_iso_code")
-  country_phone_code String  @map("country_phone_code")
-  currency          String
-  phone_number      String   @map("phone_number")
-  operator          String
-  created_at        DateTime @default(now()) @map("created_at")
-  updated_at        DateTime @updatedAt @map("updated_at")
-
-  wallet Wallet @relation(fields: [wallet_id], references: [id], onDelete: Cascade)
-
-  @@unique([wallet_id, phone_number])
-  @@map("wallet_phone_numbers")
-}
-
-model WalletPhoneOperator {
-  id                String   @id @default(uuid())
-  country_iso_code  String   @map("country_iso_code")
-  country_phone_code String  @map("country_phone_code")
-  currency          String
-  operator_code     String   @map("operator_code")
-  operator_name     String   @map("operator_name")
-  otp_required      Boolean  @default(false) @map("otp_required")
-  ussd_code         String?  @map("ussd_code")
-  created_at        DateTime @default(now()) @map("created_at")
-  updated_at        DateTime @updatedAt @map("updated_at")
-
-  @@unique([country_iso_code, currency, operator_code])
-  @@map("wallet_phone_operators")
-}
-
-
-model BalanceTransactionRecord {
+model TransferRequest {
   id                  String   @id @default(uuid())
-  transaction_id      String   @map("transaction_id") // Links to the main transaction
-
-  transaction         Transaction @relation(fields: [transaction_id], references: [id], onDelete: Cascade)
-  entity_type         String   @map("entity_type") // 'wallet' or 'card'
-  entity_id           String   @map("entity_id") // wallet_id or card_id
-  old_balance         Decimal  @default(0) @db.Decimal(15, 2)
-  new_balance         Decimal  @default(0) @db.Decimal(15, 2)
-  amount_changed      Decimal  @default(0) @db.Decimal(15, 2) // Positive for increase, negative for decrease
-  currency            String
-  change_type         String?   @map("change_type") // 'debit', 'credit', 'transfer_in', 'transfer_out'
-  description         String?
-  created_at          DateTime @default(now()) @map("created_at")
-
-  @@map("balance_transaction_records")
-}
-
-model CustomerProviderMapping {
-  id                  String   @id @default(uuid())
-  customer_id         String   @map("customer_id") // Our internal customer ID
-  provider_name       String   @map("provider_name") // e.g., "maplerad", "sudo", "flutterwave"
-  provider_customer_id String   @map("provider_customer_id") // The provider's customer ID
-  metadata            Json?    @map("metadata") // Additional provider-specific data
-  is_active           Boolean  @default(true) @map("is_active")
+  from_wallet_id      String   @map("from_wallet_id")
+  to_wallet_id        String   @map("to_wallet_id")
+  from_currency       String   @map("from_currency")
+  to_currency         String   @map("to_currency")
+  amount              Decimal  @db.Decimal(15, 2)
+  exchange_rate       Decimal? @db.Decimal(15, 6) @map("exchange_rate")
+  converted_amount    Decimal? @db.Decimal(15, 2) @map("converted_amount")
+  reason              String?  @map("reason")
+  status              String   @default("PENDING_REVIEW") // PENDING_REVIEW, APPROVED, REJECTED, COMPLETED
+  requested_by        String   @map("requested_by") // user_id
+  approved_by         String?  @map("approved_by") // admin user_id
+  approved_at         DateTime? @map("approved_at")
+  rejection_reason    String?  @map("rejection_reason")
   created_at          DateTime @default(now()) @map("created_at")
   updated_at          DateTime @updatedAt @map("updated_at")
 
-  customer Customer @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+  from_wallet Wallet @relation("TransferRequestFrom", fields: [from_wallet_id], references: [id])
+  to_wallet   Wallet @relation("TransferRequestTo", fields: [to_wallet_id], references: [id])
 
-  @@unique([customer_id, provider_name])
-  @@map("customer_provider_mappings")
+  @@map("transfer_requests")
+}
+
+model PendingWithdrawal {
+  id              String   @id @default(uuid())
+  wallet_id       String   @map("wallet_id")
+  amount          Decimal  @db.Decimal(15, 2)
+  fee_amount      Decimal  @db.Decimal(15, 2) @default(0) @map("fee_amount")
+  total_amount    Decimal  @db.Decimal(15, 2) @map("total_amount")
+  phone_number    String   @map("phone_number")
+  operator        String
+  reason          String?
+  status          String   @default("PENDING_FUNDS") // PENDING_FUNDS, PROCESSING, PROCESSED, FAILED, CANCELLED
+  priority        Int      @default(1)
+  created_at      DateTime @default(now()) @map("created_at")
+  processed_at    DateTime? @map("processed_at")
+  failed_attempts Int      @default(0) @map("failed_attempts")
+  max_attempts    Int      @default(3) @map("max_attempts")
+  error_message   String?  @map("error_message")
+  company_id      String   @map("company_id")
+  user_id         String   @map("user_id")
+  currency        String
+  transaction_id  String?  @map("transaction_id") // ID de la transaction créée après traitement
+
+  wallet          Wallet   @relation(fields: [wallet_id], references: [id], onDelete: Cascade)
+  company         Company  @relation(fields: [company_id], references: [id], onDelete: Cascade)
+
+  @@map("pending_withdrawals")
 }
