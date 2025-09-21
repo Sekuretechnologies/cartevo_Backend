@@ -1,437 +1,207 @@
-import env from "@/env";
-import fnOutput from "@/utils/shared/fnOutputHandler";
-import WalletModel from "@/models/prisma/walletModel";
-import TransactionModel from "@/models/prisma/transactionModel";
-import TransactionFeeModel from "@/models/prisma/transactionFeeModel";
-import { initiateAfribapayPayout } from "@/utils/wallet/afribapay";
-import { v4 as uuidv4 } from "uuid";
+import { PrismaClient } from '@prisma/client';
+import { PendingWithdrawalQueueService } from './pendingWithdrawalQueue.service';
+import TransactionFeeModel from '../../models/prisma/transactionFeeModel';
 
-/** ================================================================ */
-export interface IWalletWithdrawal {
-  walletId: string;
+const prisma = new PrismaClient();
+
+export interface WithdrawalRequest {
   amount: number;
-  currency: string;
-  provider: string;
+  phone_number: string;
   operator: string;
-  phone?: string;
-  email?: string;
-  orderId?: string;
-  companyId: string;
-  customerId: string;
+  reason?: string;
+  user_id: string;
 }
 
-/** ================================================================ */
-const validateWithdrawalRequest = (data: IWalletWithdrawal) => {
-  const {
-    walletId,
-    amount,
-    currency,
-    provider,
-    operator,
-    companyId,
-    customerId,
-  } = data;
+export interface WithdrawalResponse {
+  success: boolean;
+  message: string;
+  transaction_id?: string;
+  status?: 'PENDING' | 'SUCCESS' | 'FAILED' | 'PENDING_FUNDS' | 'QUEUED';
+  new_payout_balance?: number;
+}
 
-  if (!walletId) {
-    return fnOutput.error({
-      code: "BAD_ENTRY",
-      error: { message: "Wallet ID is required" },
-    });
+export class WalletWithdrawalService {
+  /**
+   * Check Afribapay balance (mock implementation)
+   */
+  private static async getAfribapayBalance(): Promise<number> {
+    // TODO: Replace with actual Afribapay API call
+    return 1000000; // Mock balance
   }
 
-  if (!amount || amount <= 0) {
-    return fnOutput.error({
-      code: "BAD_ENTRY",
-      error: { message: "Valid amount is required" },
-    });
+  /**
+   * Calculate withdrawal fees using the settings page configuration
+   */
+  private static async calculateWithdrawalFees(
+    amount: number,
+    companyId: string,
+    currency: string
+  ): Promise<{ feeAmount: number; feePercentage: number }> {
+    try {
+      // Get withdrawal fees from the database (settings page)
+      const feeResult = await TransactionFeeModel.calculateFee(
+        companyId,
+        amount,
+        'WITHDRAWAL', // Transaction type for withdrawals
+        'WALLET',     // Transaction category
+        'CM',         // Default country code
+        currency
+      );
+
+      if (!feeResult.error && feeResult.output) {
+        return {
+          feeAmount: feeResult.output.feeAmount,
+          feePercentage: feeResult.output.feePercentage
+        };
+      }
+
+      // Fallback: default 2% fee
+      return {
+        feeAmount: (amount * 2) / 100,
+        feePercentage: 2
+      };
+
+    } catch (error) {
+      console.error('Error calculating withdrawal fees:', error);
+      // Fallback: default 2% fee
+      return {
+        feeAmount: (amount * 2) / 100,
+        feePercentage: 2
+      };
+    }
   }
 
-  if (amount > 500000) {
-    return fnOutput.error({
-      code: "BAD_ENTRY",
-      error: { message: "Maximum withdrawal amount is 500,000" },
-    });
-  }
-
-  if (!currency) {
-    return fnOutput.error({
-      code: "BAD_ENTRY",
-      error: { message: "Currency is required" },
-    });
-  }
-
-  if (!operator) {
-    return fnOutput.error({
-      code: "BAD_ENTRY",
-      error: { message: "Operator is required" },
-    });
-  }
-
-  if (!provider) {
-    return fnOutput.error({
-      code: "BAD_ENTRY",
-      error: { message: "Payment provider is required" },
-    });
-  }
-
-  if (!companyId) {
-    return fnOutput.error({
-      code: "BAD_ENTRY",
-      error: { message: "Company ID is required" },
-    });
-  }
-
-  if (!customerId) {
-    return fnOutput.error({
-      code: "BAD_ENTRY",
-      error: { message: "Customer ID is required" },
-    });
-  }
-
-  return fnOutput.success({ output: true });
-};
-
-/** ================================================================ */
-const calculateTransactionFee = async (
-  companyId: string,
-  amount: number,
-  transactionType: string,
-  transactionCategory: string,
-  countryIsoCode: string,
-  currency: string
-) => {
-  try {
-    const feeResult = await TransactionFeeModel.calculateFee(
-      companyId,
-      amount,
-      transactionType,
-      transactionCategory,
-      countryIsoCode,
-      currency
-    );
-
-    if (feeResult.error) {
-      // If no fee is configured, return 0 fee
-      return fnOutput.success({
-        output: {
-          feeAmount: 0,
-          feeType: "NONE",
-          feeValue: 0,
-          feeFixed: 0,
-          feePercentage: 0,
-          feeId: null,
-          description: "No fee configured",
-        },
+  /**
+   * Process withdrawal from PayOut balance
+   */
+  static async processWithdrawal(
+    walletId: string,
+    request: WithdrawalRequest
+  ): Promise<WithdrawalResponse> {
+    try {
+      const wallet = await prisma.wallet.findUnique({
+        where: { id: walletId },
+        select: {
+          id: true,
+          payout_balance: true,
+          currency: true,
+          company_id: true,
+          active: true
+        }
       });
-    }
 
-    return feeResult;
-  } catch (error: any) {
-    return fnOutput.error({
-      error: { message: "Fee calculation error: " + error.message },
-    });
-  }
-};
+      if (!wallet) {
+        return { success: false, message: 'Wallet not found' };
+      }
 
-/** ================================================================ */
-const getWalletDetails = async (walletId: string) => {
-  const walletResult = await WalletModel.getOne({ id: walletId });
-  if (walletResult.error) {
-    return fnOutput.error({
-      code: "NOT_FOUND",
-      error: { message: "Wallet not found" },
-    });
-  }
+      if (!wallet.active) {
+        return { success: false, message: 'Wallet is not active' };
+      }
 
-  const wallet = walletResult.output;
-  return fnOutput.success({ output: wallet });
-};
+      if (request.amount <= 0) {
+        return { success: false, message: 'Amount must be greater than 0' };
+      }
 
-/** ================================================================ */
-const checkWalletBalance = async (
-  wallet: any,
-  amount: number,
-  feeAmount: number = 0
-) => {
-  const totalDeduction = amount + feeAmount;
+      // Calculate withdrawal fees using settings page configuration
+      const feeCalculation = await this.calculateWithdrawalFees(
+        request.amount,
+        wallet.company_id,
+        wallet.currency
+      );
 
-  if (wallet.balance < totalDeduction) {
-    return fnOutput.error({
-      code: "BAD_ENTRY",
-      error: {
-        message: `Insufficient wallet balance. Required: ${totalDeduction} ${wallet.currency}, Available: ${wallet.balance} ${wallet.currency}`,
-      },
-    });
-  }
+      const feeAmount = feeCalculation.feeAmount;
+      const totalAmount = request.amount + feeAmount;
 
-  return fnOutput.success({ output: true });
-};
+      console.log('=== BACKEND WITHDRAWAL VALIDATION ===');
+      console.log('wallet.payout_balance:', wallet.payout_balance);
+      console.log('Number(wallet.payout_balance):', Number(wallet.payout_balance));
+      console.log('request.amount:', request.amount);
+      console.log('feeAmount:', feeAmount);
+      console.log('totalAmount:', totalAmount);
+      console.log('Validation: Number(wallet.payout_balance) < totalAmount =', Number(wallet.payout_balance) < totalAmount);
+      console.log('=====================================');
 
-/** ================================================================ */
-const updateWalletBalance = async (walletId: string, newBalance: number) => {
-  const updateResult = await WalletModel.update(walletId, {
-    balance: newBalance,
-  });
+      if (Number(wallet.payout_balance) < totalAmount) {
+        console.log('❌ INSUFFICIENT BALANCE - BLOCKING TRANSACTION');
+        return { 
+          success: false, 
+          message: `Insufficient PayOut balance. Required: ${totalAmount} ${wallet.currency} (including ${feeAmount} ${wallet.currency} fees)` 
+        };
+      }
 
-  if (updateResult.error) {
-    return fnOutput.error({
-      error: { message: "Failed to update wallet balance" },
-    });
-  }
-
-  return fnOutput.success({ output: updateResult.output });
-};
-
-/** ================================================================ */
-const createWithdrawalTransaction = async (
-  data: IWalletWithdrawal,
-  wallet: any,
-  orderId?: string,
-  feeInfo?: any
-) => {
-  const {
-    amount,
-    currency,
-    operator,
-    provider,
-    phone,
-    companyId,
-    customerId,
-    walletId,
-  } = data;
-
-  // Calculate fee and total deduction (amount + fee)
-  const feeAmount = feeInfo?.feeAmount || 0;
-  const totalDeduction = amount + feeAmount;
-
-  // Calculate new balance (decrease immediately for withdrawal)
-  const newBalance = wallet.balance - totalDeduction;
-
-  const transactionData = {
-    category: "WALLET",
-    type: "WITHDRAW",
-    amount: amount,
-    currency: currency,
-    wallet_id: walletId,
-    customer_id: customerId,
-    company_id: companyId,
-    order_id: orderId || uuidv4(),
-    operator: operator,
-    provider: provider,
-    phone_number: phone,
-    status: "PENDING",
-    description: `Wallet withdrawal via ${provider}`,
-    wallet_balance_before: wallet.balance,
-    wallet_balance_after: newBalance, // Balance decreased immediately
-    fee_amount: feeAmount,
-    fee_id: feeInfo?.feeId || null,
-    net_amount: amount, // The amount user receives (excluding fee)
-  };
-
-  const transactionResult = await TransactionModel.create(transactionData);
-  if (transactionResult.error) {
-    return fnOutput.error({
-      error: { message: "Failed to create transaction record" },
-    });
-  }
-
-  return fnOutput.success({ output: transactionResult.output });
-};
-
-/** ================================================================ */
-const processAfribapayWithdrawal = async (
-  data: IWalletWithdrawal,
-  wallet: any
-) => {
-  const { amount, phone, operator, orderId } = data;
-
-  if (!phone) {
-    return fnOutput.error({
-      code: "BAD_ENTRY",
-      error: { message: "Phone number is required for Afribapay withdrawal" },
-    });
-  }
-
-  if (!operator) {
-    return fnOutput.error({
-      code: "BAD_ENTRY",
-      error: { message: "Operator is required for Afribapay withdrawal" },
-    });
-  }
-
-  try {
-    // Get the country phone code from wallet or use default
-    const countryPhoneCode = wallet.country_phone_code || "237";
-
-    const afribapayData = {
-      amount: amount,
-      phone: phone,
-      orderId: orderId || uuidv4(),
-      operator: operator,
-      countryPhoneCode: countryPhoneCode,
-    };
-
-    const afribapayResult = await initiateAfribapayPayout(afribapayData);
-
-    if (afribapayResult.status !== 200) {
-      return fnOutput.error({
-        error: {
-          message:
-            "Afribapay withdrawal failed: " +
-            ((afribapayResult.data as any)?.message || "Unknown error"),
-        },
-      });
-    }
-
-    return fnOutput.success({
-      output: {
-        providerResponse: afribapayResult.data,
-        orderId: afribapayData.orderId,
-      },
-    });
-  } catch (error: any) {
-    return fnOutput.error({
-      error: { message: "Afribapay withdrawal error: " + error.message },
-    });
-  }
-};
-
-/** ================================================================ */
-export const withdrawFromWallet = async (
-  companyId: string,
-  data: IWalletWithdrawal
-) => {
-  try {
-    // Validate input
-    const validation = validateWithdrawalRequest(data);
-    if (validation.error) {
-      return validation;
-    }
-
-    const { walletId, amount, currency, provider, companyId, customerId } =
-      data;
-
-    // Get wallet details
-    const walletResult = await getWalletDetails(walletId);
-    if (walletResult.error) {
-      return walletResult;
-    }
-
-    const wallet = walletResult.output;
-
-    // Verify wallet belongs to company
-    if (wallet.company_id !== companyId) {
-      return fnOutput.error({
-        code: "FORBIDDEN",
-        error: { message: "Wallet does not belong to this company" },
-      });
-    }
-
-    // Verify currency matches
-    if (wallet.currency !== currency) {
-      return fnOutput.error({
-        code: "BAD_ENTRY",
-        error: { message: "Currency does not match wallet currency" },
-      });
-    }
-
-    // Calculate transaction fee
-    const feeResult = await calculateTransactionFee(
-      companyId,
-      amount,
-      "WITHDRAW",
-      "WALLET",
-      wallet.country_iso_code || "CM",
-      currency
-    );
-
-    if (feeResult.error) {
-      return feeResult;
-    }
-
-    const feeInfo = feeResult.output;
-
-    // Check sufficient balance (including fees)
-    const balanceCheck = await checkWalletBalance(
-      wallet,
-      amount,
-      feeInfo.feeAmount
-    );
-    if (balanceCheck.error) {
-      return balanceCheck;
-    }
-
-    // Process payment based on provider first
-    let paymentResult;
-
-    switch (provider.toLowerCase()) {
-      case "afribapay":
-        paymentResult = await processAfribapayWithdrawal(data, wallet);
-        break;
-
-      default:
-        return fnOutput.error({
-          code: "BAD_ENTRY",
-          error: { message: "Unsupported payment provider" },
+      // Check Afribapay balance
+      const afribapayBalance = await this.getAfribapayBalance();
+      
+      if (afribapayBalance < totalAmount) {
+        // Add to queue instead of failing
+        const queueResult = await PendingWithdrawalQueueService.addToQueue({
+          walletId,
+          amount: request.amount,
+          phone_number: request.phone_number,
+          operator: request.operator,
+          reason: request.reason,
+          company_id: wallet.company_id,
+          user_id: request.user_id,
+          currency: wallet.currency
         });
+
+        return {
+          success: true,
+          message: queueResult.message,
+          status: 'QUEUED',
+          transaction_id: queueResult.queue_id
+        };
+      }
+
+      // Process withdrawal
+      const result = await prisma.$transaction(async (tx) => {
+        const updatedWallet = await tx.wallet.update({
+          where: { id: walletId },
+          data: {
+            payout_balance: { decrement: totalAmount }, // Include fees
+            balance: { decrement: totalAmount },        // Include fees
+            payout_amount: { increment: request.amount } // Only the net amount
+          },
+          select: { payout_balance: true }
+        });
+
+        const transaction = await tx.transaction.create({
+          data: {
+            category: 'WALLET',
+            type: 'EXTERNAL_WITHDRAW',
+            amount: request.amount,
+            currency: wallet.currency,
+            status: 'PENDING',
+            description: `Withdrawal to ${request.operator} - ${request.phone_number} (Fee: ${feeAmount} ${wallet.currency})`,
+            reason: request.reason,
+            wallet_id: walletId,
+            company_id: wallet.company_id,
+            user_id: request.user_id,
+            phone_number: request.phone_number,
+            operator: request.operator,
+            wallet_balance_before: Number(wallet.payout_balance),
+            wallet_balance_after: Number(updatedWallet.payout_balance),
+            fee_amount: feeAmount,
+            net_amount: request.amount,
+            amount_with_fee: totalAmount,
+            reference: `WD_${Date.now()}_${walletId}`
+          }
+        });
+
+        return { transaction, updatedWallet };
+      });
+
+      return {
+        success: true,
+        message: 'Withdrawal initiated successfully',
+        transaction_id: result.transaction.id,
+        status: 'PENDING',
+        new_payout_balance: Number(result.updatedWallet.payout_balance)
+      };
+
+    } catch (error) {
+      console.error('Withdrawal error:', error);
+      return { success: false, message: 'Withdrawal failed due to a system error' };
     }
-
-    if (paymentResult.error) {
-      return paymentResult;
-    }
-
-    // Calculate new balance (decrease immediately for withdrawal including fees)
-    const totalDeduction = amount + feeInfo.feeAmount;
-    const newBalance = wallet.balance - totalDeduction;
-
-    // Update wallet balance immediately on successful Afribapay response
-    const balanceUpdate = await updateWalletBalance(walletId, newBalance);
-    if (balanceUpdate.error) {
-      return balanceUpdate;
-    }
-
-    // Create transaction record with decreased balance
-    const transactionResult = await createWithdrawalTransaction(
-      data,
-      { ...wallet, balance: newBalance }, // Use updated balance
-      paymentResult.output.orderId,
-      feeInfo
-    );
-    if (transactionResult.error) {
-      // If transaction creation fails, we should refund the balance
-      await updateWalletBalance(walletId, wallet.balance);
-      return transactionResult;
-    }
-
-    const transaction = transactionResult.output;
-
-    // Update transaction with provider reference
-    await TransactionModel.update(transaction.id, {
-      reference:
-        (paymentResult.output.providerResponse as any)?.transaction_id ||
-        (paymentResult.output.providerResponse as any)?.id,
-      status: "PENDING", // Keep as pending until webhook confirms
-    });
-
-    return fnOutput.success({
-      output: {
-        transaction: transaction,
-        paymentResult: paymentResult.output,
-        feeInfo: feeInfo,
-        newBalance: newBalance,
-        totalDeducted: totalDeduction,
-      },
-    });
-  } catch (error: any) {
-    return fnOutput.error({
-      error: { message: "Wallet withdrawal failed: " + error.message },
-    });
   }
-};
-
-/** ================================================================ */
-const walletWithdrawalService = {
-  withdrawFromWallet,
-};
-
-export default walletWithdrawalService;
+}
