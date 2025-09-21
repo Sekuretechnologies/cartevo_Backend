@@ -756,7 +756,7 @@ export class CompanyService {
   ): Promise<{ data: WalletResponseDto[] }> {
     const walletsResult = await WalletModel.get({
       company_id: companyId,
-      active: true,
+      is_active: true,
     });
     if (walletsResult.error) {
       throw new BadRequestException(walletsResult.error.message);
@@ -1120,7 +1120,7 @@ export class CompanyService {
       feeFixed?: number;
       type: "FIXED" | "PERCENTAGE";
       value: number;
-      active?: boolean;
+      is_active?: boolean;
       description?: string;
     }
   ) {
@@ -1135,7 +1135,7 @@ export class CompanyService {
         fee_fixed: feeData.feeFixed,
         type: feeData.type,
         value: feeData.value,
-        active: feeData.active ?? true,
+        active: feeData.is_active ?? true,
         description: feeData.description,
       });
 
@@ -1196,7 +1196,7 @@ export class CompanyService {
       feeFixed?: number;
       type?: "FIXED" | "PERCENTAGE";
       value?: number;
-      active?: boolean;
+      is_active?: boolean;
       description?: string;
     }
   ) {
@@ -1206,7 +1206,7 @@ export class CompanyService {
         fee_fixed: updateData.feeFixed,
         type: updateData.type,
         value: updateData.value,
-        active: updateData.active,
+        is_active: updateData.is_active,
         description: updateData.description,
       });
 

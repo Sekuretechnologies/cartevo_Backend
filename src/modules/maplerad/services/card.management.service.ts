@@ -29,6 +29,8 @@ import {
 import { utcToLocalTime } from "@/utils/date";
 import { MapleradUtils } from "../utils/maplerad.utils";
 import { CurrentUserData } from "@/modules/common/decorators/current-user.decorator";
+import { CardSyncService } from "./card.sync.service";
+import { CardIssuanceService } from "./card.issuance.service";
 
 /**
  * Advanced Card Management Service for Maplerad
@@ -38,7 +40,10 @@ import { CurrentUserData } from "@/modules/common/decorators/current-user.decora
 export class CardManagementService {
   private readonly logger = new Logger(CardManagementService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cardSyncService: CardSyncService
+  ) {}
 
   /**
    * Freeze a Maplerad card with advanced MONIX-style features
@@ -52,7 +57,7 @@ export class CardManagementService {
 
     try {
       // 1. Validate card ownership and status
-      const card = await this.validateCardForManagement(cardId, user);
+      const card = await this.validateCardForManagement(cardId, user.companyId);
 
       // 2. Check if already frozen
       if (card.status === CardStatus.FROZEN) {
@@ -137,7 +142,7 @@ export class CardManagementService {
 
     try {
       // 1. Validate card ownership and status
-      const card = await this.validateCardForManagement(cardId, user);
+      const card = await this.validateCardForManagement(cardId, user.companyId);
 
       // 2. Check if not frozen
       if (card.status !== CardStatus.FROZEN) {
@@ -217,7 +222,7 @@ export class CardManagementService {
 
     try {
       // 1. Validate card ownership and status
-      const card = await this.validateCardForManagement(cardId, user);
+      const card = await this.validateCardForManagement(cardId, user.companyId);
 
       // 2. Check if already terminated
       if (card.status === CardStatus.TERMINATED) {
@@ -326,55 +331,23 @@ export class CardManagementService {
   async getCard(
     cardId: string,
     user: CurrentUserData,
-    revealSensitive?: boolean
+    reveal?: boolean
   ): Promise<any> {
     this.logger.log("🔍 ADVANCED GET CARD FLOW - START", {
       cardId,
       userId: user.userId,
-      revealSensitive,
+      reveal,
       timestamp: new Date().toISOString(),
     });
 
     try {
       // 1. Validate card ownership
-      const card = await this.validateCardAccess(cardId, user);
+      const card = await this.validateCardAccess(cardId, user.companyId);
 
       // 2. Get card with sensitive data handling
       let cardData = card;
 
-      if (revealSensitive) {
-        // Fetch real card data from Maplerad
-        const mapleradCardResult = await MapleradUtils.getCard(
-          card.provider_card_id,
-          true
-        );
-
-        if (mapleradCardResult.error) {
-          this.logger.warn(
-            "Could not fetch card from Maplerad:",
-            mapleradCardResult.error
-          );
-        } else {
-          const mapleradCard = mapleradCardResult.output;
-
-          // Update local encrypted data
-          if (mapleradCard?.cardNumber && mapleradCard?.cvv) {
-            const encryptedCardNumber = signToken(mapleradCard.cardNumber);
-            const encryptedCvv = signToken(mapleradCard.cvv);
-
-            await CardModel.update(card.id, {
-              number: `tkMplr_${encryptedCardNumber}`,
-              cvv: `tkMplr_${encryptedCvv}`,
-            });
-
-            cardData = {
-              ...cardData,
-              number: mapleradCard.cardNumber,
-              cvv: mapleradCard.cvv,
-            };
-          }
-        }
-      } else if (card.cvv?.startsWith("tkMplr_")) {
+      if (reveal && card.cvv?.startsWith("tkMplr_")) {
         // Decrypt stored data
         const decryptedCardNumber = decodeToken(
           card.number.replace(/^tkMplr_/, "")
@@ -415,14 +388,14 @@ export class CardManagementService {
       this.logger.log("✅ ADVANCED GET CARD FLOW - COMPLETED", {
         cardId,
         success: true,
-        revealedSensitive: revealSensitive,
+        revealedSensitive: reveal,
       });
 
       return {
         success: true,
         card: formattedCard,
         metadata: {
-          revealed_sensitive: revealSensitive || false,
+          revealed_sensitive: reveal || false,
           provider: decodeText(card.provider),
           last_sync: card.updated_at,
         },
@@ -442,19 +415,66 @@ export class CardManagementService {
    */
   async getCustomerCards(
     customerId: string,
-    user: CurrentUserData
+    user: CurrentUserData,
+    syncCards: boolean = false
   ): Promise<any> {
     this.logger.log("👤 ADVANCED GET CUSTOMER CARDS FLOW - START", {
       customerId,
       userId: user.userId,
+      syncCards,
       timestamp: new Date().toISOString(),
     });
 
     try {
-      // 1. Validate customer ownership
+      // 1. Sync customer cards if requested
+      if (syncCards) {
+        this.logger.log(
+          "🔄 SYNC REQUESTED - SYNCING CUSTOMER CARDS BEFORE RETURNING",
+          {
+            customerId,
+            userId: user.userId,
+            timestamp: new Date().toISOString(),
+          }
+        );
+
+        // Use injected CardSyncService
+
+        try {
+          const syncResult = await this.cardSyncService.syncCustomerCards(
+            customerId,
+            user.companyId,
+            {
+              force: true, // Force sync when explicitly requested
+              maxConcurrency: 3,
+            }
+          );
+
+          this.logger.log("✅ CUSTOMER CARDS SYNC COMPLETED", {
+            customerId,
+            syncResult: {
+              totalCardsSynced: syncResult.summary?.totalCards || 0,
+              successfulSyncs: syncResult.summary?.successful || 0,
+              failedSyncs: syncResult.summary?.failed || 0,
+            },
+            timestamp: new Date().toISOString(),
+          });
+        } catch (syncError: any) {
+          this.logger.error(
+            "❌ CUSTOMER CARDS SYNC FAILED - CONTINUING WITH LOCAL DATA",
+            {
+              customerId,
+              syncError: syncError.message,
+              timestamp: new Date().toISOString(),
+            }
+          );
+          // Continue with local data even if sync fails
+        }
+      }
+
+      // 2. Validate customer ownership
       const customer = await this.validateCustomerAccess(customerId, user);
 
-      // 2. Get all customer cards
+      // 3. Get all customer cards
       const cardsResult = await CardModel.get({
         customer_id: customerId,
         company_id: user.companyId,
@@ -466,14 +486,15 @@ export class CardManagementService {
 
       const cards = cardsResult.output || [];
 
-      // 3. Calculate statistics
+      // 4. Calculate statistics
       const statistics = this.calculateCardStatistics(cards);
 
-      // 4. Format cards
+      // 5. Format cards
       const formattedCards = cards.map((card: any) => ({
         id: card.id,
         status: card.status,
         balance: card.balance,
+        name: card.name,
         masked_number: card.masked_number,
         last4: card.last4,
         brand: card.brand,
@@ -488,6 +509,7 @@ export class CardManagementService {
       this.logger.log("✅ ADVANCED GET CUSTOMER CARDS FLOW - COMPLETED", {
         customerId,
         cardsCount: cards.length,
+        syncPerformed: syncCards,
         success: true,
       });
 
@@ -499,6 +521,7 @@ export class CardManagementService {
         metadata: {
           total_cards: cards.length,
           last_sync: new Date().toISOString(),
+          sync_performed: syncCards,
           provider: "maplerad",
         },
       };
@@ -507,6 +530,7 @@ export class CardManagementService {
         customerId,
         error: error.message,
         userId: user.userId,
+        syncRequested: syncCards,
       });
       throw new BadRequestException(
         `Get customer cards failed: ${error.message}`
@@ -517,19 +541,68 @@ export class CardManagementService {
   /**
    * Get all cards for a company with advanced MONIX-style features
    */
-  async getCompanyCards(user: CurrentUserData): Promise<any> {
+  async getCompanyCards(
+    user: CurrentUserData,
+    syncCards: boolean = false
+  ): Promise<any> {
     this.logger.log("🏢 ADVANCED GET COMPANY CARDS FLOW - START", {
       userId: user.userId,
       companyId: user.companyId,
+      syncCards,
       timestamp: new Date().toISOString(),
     });
 
     try {
-      // 1. Get all company cards
+      // 1. Sync cards if requested
+      if (syncCards) {
+        this.logger.log(
+          "🔄 SYNC REQUESTED - SYNCING COMPANY CARDS BEFORE RETURNING",
+          {
+            companyId: user.companyId,
+            userId: user.userId,
+            timestamp: new Date().toISOString(),
+          }
+        );
+
+        try {
+          const syncResult = await this.cardSyncService.syncCompanyCards(
+            user.companyId,
+            {
+              force: true, // Force sync when explicitly requested
+              maxConcurrency: 3,
+            }
+          );
+
+          this.logger.log("✅ COMPANY CARDS SYNC COMPLETED", {
+            companyId: user.companyId,
+            syncResult: {
+              totalCardsSynced: syncResult.summary?.total_cards_synced || 0,
+              successfulSyncs:
+                syncResult.summary?.successful_customer_syncs || 0,
+              failedSyncs: syncResult.summary?.failed_customer_syncs || 0,
+            },
+            timestamp: new Date().toISOString(),
+          });
+        } catch (syncError: any) {
+          this.logger.error(
+            "❌ COMPANY CARDS SYNC FAILED - CONTINUING WITH LOCAL DATA",
+            {
+              companyId: user.companyId,
+              syncError: syncError.message,
+              timestamp: new Date().toISOString(),
+            }
+          );
+          // Continue with local data even if sync fails
+        }
+      }
+
+      // 2. Get all company cards
       const cardsResult = await CardModel.get({
         company_id: user.companyId,
         provider: encodeText("maplerad"),
       });
+
+      console.log("✅  Get all company cards :: ", cardsResult);
 
       if (cardsResult.error) {
         throw new BadRequestException("Failed to retrieve company cards");
@@ -537,17 +610,18 @@ export class CardManagementService {
 
       const cards = cardsResult.output || [];
 
-      // 2. Calculate comprehensive statistics
-      const statistics = this.calculateCompanyCardStatistics(cards);
+      // // 3. Calculate comprehensive statistics
+      // const statistics = this.calculateCompanyCardStatistics(cards);
 
-      // 3. Group cards by customer
-      const cardsByCustomer = this.groupCardsByCustomer(cards);
+      // // 4. Group cards by customer
+      // const cardsByCustomer = this.groupCardsByCustomer(cards);
 
-      // 4. Format cards
+      // 5. Format cards
       const formattedCards = cards.map((card: any) => ({
         id: card.id,
         customer_id: card.customer_id,
         status: card.status,
+        name: card.name,
         balance: card.balance,
         masked_number: card.masked_number,
         last4: card.last4,
@@ -557,34 +631,37 @@ export class CardManagementService {
         updated_at: card.updated_at,
         is_active: card.is_active,
         is_virtual: card.is_virtual,
-        provider: decodeText(card.provider),
+        // provider: decodeText(card.provider),
       }));
 
       this.logger.log("✅ ADVANCED GET COMPANY CARDS FLOW - COMPLETED", {
         companyId: user.companyId,
         cardsCount: cards.length,
-        customersCount: Object.keys(cardsByCustomer).length,
+        // customersCount: Object.keys(cardsByCustomer).length,
+        syncPerformed: syncCards,
         success: true,
       });
 
       return {
         success: true,
-        company_id: user.companyId,
-        statistics,
-        cards: formattedCards,
-        cards_by_customer: cardsByCustomer,
-        metadata: {
-          total_cards: cards.length,
-          total_customers: Object.keys(cardsByCustomer).length,
-          last_sync: new Date().toISOString(),
-          provider: "maplerad",
-        },
+        // company_id: user.companyId,
+        // statistics,
+        data: formattedCards,
+        // cards_by_customer: cardsByCustomer,
+        // metadata: {
+        //   total_cards: cards.length,
+        //   total_customers: Object.keys(cardsByCustomer).length,
+        //   last_sync: new Date().toISOString(),
+        //   sync_performed: syncCards,
+        //   provider: "maplerad",
+        // },
       };
     } catch (error: any) {
       this.logger.error("❌ ADVANCED GET COMPANY CARDS FAILED", {
         companyId: user.companyId,
         error: error.message,
         userId: user.userId,
+        syncRequested: syncCards,
       });
       throw new BadRequestException(
         `Get company cards failed: ${error.message}`
@@ -609,14 +686,14 @@ export class CardManagementService {
   ): Promise<any> {
     this.logger.log("📊 ADVANCED GET CARD TRANSACTIONS FLOW - START", {
       cardId,
-      userId: user.userId,
+      userId: user.companyId,
       filters,
       timestamp: new Date().toISOString(),
     });
 
     try {
       // 1. Validate card ownership
-      const card = await this.validateCardAccess(cardId, user);
+      const card = await this.validateCardAccess(cardId, user.companyId);
 
       // 2. Build query filters
       const queryFilters: any = { card_id: cardId };
@@ -635,8 +712,10 @@ export class CardManagementService {
       const transactionsResult = await TransactionModel.get(queryFilters, {
         limit: filters?.limit || 50,
         offset: filters?.offset || 0,
-        orderBy: { created_at: "desc" },
+        // orderBy: { created_at: "desc" },
       });
+
+      console.log("GET CARD TRANSACTIONS :: ", transactionsResult);
 
       if (transactionsResult.error) {
         throw new BadRequestException("Failed to retrieve card transactions");
@@ -645,7 +724,7 @@ export class CardManagementService {
       const transactions = transactionsResult.output || [];
 
       // 4. Calculate transaction statistics
-      const statistics = this.calculateTransactionStatistics(transactions);
+      // const statistics = this.calculateTransactionStatistics(transactions);
 
       // 5. Format transactions
       const formattedTransactions = transactions.map((tx: any) => ({
@@ -665,6 +744,8 @@ export class CardManagementService {
         provider: decodeText(tx.provider),
         order_id: tx.order_id,
         failure_reason: tx.failure_reason,
+        card: tx.card,
+        customer: tx.customer,
       }));
 
       this.logger.log("✅ ADVANCED GET CARD TRANSACTIONS FLOW - COMPLETED", {
@@ -675,8 +756,8 @@ export class CardManagementService {
 
       return {
         success: true,
-        card_id: cardId,
-        statistics,
+        // card_id: cardId,
+        // statistics,
         transactions: formattedTransactions,
         pagination: {
           limit: filters?.limit || 50,
@@ -684,10 +765,10 @@ export class CardManagementService {
           total: transactions.length,
         },
         filters: filters || {},
-        metadata: {
-          last_sync: new Date().toISOString(),
-          provider: decodeText(card.provider),
-        },
+        // metadata: {
+        //   last_sync: new Date().toISOString(),
+        //   provider: decodeText(card.provider),
+        // },
       };
     } catch (error: any) {
       this.logger.error("❌ ADVANCED GET CARD TRANSACTIONS FAILED", {
@@ -881,11 +962,11 @@ export class CardManagementService {
    */
   private async validateCardForManagement(
     cardId: string,
-    user: CurrentUserData
+    companyId: string
   ): Promise<any> {
     const cardResult = await CardModel.getOne({
       id: cardId,
-      company_id: user.companyId,
+      company_id: companyId,
     });
 
     if (cardResult.error || !cardResult.output) {
@@ -907,9 +988,9 @@ export class CardManagementService {
    */
   private async validateCardAccess(
     cardId: string,
-    user: CurrentUserData
+    companyId: string
   ): Promise<any> {
-    return this.validateCardForManagement(cardId, user);
+    return this.validateCardForManagement(cardId, companyId);
   }
 
   /**
@@ -1006,7 +1087,7 @@ export class CardManagementService {
     const usdWalletResult = await WalletModel.getOne({
       company_id: companyId,
       currency: "USD",
-      active: true,
+      is_active: true,
     });
 
     if (usdWalletResult.output) {

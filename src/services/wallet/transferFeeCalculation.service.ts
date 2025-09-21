@@ -39,10 +39,16 @@ export class TransferFeeCalculationService {
     try {
       const { companyId, fromCurrency, toCurrency, amount, countryIsoCode } = request;
 
-      // 1. Calculate transfer fees dynamically from database
+      // 1. Calculate transfer fees based on currency type
       let feePercentage = 0;
+      let feeAmount = 0;
       
-      // Try to get fee from database first (supports all currency pairs)
+      // Apply fees based on transfer type:
+      // - Transfers TO USD: No fees (only exchange rate)
+      // - Transfers between other currencies: Apply transaction fees from database
+      // - Same currency transfers: Apply transaction fees from database
+      if (toCurrency !== 'USD') {
+        // Try to get fee from database first (supports all currency pairs)
       const feeResult = await TransactionFeeModel.calculateFee(
         companyId,
         amount,
@@ -51,82 +57,54 @@ export class TransferFeeCalculationService {
         countryIsoCode || 'CM',
         fromCurrency
       );
-      
-      if (!feeResult.error) {
-        feePercentage = feeResult.output.feePercentage;
-      } else {
-        // Fallback: try to get fee based on currency pair
-        const pairFeeResult = await this.getCurrencyPairFee(
-          companyId,
-          fromCurrency,
-          toCurrency,
-          countryIsoCode || 'CM'
-        );
         
-        if (pairFeeResult.success) {
-          feePercentage = pairFeeResult.data!;
+        if (!feeResult.error) {
+          feePercentage = feeResult.output.feePercentage;
         } else {
-          // Default fallback fees for known pairs (backward compatibility)
-          if (fromCurrency === 'XAF' && toCurrency === 'XAF') {
-            feePercentage = 2.0; // XAF to XAF: 2%
-          } else if (fromCurrency === 'XAF' && toCurrency === 'XOF') {
-            feePercentage = 8.0; // XAF to XOF: 8%
-          } else if (fromCurrency === 'XAF' && toCurrency === 'USD') {
-            feePercentage = 0.0; // XAF to USD: 0%
-          } else if (fromCurrency === 'XOF' && toCurrency === 'XOF') {
-            feePercentage = 2.0; // XOF to XOF: 2%
-          } else if (fromCurrency === 'XOF' && toCurrency === 'XAF') {
-            feePercentage = 8.0; // XOF to XAF: 8%
-          } else if (fromCurrency === 'USD' && toCurrency === 'XAF') {
-            feePercentage = 0.0; // USD to XAF: 0%
-          } else if (fromCurrency === 'USD' && toCurrency === 'XOF') {
-            feePercentage = 0.0; // USD to XOF: 0%
-          } else if (fromCurrency === 'USD' && toCurrency === 'USD') {
-            feePercentage = 1.0; // USD to USD: 1%
+          // Fallback: try to get fee based on currency pair
+          const pairFeeResult = await this.getCurrencyPairFee(
+            companyId,
+            fromCurrency,
+            toCurrency,
+            countryIsoCode || 'CM'
+          );
+          
+          if (pairFeeResult.success) {
+            feePercentage = pairFeeResult.data!;
           }
+          // No hardcoded fallback - if no fee found in database, feePercentage remains 0
         }
+        
+        feeAmount = (amount * feePercentage) / 100;
       }
-
-      const feeAmount = (amount * feePercentage) / 100;
+      // For transfers TO USD: feeAmount remains 0 (no fees, only exchange rate)
       let exchangeRate = 1;
       let convertedAmount = amount;
 
       // 2. Handle currency conversion if different currencies
       if (fromCurrency !== toCurrency) {
         try {
-          // Always try database lookup first for all currency pairs
-          const exchangeRateResult = await this.getExchangeRate(
-            companyId,
-            fromCurrency,
-            toCurrency
-          );
+          // For transfers TO USD: use exchange rate from database
+          if (toCurrency === 'USD') {
+            const exchangeRateResult = await this.getExchangeRate(
+              companyId,
+              fromCurrency,
+              toCurrency
+            );
 
-          if (exchangeRateResult.success && exchangeRateResult.data) {
-            exchangeRate = exchangeRateResult.data.rate;
-            convertedAmount = amount * exchangeRate;
-          } else {
-            // Fallback: Use CurrencyManager for USD pairs (backward compatibility)
-            if (fromCurrency === 'USD' && (toCurrency === 'XAF' || toCurrency === 'XOF')) {
-              exchangeRate = await CurrencyManager.getDollarRate(companyId, countryIsoCode);
+            if (exchangeRateResult.success && exchangeRateResult.data) {
+              exchangeRate = exchangeRateResult.data.rate;
               convertedAmount = amount * exchangeRate;
-            } else if ((fromCurrency === 'XAF' || fromCurrency === 'XOF') && toCurrency === 'USD') {
-              const dollarRate = await CurrencyManager.getDollarRate(companyId, countryIsoCode);
-              exchangeRate = 1 / dollarRate; // Inverse rate for XAF/XOF to USD
-              convertedAmount = amount * exchangeRate;
-            } else if (fromCurrency === 'XAF' && toCurrency === 'XOF') {
-              // XAF to XOF is 1:1 (backward compatibility)
-              exchangeRate = 1;
-              convertedAmount = amount;
-            } else if (fromCurrency === 'XOF' && toCurrency === 'XAF') {
-              // XOF to XAF is 1:1 (backward compatibility)
-              exchangeRate = 1;
-              convertedAmount = amount;
             } else {
               return {
                 success: false,
-                message: `No exchange rate found for ${fromCurrency} to ${toCurrency}`
+                message: `No exchange rate found for ${fromCurrency} to ${toCurrency}. Please configure the exchange rate in settings.`
               };
             }
+          } else {
+            // For transfers between other currencies (XAF ↔ XOF): use 1:1 rate with transaction fees
+            exchangeRate = 1;
+            convertedAmount = amount;
           }
         } catch (error) {
           console.error('Currency conversion error:', error);

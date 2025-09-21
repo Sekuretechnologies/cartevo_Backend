@@ -8,6 +8,7 @@ import {
   UseInterceptors,
   UploadedFiles,
   Put,
+  Query,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -60,12 +61,14 @@ export class CustomerController {
     files: {
       id_document_front?: any[];
       id_document_back?: any[];
-    }
+    },
+    @Query("enroll") enroll?: string
   ): Promise<CustomerResponseDto> {
     return this.customerService.create(
       user.companyId,
       createCustomerDto,
-      files
+      files,
+      enroll === "true"
     );
   }
 
@@ -114,9 +117,11 @@ export class CustomerController {
     type: [CustomerResponseDto],
   })
   async findAll(
-    @CurrentUser() user: CurrentUserData
+    @CurrentUser() user: CurrentUserData,
+    @Query("sync") sync?: string
   ): Promise<{ data: any[] }> {
-    return this.customerService.findAllByCompany(user.companyId);
+    const shouldSync = sync === "true";
+    return this.customerService.findAllByCompany(user.companyId, shouldSync);
   }
 
   // @Get("")
@@ -174,9 +179,15 @@ export class CustomerController {
   })
   async findCustomerCards(
     @CurrentUser() user: CurrentUserData,
-    @Param("id") id: string
+    @Param("id") id: string,
+    @Query("sync") sync?: string
   ): Promise<{ data: any[] }> {
-    return this.customerService.findCustomerCards(user.companyId, id);
+    const shouldSync = sync === "true";
+    return this.customerService.findCustomerCards(
+      user.companyId,
+      id,
+      shouldSync
+    );
   }
 
   @Get(":id/transactions")

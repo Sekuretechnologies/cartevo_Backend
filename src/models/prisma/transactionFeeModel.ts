@@ -3,7 +3,7 @@ import { FilterObject } from "@/types";
 import { sanitizeTextInput, setMethodFilter } from "@/utils/shared/common";
 import fnOutput from "@/utils/shared/fnOutputHandler";
 import { Prisma, PrismaClient } from "@prisma/client";
-import { buildPrismaQuery } from "prisma/functions";
+import { buildPrismaQuery } from "../../../prisma/functions";
 
 const prisma = new PrismaClient();
 
@@ -198,9 +198,9 @@ class TransactionFeeModel {
       company_id: companyId,
       transaction_type: transactionType.toUpperCase(),
       transaction_category: transactionCategory.toUpperCase(),
-      // active: true,
+      active: true,
     };
-    if (countryIsoCode) where.country_iso_code = countryIsoCode.toUpperCase();
+    // Ignore country_iso_code, search only by currency
     if (currency) where.currency = currency.toUpperCase();
 
     try {

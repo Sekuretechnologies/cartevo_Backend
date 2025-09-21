@@ -142,7 +142,7 @@ if (amount > 10000) {
 const usdWallet = await WalletModel.getOne({
   company_id: user.companyId,
   currency: "USD",
-  active: true,
+  is_active: true,
 });
 
 if (!usdWallet) {
@@ -516,7 +516,7 @@ if (!usdWallet) {
   usdWallet = await WalletModel.getOne({
     company_id: user.companyId,
     currency: "USD",
-    active: true,
+    is_active: true,
   });
   await this.cache.set(walletCacheKey, usdWallet, 60); // 1 minute TTL
 }

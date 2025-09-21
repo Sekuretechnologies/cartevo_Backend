@@ -1,38 +1,42 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Put,
-  Delete,
-  Body,
-  Param,
-  Query,
-  UseGuards,
-} from "@nestjs/common";
-import { IWalletCreate, WalletService } from "./wallet.service";
 import { IWalletFunding } from "@/services/wallet/walletFunding.service";
-import { WalletWithdrawalService, WithdrawalRequest as IWalletWithdrawal } from "@/services/wallet/walletWithdrawal.service";
 import { WalletInternalTransferService } from "@/services/wallet/walletInternalTransfer.service";
 import { WalletTransferBetweenService } from "@/services/wallet/walletTransferBetween.service";
-import { ApiBearerAuth, ApiTags, ApiProperty } from "@nestjs/swagger";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import {
-  CurrentBusiness,
-  CurrentBusinessData,
-} from "../common/decorators/current-business.decorator";
+  WithdrawalRequest as IWalletWithdrawal,
+  WalletWithdrawalService,
+} from "@/services/wallet/walletWithdrawal.service";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  UseGuards,
+} from "@nestjs/common";
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiProperty,
+  ApiResponse,
+  ApiTags,
+} from "@nestjs/swagger";
+import { Type } from "class-transformer";
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  Min,
+  ValidateNested,
+} from "class-validator";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import {
   CurrentUser,
   CurrentUserData,
 } from "../common/decorators/current-user.decorator";
-import {
-  IsString,
-  IsNotEmpty,
-  IsNumber,
-  IsObject,
-  ValidateNested,
-  Min,
-} from "class-validator";
-import { Type } from "class-transformer";
+import { WalletTestService } from "./wallet-test.service";
+import { IWalletCreate, WalletService } from "./wallet.service";
 
 export interface DepositToWalletSubmitProps {
   sourceWallet: {
@@ -193,7 +197,10 @@ export interface IWalletUpdate {
 @UseGuards(JwtAuthGuard)
 @Controller("wallets")
 export class WalletController {
-  constructor(private readonly walletService: WalletService) {}
+  constructor(
+    private readonly walletService: WalletService,
+    private readonly walletTestService: WalletTestService
+  ) {}
 
   @Post()
   async createWallet(
@@ -265,7 +272,8 @@ export class WalletController {
     @Body() data: IWalletWithdrawal
   ) {
     // Expecting data to include walletId, amount, phone_number, operator, reason
-    const { walletId, amount, phone_number, operator, reason } = (data as any) || {};
+    const { walletId, amount, phone_number, operator, reason } =
+      (data as any) || {};
     if (!walletId) {
       throw new Error("walletId is required in request body");
     }
@@ -291,7 +299,12 @@ export class WalletController {
   async transferInternal(
     @CurrentUser() user: CurrentUserData,
     @Param("id") walletId: string,
-    @Body() body: { amount: number; direction: 'PAYIN_TO_PAYOUT' | 'PAYOUT_TO_PAYIN'; reason?: string }
+    @Body()
+    body: {
+      amount: number;
+      direction: "PAYIN_TO_PAYOUT" | "PAYOUT_TO_PAYIN";
+      reason?: string;
+    }
   ) {
     return WalletInternalTransferService.transferInternal(walletId, {
       amount: body.amount,
@@ -304,7 +317,13 @@ export class WalletController {
   @Post("transfer-between")
   async transferBetween(
     @CurrentUser() user: CurrentUserData,
-    @Body() body: { from_wallet_id: string; to_wallet_id: string; amount: number; reason?: string }
+    @Body()
+    body: {
+      from_wallet_id: string;
+      to_wallet_id: string;
+      amount: number;
+      reason?: string;
+    }
   ) {
     return WalletTransferBetweenService.transferBetween({
       from_wallet_id: body.from_wallet_id,
@@ -329,7 +348,13 @@ export class WalletController {
   @Post("calculate-transfer-fees")
   async calculateTransferFees(
     @CurrentUser() user: CurrentUserData,
-    @Body() body: { from_currency: string; to_currency: string; amount: number; country_iso_code?: string }
+    @Body()
+    body: {
+      from_currency: string;
+      to_currency: string;
+      amount: number;
+      country_iso_code?: string;
+    }
   ) {
     return WalletTransferBetweenService.calculateTransferFees(
       user.companyId as string,
@@ -346,5 +371,57 @@ export class WalletController {
     @Param("walletId") walletId: string
   ) {
     return this.walletService.getWalletBalance(user.companyId, walletId);
+  }
+
+  /**
+   * Credit test wallets (Company USD wallet + Maplerad test wallet)
+   * Only works in sandbox mode for security
+   */
+  @Post("credit-test-wallet")
+  @ApiOperation({
+    summary: "Credit test wallet",
+    description: "Credits the company USD wallet. Only works in sandbox mode.",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Test wallets credited successfully",
+    schema: {
+      type: "object",
+      properties: {
+        success: { type: "boolean", example: true },
+        message: {
+          type: "string",
+          example: "Test wallets credited successfully",
+        },
+        wallet: {
+          type: "object",
+          properties: {
+            walletId: { type: "string" },
+            previousBalance: { type: "number" },
+            newBalance: { type: "number" },
+            creditedAmount: { type: "number" },
+          },
+        },
+        timestamp: { type: "string", format: "date-time" },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Bad request - Invalid parameters or not in sandbox mode",
+  })
+  @ApiResponse({
+    status: 500,
+    description: "Internal server error",
+  })
+  async creditTestWallet(
+    @CurrentUser() user: CurrentUserData,
+    @Body() body: { amount: number; currency?: string; sandbox: boolean }
+  ) {
+    return this.walletTestService.creditTestWallet(
+      user.companyId,
+      user.userId,
+      body
+    );
   }
 }

@@ -185,17 +185,19 @@ export class CardOperationsController {
     @Request() req: any,
     @Query("page") page: number = 1,
     @Query("limit") limit: number = 20,
-    @Query("status") status?: string
+    @Query("status") status?: string,
+    @Query("sync") sync?: string
   ) {
     console.log("📋 CARD CONTROLLER - Get Company Cards Request", {
       page,
       limit,
       status,
+      sync: sync === "true",
       userId: req.user.userId,
       companyId: req.user.companyId,
     });
 
-    return this.managementService.getCompanyCards(req.user);
+    return this.managementService.getCompanyCards(req.user, sync === "true");
   }
 
   /**

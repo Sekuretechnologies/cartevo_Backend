@@ -1,5 +1,8 @@
 import env from "@/env";
-import jwt from "jsonwebtoken";
+import { JwtService } from "@nestjs/jwt";
+import * as jwt from "jsonwebtoken";
+
+const jwtService = new JwtService();
 
 /**
  * Encode a UTF-8 string into Base64.
@@ -42,16 +45,16 @@ export function decodeText(base64: string): string {
 }
 
 export const signToken = (id: any) => {
-  return jwt.sign({ value: id }, env.JWT_SECRET, {
-    expiresIn: env.JWT_EXPIRES_IN,
-  });
+  const payload = { value: id };
+  const token = jwtService.sign(payload, { secret: env.JWT_SECRET });
+  return token;
 };
 
 export const decodeToken: any = (token: string) => {
   try {
-    const decoded = jwt.verify(token, env.JWT_SECRET); // Replace with your secret
-    return decoded; // Return the decoded token payload
+    const decoded = jwtService.verify(token, { secret: env.JWT_SECRET }) as any;
+    return decoded;
   } catch (err) {
-    throw new Error("Invalid token"); // Error handling
+    throw new Error("Invalid token");
   }
 };

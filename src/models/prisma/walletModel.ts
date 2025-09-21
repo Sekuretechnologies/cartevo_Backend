@@ -3,7 +3,6 @@ import { FilterObject } from "@/types";
 import { setMethodFilter } from "@/utils/shared/common";
 import fnOutput from "@/utils/shared/fnOutputHandler";
 import { Prisma, PrismaClient } from "@prisma/client";
-import { buildPrismaQuery } from "prisma/functions";
 
 const prisma = new PrismaClient();
 
@@ -18,14 +17,12 @@ export interface WalletModelInterface {
 class WalletModel {
   static async getOne(filters: FilterObject) {
     try {
-      const result = await prisma.wallet.findFirst(
-        buildPrismaQuery({
-          filters,
-          include: {
-            phoneNumbers: true,
-          },
-        })
-      );
+      const result = await prisma.wallet.findFirst({
+        where: filters,
+        include: {
+          phoneNumbers: true,
+        },
+      });
       if (!result) {
         return fnOutput.error({
           message: "Wallet not found",
@@ -43,14 +40,12 @@ class WalletModel {
 
   static async get(filters?: FilterObject) {
     try {
-      const result = await prisma.wallet.findMany(
-        buildPrismaQuery({
-          filters,
-          include: {
-            phoneNumbers: true,
-          },
-        })
-      );
+      const result = await prisma.wallet.findMany({
+        where: filters,
+        include: {
+          phoneNumbers: true,
+        },
+      });
       return fnOutput.success({ output: result });
     } catch (error: any) {
       return fnOutput.error({

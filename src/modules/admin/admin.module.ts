@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
-import { WithdrawalQueueController } from './withdrawalQueue.controller';
-import { WithdrawalProcessorService } from '../../services/scheduler/withdrawalProcessor.service';
+import { Module } from "@nestjs/common";
+import { WithdrawalQueueController } from "./withdrawalQueue.controller";
+import { WithdrawalProcessorService } from "../../services/scheduler/withdrawalProcessor.service";
 
 @Module({
   controllers: [WithdrawalQueueController],
@@ -8,5 +8,6 @@ import { WithdrawalProcessorService } from '../../services/scheduler/withdrawalP
   exports: [WithdrawalProcessorService],
 })
 export class AdminModule {}
+
 
 
