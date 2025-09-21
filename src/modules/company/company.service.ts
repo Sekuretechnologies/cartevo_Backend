@@ -161,7 +161,7 @@ export class CompanyService {
       const walletsResult = await Promise.all([
         WalletModel.create({
           balance: 0,
-          is_active: true,
+          active: true,
           currency: createDto.business_country_currency || "",
           country: createDto.business_country || "",
           country_iso_code: createDto.business_country_iso_code || "",
@@ -170,7 +170,7 @@ export class CompanyService {
         }),
         WalletModel.create({
           balance: 0,
-          is_active: true,
+          active: true,
           currency: "USD",
           country: "USA",
           country_iso_code: "US",
@@ -635,7 +635,7 @@ export class CompanyService {
       const walletsResult = await Promise.all([
         WalletModel.create({
           balance: 0,
-          is_active: true,
+          active: true,
           currency: "XAF",
           country: "Cameroon",
           country_iso_code: "CM",
@@ -643,7 +643,7 @@ export class CompanyService {
         }),
         WalletModel.create({
           balance: 0,
-          is_active: true,
+          active: true,
           currency: "USD",
           country: "USA",
           country_iso_code: "USA",
@@ -1120,7 +1120,7 @@ export class CompanyService {
       feeFixed?: number;
       type: "FIXED" | "PERCENTAGE";
       value: number;
-      active?: boolean;
+      is_active?: boolean;
       description?: string;
     }
   ) {
@@ -1135,7 +1135,7 @@ export class CompanyService {
         fee_fixed: feeData.feeFixed,
         type: feeData.type,
         value: feeData.value,
-        is_active: feeData.active ?? true,
+        active: feeData.is_active ?? true,
         description: feeData.description,
       });
 
@@ -1196,7 +1196,7 @@ export class CompanyService {
       feeFixed?: number;
       type?: "FIXED" | "PERCENTAGE";
       value?: number;
-      active?: boolean;
+      is_active?: boolean;
       description?: string;
     }
   ) {
@@ -1206,7 +1206,7 @@ export class CompanyService {
         fee_fixed: updateData.feeFixed,
         type: updateData.type,
         value: updateData.value,
-        active: updateData.active,
+        is_active: updateData.is_active,
         description: updateData.description,
       });
 

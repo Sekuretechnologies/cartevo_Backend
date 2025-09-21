@@ -1,10 +1,13 @@
 import { Module } from "@nestjs/common";
-import { AdminController } from "./admin.controller";
-import { AdminService } from "./admin.service";
-import { EmailService } from "../../services/email.service";
+import { WithdrawalQueueController } from "./withdrawalQueue.controller";
+import { WithdrawalProcessorService } from "../../services/scheduler/withdrawalProcessor.service";
 
 @Module({
-  controllers: [AdminController],
-  providers: [AdminService, EmailService],
+  controllers: [WithdrawalQueueController],
+  providers: [WithdrawalProcessorService],
+  exports: [WithdrawalProcessorService],
 })
 export class AdminModule {}
+
+
+

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -56,7 +57,7 @@ export class WalletService {
       const walletData = {
         ...data,
         balance: 0,
-        is_active: true,
+        active: true,
         company_id: companyId,
       };
       console.log("createWallet ----------------------------------");
@@ -121,18 +122,36 @@ export class WalletService {
         return wallet;
       }
 
+      // Protect USD wallet details from being displayed
+      if (wallet.output?.currency === "USD") {
+        throw new ForbiddenException("Access to this wallet is restricted");
+      }
+
       // Add operators to the wallet
       const operators = await this.getWalletOperators(
         wallet.output.country_iso_code,
         wallet.output.currency
       );
 
+      // Get company information using the wallet's company_id (more robust when token lacks companyId)
+      let company = await this.getCompanyById(wallet.output.company_id);
+      if (company.error || !company.output) {
+        // Fallback: try with the request scoped companyId
+        company = await this.getCompanyById(companyId);
+      }
+
+      // Calculate pay-in and pay-out amounts from transactions
+      const payInPayOut = await this.calculatePayInPayOut(id);
+
       const walletWithOperators = {
         ...wallet.output,
         operators: operators.output || [],
+        company: company.output || null,
+        payInAmount: payInPayOut.payIn,
+        payOutAmount: payInPayOut.payOut,
       };
 
-      return fnOutput.success({ output: walletWithOperators });
+      return { data: walletWithOperators };
     } catch (error: any) {
       return fnOutput.error({
         error: { message: "Failed to get wallet: " + error.message },
@@ -182,6 +201,89 @@ export class WalletService {
       return fnOutput.error({
         error: { message: "Failed to get wallet operators: " + error.message },
       });
+    }
+  }
+
+  private async getCompanyById(companyId: string) {
+    try {
+      const { PrismaClient } = require("@prisma/client");
+      const prisma = new PrismaClient();
+      
+      const company = await prisma.company.findUnique({
+        where: { id: companyId },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          country: true,
+          business_name: true,
+          is_active: true,
+        },
+      });
+      
+      await prisma.$disconnect();
+      
+      if (!company) {
+        return fnOutput.error({
+          error: { message: "Company not found" },
+        });
+      }
+      
+      return fnOutput.success({ output: company });
+    } catch (error: any) {
+      return fnOutput.error({
+        error: { message: "Failed to get company: " + error.message },
+      });
+    }
+  }
+
+  private async calculatePayInPayOut(walletId: string) {
+    try {
+      const { PrismaClient } = require("@prisma/client");
+      const prisma = new PrismaClient();
+      
+      // Get all successful transactions for this wallet
+      const transactions = await prisma.transaction.findMany({
+        where: {
+          wallet_id: walletId,
+          status: "SUCCESS",
+        },
+        select: {
+          type: true,
+          amount: true,
+          currency: true,
+        },
+      });
+      
+      await prisma.$disconnect();
+      
+      // Calculate pay-in (CREDIT, FUND, DEPOSIT) and pay-out (DEBIT, WITHDRAW)
+      let payIn = 0;
+      let payOut = 0;
+      
+      transactions.forEach(transaction => {
+        const amount = parseFloat(transaction.amount.toString());
+        
+        if (transaction.type === "CREDIT" || 
+            transaction.type === "FUND" || 
+            transaction.type === "DEPOSIT") {
+          payIn += amount;
+        } else if (transaction.type === "DEBIT" || 
+                   transaction.type === "WITHDRAW") {
+          payOut += amount;
+        }
+      });
+      
+      return {
+        payIn: payIn,
+        payOut: payOut,
+      };
+    } catch (error: any) {
+      console.error("Error calculating pay-in/pay-out:", error);
+      return {
+        payIn: 0,
+        payOut: 0,
+      };
     }
   }
 
