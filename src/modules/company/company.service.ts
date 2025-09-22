@@ -67,7 +67,7 @@ import TransactionFeeModel from "@/models/prisma/transactionFeeModel";
 import OnboardingStepModel from "@/models/prisma/onboardingStepModel";
 import { FirebaseService } from "../../services/firebase.service";
 import { EmailService } from "../../services/email.service";
-import { UserStatus, StepStatus } from "@prisma/client";
+import { UserStatus, StepStatus, KycStatus, KybStatus } from "@prisma/client";
 import { Console } from "console";
 import { countries as countryDataList } from "country-data";
 import { getCountryPhonePrefix } from "@/utils/shared/common";
@@ -2197,6 +2197,31 @@ export class CompanyService {
         error: error.message,
       });
     }
+  }
+
+  /**
+   * verification status
+   */
+  async getVerificationStatus(userId: string, companyId: string) {
+    // Vérifier que l'utilisateur existe
+    const userResult = await UserModel.getOne({ id: userId });
+    if (userResult.error) {
+      throw new NotFoundException("User not found");
+    }
+    const user = userResult.output;
+
+    // Récupérer la société pour le KYB
+    const companyResult = await CompanyModel.getOne({ id: companyId });
+    if (companyResult.error) {
+      throw new NotFoundException("Company not found");
+    }
+    const company = companyResult.output;
+
+    // Retourner uniquement les statuts
+    return {
+      kycStatus: user.kyc_status || "NONE",
+      kybStatus: company.kyb_status || "NONE",
+    };
   }
 
   /**

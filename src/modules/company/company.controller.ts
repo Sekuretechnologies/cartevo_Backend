@@ -1168,4 +1168,15 @@ export class CompanyController {
 
     return this.companyService.regenerateClientKey(companyId);
   }
+
+  @Get("get-status")
+  @UseGuards(JwtAuthGuard)
+  async getValidationStatus(
+    @CurrentUser() user: CurrentUserData,
+    @Query("companyId") companyId?: string
+  ) {
+    const userId = user.userId;
+
+    return this.companyService.getVerificationStatus(userId, companyId);
+  }
 }

@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Put, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Put,
+  Query,
+  UseInterceptors,
+} from "@nestjs/common";
 import {
   ApiOperation,
   ApiQuery,
@@ -8,6 +16,7 @@ import {
 } from "@nestjs/swagger";
 import { AdminService } from "./admin.service";
 import { KybDto, KycDto } from "./dto/admin.dto";
+import { ResponseInterceptor } from "../common/interceptors/response.interceptop";
 
 @ApiTags("Admin")
 @Controller("admin")
@@ -58,5 +67,58 @@ export class AdminController {
   @ApiResponse({ status: 200, description: "KYB handled successfully." })
   async handleKyb(@Body() dto: KybDto) {
     return this.adminService.handleKyb(dto);
+  }
+
+  @UseInterceptors(ResponseInterceptor)
+  @Get("get-all-users")
+  async getAllUsers(
+    @Query("companyId") companyId?: string,
+    @Query("page") page = "1",
+    @Query("perPage") perPage = "10"
+  ) {
+    const pageNumber = parseInt(page, 10);
+    const perPageNumber = parseInt(perPage, 10);
+
+    return this.adminService.getUsers(
+      companyId ? { companyId } : undefined,
+      pageNumber,
+      perPageNumber
+    );
+  }
+
+  /**
+   * Activer / Désactiver un utilisateur
+   * PUT /admin/toggle-user/:id
+   * Body: { status: true | false }
+   */
+  @Put("toggle-user/:id")
+  async toggleUserStatus(
+    @Param("id") id: string,
+    @Body("status") status: boolean
+  ) {
+    return this.adminService.toggleUserStatus(id, status);
+  }
+
+  /**
+   * Mettre à jour une company
+   * PUT /admin/update-company/:id
+   * Body: { ...données à mettre à jour }
+   */
+  @Put("update-company/:id")
+  async updateCompany(@Param("id") id: string, @Body() data: any) {
+    return this.adminService.updateCompany(id, data);
+  }
+
+  /**
+   * Activer / Désactiver une company
+   * PUT /admin/toggle-company/:id
+   * Body: { isActive: true | false }
+   */
+  @Put("toggle-company/:id")
+  async toggleCompanyStatus(
+    @Param("id") id: string,
+    @Body("isActive") isActive: boolean
+  ) {
+    return this.adminService.toggleCompanySTatus(id, isActive);
   }
 }
