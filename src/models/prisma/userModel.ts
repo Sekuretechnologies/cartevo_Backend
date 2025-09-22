@@ -208,6 +208,45 @@ class UserModel {
     }
   }
 
+  static async getByCompany(params: {
+    companyId?: string;
+    skip?: number;
+    take?: number;
+  }) {
+    const { companyId, skip = 0, take = 10 } = params;
+
+    const where: any = {};
+    if (companyId) {
+      where.userCompanyRoles = {
+        some: {
+          company_id: companyId,
+          is_active: true,
+        },
+      };
+    }
+
+    const [output, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { created_at: "desc" },
+      }),
+      prisma.user.count({ where }),
+    ]);
+
+    const totalPages = Math.ceil(total / take);
+
+    return {
+      output,
+      pagination: {
+        total,
+        page: skip / take + 1,
+        numberPerPage: take,
+        totalPages,
+      },
+    };
+  }
   /**
    * This method allows for transactional operations.
    * It accepts a callback function that receives the Prisma client instance.
