@@ -966,6 +966,7 @@ export class AuthService {
       const existingMembership = await UserCompanyRoleModel.getOne({
         user_id: user.output.id,
         company_id: company.id,
+        status: UserStatus.ACTIVE,
       });
 
       if (existingMembership.output) {
