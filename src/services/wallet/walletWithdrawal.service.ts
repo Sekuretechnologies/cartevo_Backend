@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { PendingWithdrawalQueueService } from './pendingWithdrawalQueue.service';
 import TransactionFeeModel from '../../models/prisma/transactionFeeModel';
+import { checkAfribapayBalance, initiateAfribapayPayout } from '@/utils/wallet/afribapay';
 
 const prisma = new PrismaClient();
 
@@ -22,11 +23,29 @@ export interface WithdrawalResponse {
 
 export class WalletWithdrawalService {
   /**
-   * Check Afribapay balance (mock implementation)
+   * Check Afribapay payout balance by country/currency
    */
-  private static async getAfribapayBalance(): Promise<number> {
-    // TODO: Replace with actual Afribapay API call
-    return 1000000; // Mock balance
+  private static async getAfribapayBalance(
+    countryIsoCode?: string,
+    currency?: string
+  ): Promise<number> {
+    try {
+      const response: any = await checkAfribapayBalance();
+      const list: any[] = response?.data?.data;
+      if (!Array.isArray(list)) return 0;
+      const entry = list.find(
+        (it) =>
+          String(it?.service).toLowerCase() === 'payout' &&
+          String(it?.country_code).toUpperCase() === String(countryIsoCode || '').toUpperCase() &&
+          String(it?.currency).toUpperCase() === String(currency || '').toUpperCase()
+      );
+      const available = entry?.balance_available ?? entry?.balance;
+      const value = Number(available);
+      return Number.isFinite(value) ? value : 0;
+    } catch (error) {
+      console.error('Afribapay balance check failed:', error);
+      return 0;
+    }
   }
 
   /**
@@ -86,7 +105,8 @@ export class WalletWithdrawalService {
           payout_balance: true,
           currency: true,
           company_id: true,
-          active: true
+          active: true,
+          country_iso_code: true
         }
       });
 
@@ -129,8 +149,11 @@ export class WalletWithdrawalService {
         };
       }
 
-      // Check Afribapay balance
-      const afribapayBalance = await this.getAfribapayBalance();
+      // Check Afribapay payout balance (by country/currency)
+      const afribapayBalance = await this.getAfribapayBalance(
+        wallet.country_iso_code,
+        wallet.currency
+      );
       
       if (afribapayBalance < totalAmount) {
         // Add to queue instead of failing
@@ -159,7 +182,6 @@ export class WalletWithdrawalService {
           where: { id: walletId },
           data: {
             payout_balance: { decrement: totalAmount }, // Include fees
-            balance: { decrement: totalAmount },        // Include fees
             payout_amount: { increment: request.amount } // Only the net amount
           },
           select: { payout_balance: true }
@@ -190,6 +212,46 @@ export class WalletWithdrawalService {
 
         return { transaction, updatedWallet };
       });
+
+      // Initiate Afribapay payout (keep local transaction PENDING until webhook updates)
+      try {
+        const countryPhoneCode = wallet.country_iso_code === 'CM' ? '237' : '237';
+        const normalizedOperator =
+          String(request.operator).toLowerCase().includes('mtn')
+            ? 'mtn'
+            : String(request.operator).toLowerCase().includes('orange')
+            ? 'orange'
+            : request.operator;
+        await initiateAfribapayPayout({
+          amount: request.amount,
+          country: wallet.country_iso_code,
+          currency: wallet.currency,
+          phone: request.phone_number,
+          orderId: result.transaction.id,
+          operator: normalizedOperator,
+          countryPhoneCode
+        });
+      } catch (payoutError) {
+        console.error('Afribapay payout initiation failed:', payoutError);
+        // On failure, revert wallet deduction and mark transaction as FAILED
+        try {
+          await prisma.$transaction(async (tx) => {
+            await tx.wallet.update({
+              where: { id: walletId },
+              data: {
+                payout_balance: { increment: totalAmount },
+                payout_amount: { decrement: request.amount }
+              }
+            });
+            await tx.transaction.update({
+              where: { id: result.transaction.id },
+              data: { status: 'FAILED' }
+            });
+          });
+        } catch (revertError) {
+          console.error('Failed to revert wallet/transaction after payout error:', revertError);
+        }
+      }
 
       return {
         success: true,
