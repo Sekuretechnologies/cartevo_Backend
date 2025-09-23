@@ -76,6 +76,7 @@ import {
   RegenerateClientKeyResponseDto,
 } from "./dto/company.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { OmniGuard } from "../auth/guards/omni.guard";
 import {
   CurrentBusiness,
   CurrentBusinessData,
@@ -1179,4 +1180,88 @@ export class CompanyController {
 
     return this.companyService.getVerificationStatus(userId, companyId);
   }
+
+  // ==================== ADMIN ACCESS ENDPOINTS ====================
+
+  // @Get("admin/all-companies")
+  // @ApiBearerAuth()
+  // @UseGuards(OmniGuard)
+  // @ApiOperation({
+  //   summary: "Get all companies (Admin Access)",
+  //   description: "Get data from all companies - requires admin access level",
+  // })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: "All companies data retrieved successfully",
+  //   type: [Object],
+  // })
+  // @ApiResponse({
+  //   status: 401,
+  //   description: "Access denied: admin access required",
+  // })
+  // async getAllCompaniesOmniscient(@Req() request: any): Promise<any> {
+  //   // This endpoint is protected by OmniGuard - only omniscient companies can access
+  //   const company = request.company;
+  //   const accessLevel = request.accessLevel;
+
+  //   // Return all companies data
+  //   const result = await this.companyService.getAllCompanies();
+
+  //   return {
+  //     success: true,
+  //     message: "Admin access granted",
+  //     access_level: accessLevel,
+  //     admin_company: {
+  //       id: company.id,
+  //       name: company.name,
+  //       access_level: accessLevel,
+  //     },
+  //     data: result.companies,
+  //     total_companies: result.companies.length,
+  //   };
+  // }
+
+  // @Get("admin/company/:companyId/details")
+  // @ApiBearerAuth()
+  // @UseGuards(OmniGuard)
+  // @ApiOperation({
+  //   summary: "Get any company details (Admin Access)",
+  //   description:
+  //     "Get detailed information about any specific company - requires admin access level",
+  // })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: "Company details retrieved successfully",
+  //   type: Object,
+  // })
+  // @ApiResponse({
+  //   status: 401,
+  //   description: "Access denied: admin access required",
+  // })
+  // @ApiResponse({
+  //   status: 404,
+  //   description: "Company not found",
+  // })
+  // async getAnyCompanyDetails(
+  //   @Param("companyId") companyId: string,
+  //   @Req() request: any
+  // ): Promise<any> {
+  //   // This endpoint allows omniscient users to access any company's details
+  //   const omniscientCompany = request.company;
+  //   const accessLevel = request.accessLevel;
+
+  //   const result = await this.companyService.getCompanyById(companyId);
+
+  //   return {
+  //     success: true,
+  //     message: "Admin access granted to company details",
+  //     access_level: accessLevel,
+  //     accessed_by_company: {
+  //       id: omniscientCompany.id,
+  //       name: omniscientCompany.name,
+  //       access_level: accessLevel,
+  //     },
+  //     requested_company: result.company,
+  //   };
+  // }
 }
