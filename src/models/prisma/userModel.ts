@@ -213,9 +213,11 @@ class UserModel {
     skip?: number;
     take?: number;
   }) {
-    const { companyId, skip = 0, take = 10 } = params;
+    const { companyId, skip = 0, take = 100 } = params;
 
-    const where: any = {};
+    const where: any = {
+      status: "ACTIVE",
+    };
     if (companyId) {
       where.userCompanyRoles = {
         some: {
@@ -231,14 +233,45 @@ class UserModel {
         skip,
         take,
         orderBy: { created_at: "desc" },
+        include: {
+          userCompanyRoles: {
+            where: { is_active: true },
+            include: {
+              company: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+              role: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
       }),
       prisma.user.count({ where }),
     ]);
 
     const totalPages = Math.ceil(total / take);
 
+    // Transformer les données pour avoir la liste simple des companies et roles par user
+    const formattedOutput = output.map((user) => ({
+      ...user,
+      companies: user.userCompanyRoles.map((ucr) => ({
+        id: ucr.company.id,
+        name: ucr.company.name,
+        roleId: ucr.role.id,
+        roleName: ucr.role.name,
+        status: ucr.status, // ajoute aussi le statut du rôle si besoin
+      })),
+    }));
+
     return {
-      output,
+      output: formattedOutput,
       pagination: {
         total,
         page: skip / take + 1,
@@ -247,6 +280,7 @@ class UserModel {
       },
     };
   }
+
   /**
    * This method allows for transactional operations.
    * It accepts a callback function that receives the Prisma client instance.
