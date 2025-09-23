@@ -18,8 +18,20 @@ class CustomerModel {
   }
   static async getOne(filters: FilterObject) {
     try {
+      // Guard: avoid passing null/undefined ids to Prisma
+      const safeFilters: any = { ...filters };
+      if (safeFilters?.id == null) {
+        delete safeFilters.id;
+      }
+      if (!safeFilters || Object.keys(safeFilters).length === 0) {
+        return fnOutput.error({
+          message: "Invalid customer filter: empty filters",
+          error: { message: "Invalid customer filter: empty filters" },
+        });
+      }
+
       const result = await this.prisma.customer.findFirst({
-        where: filters,
+        where: safeFilters,
       });
       if (!result) {
         return fnOutput.error({

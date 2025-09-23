@@ -314,6 +314,31 @@ export class WalletController {
     });
   }
 
+  @Post(":id/transfer-internal-advanced")
+  async transferInternalAdvanced(
+    @CurrentUser() user: CurrentUserData,
+    @Param("id") walletId: string,
+    @Body()
+    body: {
+      amount: number;
+      from_type: 'MAIN' | 'PAYIN' | 'PAYOUT';
+      to_type: 'MAIN' | 'PAYIN' | 'PAYOUT' | 'WITHDRAW';
+      reason?: string;
+      phone_number?: string; // required if to_type = WITHDRAW
+      operator?: string; // required if to_type = WITHDRAW
+    }
+  ) {
+    return WalletInternalTransferService.transferInternalAdvanced(walletId, {
+      amount: body.amount,
+      from_type: body.from_type,
+      to_type: body.to_type,
+      reason: body.reason,
+      user_id: (user.userId || user.companyId) as string,
+      phone_number: body.phone_number,
+      operator: body.operator,
+    });
+  }
+
   @Post("transfer-between")
   async transferBetween(
     @CurrentUser() user: CurrentUserData,

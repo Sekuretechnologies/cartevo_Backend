@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { WalletWithdrawalService } from './walletWithdrawal.service';
 import TransactionFeeModel from '../../models/prisma/transactionFeeModel';
+import { checkAfribapayBalance } from '@/utils/wallet/afribapay';
 
 const prisma = new PrismaClient();
 
@@ -124,8 +125,11 @@ export class PendingWithdrawalQueueService {
         data: { status: 'PROCESSING' }
       });
 
-      // Check Afribapay balance
-      const afribapayBalance = await this.getAfribapayBalance();
+      // Check Afribapay payout balance for this country/currency
+      const afribapayBalance = await this.getAfribapayBalance(
+        withdrawal.wallet?.country_iso_code,
+        withdrawal.currency
+      );
       
       if (afribapayBalance < withdrawal.total_amount) {
         console.log(`⚠️ Insufficient Afribapay balance for withdrawal ${withdrawal.id}. Available: ${afribapayBalance}, Required: ${withdrawal.total_amount}`);
@@ -238,11 +242,32 @@ export class PendingWithdrawalQueueService {
   }
 
   /**
-   * Check Afribapay balance (mock implementation)
+   * Check Afribapay payout balance filtered by country/currency
    */
-  private static async getAfribapayBalance(): Promise<number> {
-    // TODO: Replace with actual Afribapay API call
-    return 1000000; // Mock balance
+  private static async getAfribapayBalance(
+    countryIsoCode?: string,
+    currency?: string
+  ): Promise<number> {
+    try {
+      const response: any = await checkAfribapayBalance();
+      // Response shape: { data: [ { service, country_code, currency, balance_available, ... }, ... ] }
+      const list: any[] = response?.data?.data;
+      if (!Array.isArray(list)) return 0;
+
+      const entry = list.find(
+        (it) =>
+          String(it?.service).toLowerCase() === 'payout' &&
+          String(it?.country_code).toUpperCase() === String(countryIsoCode || '').toUpperCase() &&
+          String(it?.currency).toUpperCase() === String(currency || '').toUpperCase()
+      );
+
+      const available = entry?.balance_available ?? entry?.balance;
+      const value = Number(available);
+      return Number.isFinite(value) ? value : 0;
+    } catch (error) {
+      console.error('Afribapay balance check failed:', error);
+      return 0;
+    }
   }
 
   /**
@@ -331,6 +356,7 @@ export class PendingWithdrawalQueueService {
     }
   }
 }
+
 
 
 
