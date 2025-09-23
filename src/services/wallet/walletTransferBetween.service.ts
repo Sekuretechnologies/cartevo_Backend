@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client';
-import { TransferFeeCalculationService } from './transferFeeCalculation.service';
+import { PrismaClient } from "@prisma/client";
+import { TransferFeeCalculationService } from "./transferFeeCalculation.service";
 
 const prisma = new PrismaClient();
 
@@ -39,9 +39,9 @@ export class WalletTransferBetweenService {
             balance: true,
             currency: true,
             company_id: true,
-            active: true,
-            country_iso_code: true
-          }
+            is_active: true,
+            country_iso_code: true,
+          },
         }),
         prisma.wallet.findUnique({
           where: { id: request.to_wallet_id },
@@ -50,37 +50,37 @@ export class WalletTransferBetweenService {
             balance: true,
             currency: true,
             company_id: true,
-            active: true,
-            country_iso_code: true
-          }
-        })
+            is_active: true,
+            country_iso_code: true,
+          },
+        }),
       ]);
 
       if (!fromWallet) {
         return {
           success: false,
-          message: 'Source wallet not found'
+          message: "Source wallet not found",
         };
       }
 
       if (!toWallet) {
         return {
           success: false,
-          message: 'Destination wallet not found'
+          message: "Destination wallet not found",
         };
       }
 
-      if (!fromWallet.active) {
+      if (!fromWallet.is_active) {
         return {
           success: false,
-          message: 'Source wallet is not active'
+          message: "Source wallet is not active",
         };
       }
 
-      if (!toWallet.active) {
+      if (!toWallet.is_active) {
         return {
           success: false,
-          message: 'Destination wallet is not active'
+          message: "Destination wallet is not active",
         };
       }
 
@@ -88,23 +88,25 @@ export class WalletTransferBetweenService {
       if (request.amount <= 0) {
         return {
           success: false,
-          message: 'Amount must be greater than 0'
+          message: "Amount must be greater than 0",
         };
       }
 
       // Calculate transfer fees and currency conversion
-      const feeCalculation = await TransferFeeCalculationService.calculateTransferFee({
-        companyId: fromWallet.company_id,
-        fromCurrency: fromWallet.currency,
-        toCurrency: toWallet.currency,
-        amount: request.amount,
-        countryIsoCode: fromWallet.country_iso_code
-      });
+      const feeCalculation =
+        await TransferFeeCalculationService.calculateTransferFee({
+          companyId: fromWallet.company_id,
+          fromCurrency: fromWallet.currency,
+          toCurrency: toWallet.currency,
+          amount: request.amount,
+          countryIsoCode: fromWallet.country_iso_code,
+        });
 
       if (!feeCalculation.success) {
         return {
           success: false,
-          message: feeCalculation.message || 'Failed to calculate transfer fees'
+          message:
+            feeCalculation.message || "Failed to calculate transfer fees",
         };
       }
 
@@ -116,7 +118,7 @@ export class WalletTransferBetweenService {
       if (Number(fromWallet.balance) < totalAmount) {
         return {
           success: false,
-          message: `Insufficient balance. Required: ${totalAmount} ${fromWallet.currency} (including ${feeInfo.feeAmount} ${fromWallet.currency} fees)`
+          message: `Insufficient balance. Required: ${totalAmount} ${fromWallet.currency} (including ${feeInfo.feeAmount} ${fromWallet.currency} fees)`,
         };
       }
 
@@ -127,28 +129,32 @@ export class WalletTransferBetweenService {
           tx.wallet.update({
             where: { id: request.from_wallet_id },
             data: {
-              balance: { decrement: totalAmount } // Deduct amount + fees
+              balance: { decrement: totalAmount }, // Deduct amount + fees
             },
-            select: { balance: true }
+            select: { balance: true },
           }),
           tx.wallet.update({
             where: { id: request.to_wallet_id },
             data: {
-              balance: { increment: convertedAmount } // Add converted amount
+              balance: { increment: convertedAmount }, // Add converted amount
             },
-            select: { balance: true }
-          })
+            select: { balance: true },
+          }),
         ]);
 
         // Create debit transaction
         const debitTransaction = await tx.transaction.create({
           data: {
-            category: 'WALLET',
-            type: 'WALLET_TO_WALLET',
+            category: "WALLET",
+            type: "WALLET_TO_WALLET",
             amount: request.amount,
             currency: fromWallet.currency,
-            status: 'SUCCESS',
-            description: `Transfer to wallet ${toWallet.id}${fromWallet.currency !== toWallet.currency ? ` (${fromWallet.currency} → ${toWallet.currency})` : ''}`,
+            status: "SUCCESS",
+            description: `Transfer to wallet ${toWallet.id}${
+              fromWallet.currency !== toWallet.currency
+                ? ` (${fromWallet.currency} → ${toWallet.currency})`
+                : ""
+            }`,
             reason: request.reason,
             wallet_id: request.from_wallet_id,
             company_id: fromWallet.company_id,
@@ -159,19 +165,23 @@ export class WalletTransferBetweenService {
             net_amount: request.amount,
             amount_with_fee: totalAmount,
             fee_id: feeInfo.feeId,
-            reference: `TRANSFER_OUT_${Date.now()}_${request.from_wallet_id}`
-          }
+            reference: `TRANSFER_OUT_${Date.now()}_${request.from_wallet_id}`,
+          },
         });
 
         // Create credit transaction
         const creditTransaction = await tx.transaction.create({
           data: {
-            category: 'WALLET',
-            type: 'WALLET_TO_WALLET',
+            category: "WALLET",
+            type: "WALLET_TO_WALLET",
             amount: convertedAmount,
             currency: toWallet.currency,
-            status: 'SUCCESS',
-            description: `Transfer from wallet ${fromWallet.id}${fromWallet.currency !== toWallet.currency ? ` (${fromWallet.currency} → ${toWallet.currency})` : ''}`,
+            status: "SUCCESS",
+            description: `Transfer from wallet ${fromWallet.id}${
+              fromWallet.currency !== toWallet.currency
+                ? ` (${fromWallet.currency} → ${toWallet.currency})`
+                : ""
+            }`,
             reason: request.reason,
             wallet_id: request.to_wallet_id,
             company_id: toWallet.company_id,
@@ -181,8 +191,8 @@ export class WalletTransferBetweenService {
             fee_amount: 0, // No fees on receiving side
             net_amount: convertedAmount,
             amount_with_fee: convertedAmount,
-            reference: `TRANSFER_IN_${Date.now()}_${request.to_wallet_id}`
-          }
+            reference: `TRANSFER_IN_${Date.now()}_${request.to_wallet_id}`,
+          },
         });
 
         // Create balance transaction records
@@ -190,55 +200,62 @@ export class WalletTransferBetweenService {
           tx.balanceTransactionRecord.create({
             data: {
               transaction_id: debitTransaction.id,
-              entity_type: 'wallet',
+              entity_type: "wallet",
               entity_id: request.from_wallet_id,
               old_balance: Number(fromWallet.balance),
               new_balance: Number(updatedFromWallet.balance),
               amount_changed: -totalAmount, // Include fees in the change
               currency: fromWallet.currency,
-              change_type: 'transfer_out',
-              description: `Transfer to wallet ${toWallet.id}${fromWallet.currency !== toWallet.currency ? ` (${fromWallet.currency} → ${toWallet.currency})` : ''}`
-            }
+              change_type: "transfer_out",
+              description: `Transfer to wallet ${toWallet.id}${
+                fromWallet.currency !== toWallet.currency
+                  ? ` (${fromWallet.currency} → ${toWallet.currency})`
+                  : ""
+              }`,
+            },
           }),
           tx.balanceTransactionRecord.create({
             data: {
               transaction_id: creditTransaction.id,
-              entity_type: 'wallet',
+              entity_type: "wallet",
               entity_id: request.to_wallet_id,
               old_balance: Number(toWallet.balance),
               new_balance: Number(updatedToWallet.balance),
               amount_changed: convertedAmount, // Use converted amount
               currency: toWallet.currency,
-              change_type: 'transfer_in',
-              description: `Transfer from wallet ${fromWallet.id}${fromWallet.currency !== toWallet.currency ? ` (${fromWallet.currency} → ${toWallet.currency})` : ''}`
-            }
-          })
+              change_type: "transfer_in",
+              description: `Transfer from wallet ${fromWallet.id}${
+                fromWallet.currency !== toWallet.currency
+                  ? ` (${fromWallet.currency} → ${toWallet.currency})`
+                  : ""
+              }`,
+            },
+          }),
         ]);
 
         return {
           debitTransaction,
           updatedFromWallet,
           updatedToWallet,
-          feeInfo
+          feeInfo,
         };
       });
 
       return {
         success: true,
-        message: 'Transfer completed successfully',
+        message: "Transfer completed successfully",
         transaction_id: result.debitTransaction.id,
         from_wallet_balance: Number(result.updatedFromWallet.balance),
         to_wallet_balance: Number(result.updatedToWallet.balance),
         fee_amount: result.feeInfo.feeAmount,
         exchange_rate: result.feeInfo.exchangeRate,
-        converted_amount: result.feeInfo.convertedAmount
+        converted_amount: result.feeInfo.convertedAmount,
       };
-
     } catch (error) {
-      console.error('Transfer between wallets error:', error);
+      console.error("Transfer between wallets error:", error);
       return {
         success: false,
-        message: 'Transfer failed due to a system error'
+        message: "Transfer failed due to a system error",
       };
     }
   }
@@ -246,37 +263,36 @@ export class WalletTransferBetweenService {
   /**
    * Get available wallets for transfer (supports different currencies)
    */
-  static async getAvailableWallets(
-    sourceWalletId: string,
-    companyId: string
-  ) {
+  static async getAvailableWallets(sourceWalletId: string, companyId: string) {
     try {
       // Get source wallet details
       const sourceWallet = await prisma.wallet.findUnique({
         where: { id: sourceWalletId },
-        select: { 
+        select: {
           currency: true,
-          country_iso_code: true
-        }
+          country_iso_code: true,
+        },
       });
 
       if (!sourceWallet) {
         return {
           success: false,
-          message: 'Source wallet not found'
+          message: "Source wallet not found",
         };
       }
 
       // Get available currencies for transfer
-      const availableCurrencies = await TransferFeeCalculationService.getAvailableCurrencies(
-        companyId,
-        sourceWallet.currency
-      );
+      const availableCurrencies =
+        await TransferFeeCalculationService.getAvailableCurrencies(
+          companyId,
+          sourceWallet.currency
+        );
 
       if (!availableCurrencies.success) {
         return {
           success: false,
-          message: availableCurrencies.message || 'Failed to get available currencies'
+          message:
+            availableCurrencies.message || "Failed to get available currencies",
         };
       }
 
@@ -285,28 +301,27 @@ export class WalletTransferBetweenService {
         where: {
           id: { not: sourceWalletId },
           company_id: companyId,
-          active: true,
-          currency: { in: availableCurrencies.data! }
+          is_active: true,
+          currency: { in: availableCurrencies.data! },
         },
         select: {
           id: true,
           balance: true,
           currency: true,
           country: true,
-          country_iso_code: true
-        }
+          country_iso_code: true,
+        },
       });
 
       return {
         success: true,
-        data: availableWallets
+        data: availableWallets,
       };
-
     } catch (error) {
-      console.error('Get available wallets error:', error);
+      console.error("Get available wallets error:", error);
       return {
         success: false,
-        message: 'Failed to get available wallets'
+        message: "Failed to get available wallets",
       };
     }
   }
@@ -322,23 +337,22 @@ export class WalletTransferBetweenService {
     countryIsoCode?: string
   ) {
     try {
-      const feeCalculation = await TransferFeeCalculationService.calculateTransferFee({
-        companyId,
-        fromCurrency,
-        toCurrency,
-        amount,
-        countryIsoCode
-      });
+      const feeCalculation =
+        await TransferFeeCalculationService.calculateTransferFee({
+          companyId,
+          fromCurrency,
+          toCurrency,
+          amount,
+          countryIsoCode,
+        });
 
       return feeCalculation;
-
     } catch (error) {
-      console.error('Calculate transfer fees error:', error);
+      console.error("Calculate transfer fees error:", error);
       return {
         success: false,
-        message: 'Failed to calculate transfer fees'
+        message: "Failed to calculate transfer fees",
       };
     }
   }
 }
-

@@ -4,9 +4,11 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { KybDto, KycDto } from "./dto/admin.dto";
+import { KybDto, KycDto, ToggleUserStatusDto } from "./dto/admin.dto";
 import { EmailService } from "../../services/email.service";
 import { KycStatus } from "@prisma/client";
+import { da, id } from "date-fns/locale";
+import fnOutput from "@/utils/shared/fnOutputHandler";
 
 @Injectable()
 export class AdminService {
@@ -49,7 +51,7 @@ export class AdminService {
         kycDto.message
       );
     } else {
-      // await this.emailService.approveKycEmail(userEmail, userName);
+      await this.emailService.approveKycEmail(userEmail, userName);
     }
 
     const result = await UserModel.update(kycDto.userId, {
@@ -91,7 +93,7 @@ export class AdminService {
         kybDto.message
       );
     } else {
-      // await this.emailService.approveKycEmail(companyEmail, comapnyName);
+      await this.emailService.approveKycEmail(companyEmail, comapnyName);
     }
 
     const result = await CompanyModel.update(kybDto.companyId, {
@@ -102,6 +104,88 @@ export class AdminService {
       success: true,
       message: `KYC ${kybDto.value.toLowerCase()} successfully`,
       user: result.output.kbc_status,
+    };
+  }
+
+  /**
+   *
+   * update company
+   */
+  async updateCompany(id: string, data: any) {
+    const companyResult = await CompanyModel.get({ id });
+
+    if (companyResult.error) {
+      throw new NotFoundException("Company not found");
+    }
+
+    const updatedCompany = await CompanyModel.update(id, data);
+
+    return updatedCompany;
+  }
+
+  /**
+   * Desactiver une companie
+   */
+  async toggleCompanySTatus(id: string, isActive: boolean) {
+    const companyResult = await CompanyModel.get({ id });
+
+    if (companyResult.error) {
+      throw new NotFoundException("Company not found");
+    }
+
+    const company = await CompanyModel.update(id, {
+      is_active: isActive,
+    });
+
+    return {
+      message: `Company ${isActive ? "activated" : "deactivated"} successfully`,
+      data: company,
+    };
+  }
+
+  /*********************************************************************************/
+  async getUsers(filters?: { companyId?: string }, page = 1, perPage = 100) {
+    const skip = (page - 1) * perPage;
+
+    try {
+      const result = await UserModel.getByCompany({
+        ...filters,
+        skip,
+        take: perPage,
+      });
+
+      const users = result?.output ?? [];
+
+      if (users.length === 0) {
+        return fnOutput.success({
+          message: "No users found",
+        });
+      }
+
+      return {
+        message: "Users retrieved successfully",
+        data: users,
+        pagination: result.pagination,
+      };
+    } catch (error: any) {
+      return fnOutput.error({
+        message: "Error fetching users: " + error.message,
+        error: { message: error.message },
+      });
+    }
+  }
+
+  async toggleUserStatus(userId: string, status: ToggleUserStatusDto) {
+    const userResult = await UserModel.getOne({ id: userId });
+
+    if (userResult.error) {
+      throw new NotFoundException("user not found");
+    }
+    const updatedUser = await UserModel.update(userId, { status: status });
+
+    return {
+      message: `user ${status ? "activated" : "deactivated"} successfully`,
+      data: updatedUser,
     };
   }
 }

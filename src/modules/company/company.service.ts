@@ -67,7 +67,7 @@ import TransactionFeeModel from "@/models/prisma/transactionFeeModel";
 import OnboardingStepModel from "@/models/prisma/onboardingStepModel";
 import { FirebaseService } from "../../services/firebase.service";
 import { EmailService } from "../../services/email.service";
-import { UserStatus, StepStatus } from "@prisma/client";
+import { UserStatus, StepStatus, KycStatus, KybStatus } from "@prisma/client";
 import { Console } from "console";
 import { countries as countryDataList } from "country-data";
 import { getCountryPhonePrefix } from "@/utils/shared/common";
@@ -161,7 +161,7 @@ export class CompanyService {
       const walletsResult = await Promise.all([
         WalletModel.create({
           balance: 0,
-          active: true,
+          is_active: true,
           currency: createDto.business_country_currency || "",
           country: createDto.business_country || "",
           country_iso_code: createDto.business_country_iso_code || "",
@@ -170,7 +170,7 @@ export class CompanyService {
         }),
         WalletModel.create({
           balance: 0,
-          active: true,
+          is_active: true,
           currency: "USD",
           country: "USA",
           country_iso_code: "US",
@@ -635,7 +635,7 @@ export class CompanyService {
       const walletsResult = await Promise.all([
         WalletModel.create({
           balance: 0,
-          active: true,
+          is_active: true,
           currency: "XAF",
           country: "Cameroon",
           country_iso_code: "CM",
@@ -643,7 +643,7 @@ export class CompanyService {
         }),
         WalletModel.create({
           balance: 0,
-          active: true,
+          is_active: true,
           currency: "USD",
           country: "USA",
           country_iso_code: "USA",
@@ -1135,7 +1135,7 @@ export class CompanyService {
         fee_fixed: feeData.feeFixed,
         type: feeData.type,
         value: feeData.value,
-        active: feeData.is_active ?? true,
+        is_active: feeData.is_active ?? true,
         description: feeData.description,
       });
 
@@ -2197,6 +2197,31 @@ export class CompanyService {
         error: error.message,
       });
     }
+  }
+
+  /**
+   * verification status
+   */
+  async getVerificationStatus(userId: string, companyId: string) {
+    // Vérifier que l'utilisateur existe
+    const userResult = await UserModel.getOne({ id: userId });
+    if (userResult.error) {
+      throw new NotFoundException("User not found");
+    }
+    const user = userResult.output;
+
+    // Récupérer la société pour le KYB
+    const companyResult = await CompanyModel.getOne({ id: companyId });
+    if (companyResult.error) {
+      throw new NotFoundException("Company not found");
+    }
+    const company = companyResult.output;
+
+    // Retourner uniquement les statuts
+    return {
+      kycStatus: user.kyc_status || "NONE",
+      kybStatus: company.kyb_status || "NONE",
+    };
   }
 
   /**

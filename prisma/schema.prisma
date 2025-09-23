@@ -120,7 +120,7 @@ model Wallet {
   payout_balance       Decimal             @default(0) @map("payout_balance") @db.Decimal(15, 2)
   payin_amount         Decimal             @default(0) @map("payin_amount") @db.Decimal(15, 2)
   payout_amount        Decimal             @default(0) @map("payout_amount") @db.Decimal(15, 2)
-  active               Boolean             @default(true)
+  is_active               Boolean          @default(true) @map("active")
   currency             String
   country              String
   country_iso_code     String              @map("country_iso_code")
@@ -185,6 +185,7 @@ model Card {
   country          String // Country of issuance
   country_iso_code String     @map("country_iso_code") // ISO code of the country
   provider_card_id String     @map("provider_card_id") // ID from the card provider
+  provider_card_metadata Json?    @map("provider_card_metadata") // Metadata from the card provider
   // provider_card_account_number String? @map("provider_card_account_number") // Account number from the card provider
   masked_number    String?    @map("masked_number") // Masked card number
   name             String? // Name on the card
@@ -342,7 +343,7 @@ model TransactionFee {
   fee_fixed            Decimal? @map("fee_fixed") @db.Decimal(15, 2)
   type                 FeeType
   value                Decimal  @db.Decimal(15, 2)
-  active               Boolean  @default(true) @map("active")
+  is_active               Boolean  @default(true) @map("active")
   description          String?
   created_at           DateTime @default(now()) @map("created_at")
   updated_at           DateTime @updatedAt @map("updated_at")
