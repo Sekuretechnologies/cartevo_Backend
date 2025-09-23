@@ -161,7 +161,7 @@ export class CompanyService {
       const walletsResult = await Promise.all([
         WalletModel.create({
           balance: 0,
-          active: true,
+          is_active: true,
           currency: createDto.business_country_currency || "",
           country: createDto.business_country || "",
           country_iso_code: createDto.business_country_iso_code || "",
@@ -170,7 +170,7 @@ export class CompanyService {
         }),
         WalletModel.create({
           balance: 0,
-          active: true,
+          is_active: true,
           currency: "USD",
           country: "USA",
           country_iso_code: "US",
@@ -635,7 +635,7 @@ export class CompanyService {
       const walletsResult = await Promise.all([
         WalletModel.create({
           balance: 0,
-          active: true,
+          is_active: true,
           currency: "XAF",
           country: "Cameroon",
           country_iso_code: "CM",
@@ -643,7 +643,7 @@ export class CompanyService {
         }),
         WalletModel.create({
           balance: 0,
-          active: true,
+          is_active: true,
           currency: "USD",
           country: "USA",
           country_iso_code: "USA",
@@ -1135,7 +1135,7 @@ export class CompanyService {
         fee_fixed: feeData.feeFixed,
         type: feeData.type,
         value: feeData.value,
-        active: feeData.is_active ?? true,
+        is_active: feeData.is_active ?? true,
         description: feeData.description,
       });
 

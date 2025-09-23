@@ -87,7 +87,7 @@ async function main() {
   const xafWallet = await prisma.wallet.create({
     data: {
       balance: 0,
-      active: true,
+      is_active: true,
       currency: "XAF",
       country: "Cameroon",
       country_iso_code: "CM",
@@ -98,7 +98,7 @@ async function main() {
   const usdWallet = await prisma.wallet.create({
     data: {
       balance: 50000, // $50,000 starting balance
-      active: true,
+      is_active: true,
       currency: "USD",
       country: "USA",
       country_iso_code: "US",

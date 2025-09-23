@@ -4,10 +4,16 @@ import { WithdrawalProcessorService } from "../../services/scheduler/withdrawalP
 import { AdminController } from "./admin.controller";
 import { AdminService } from "./admin.service";
 import { EmailService } from "@/services/email.service";
+import { TokenBlacklistService } from "@/services/token-blacklist.service";
 
 @Module({
   controllers: [WithdrawalQueueController, AdminController],
-  providers: [WithdrawalProcessorService, AdminService, EmailService],
+  providers: [
+    WithdrawalProcessorService,
+    AdminService,
+    EmailService,
+    TokenBlacklistService,
+  ],
   exports: [WithdrawalProcessorService],
 })
 export class AdminModule {}
