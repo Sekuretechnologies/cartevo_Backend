@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { KybDto, KycDto } from "./dto/admin.dto";
+import { KybDto, KycDto, ToggleUserStatusDto } from "./dto/admin.dto";
 import { EmailService } from "../../services/email.service";
 import { KycStatus } from "@prisma/client";
 import { da, id } from "date-fns/locale";
@@ -144,7 +144,7 @@ export class AdminService {
   }
 
   /*********************************************************************************/
-  async getUsers(filters?: { companyId?: string }, page = 1, perPage = 10) {
+  async getUsers(filters?: { companyId?: string }, page = 1, perPage = 100) {
     const skip = (page - 1) * perPage;
 
     try {
@@ -175,7 +175,7 @@ export class AdminService {
     }
   }
 
-  async toggleUserStatus(userId: string, status: boolean) {
+  async toggleUserStatus(userId: string, status: ToggleUserStatusDto) {
     const userResult = await UserModel.getOne({ id: userId });
 
     if (userResult.error) {
