@@ -15,7 +15,7 @@ import {
   ApiResponse,
 } from "@nestjs/swagger";
 import { AdminService } from "./admin.service";
-import { KybDto, KycDto } from "./dto/admin.dto";
+import { KybDto, KycDto, ToggleUserStatusDto } from "./dto/admin.dto";
 import { ResponseInterceptor } from "../common/interceptors/response.interceptop";
 
 @ApiTags("Admin")
@@ -74,7 +74,7 @@ export class AdminController {
   async getAllUsers(
     @Query("companyId") companyId?: string,
     @Query("page") page = "1",
-    @Query("perPage") perPage = "10"
+    @Query("perPage") perPage = "100"
   ) {
     const pageNumber = parseInt(page, 10);
     const perPageNumber = parseInt(perPage, 10);
@@ -94,7 +94,7 @@ export class AdminController {
   @Put("toggle-user/:id")
   async toggleUserStatus(
     @Param("id") id: string,
-    @Body("status") status: boolean
+    @Body("status") status: ToggleUserStatusDto
   ) {
     return this.adminService.toggleUserStatus(id, status);
   }

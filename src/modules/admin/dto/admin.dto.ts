@@ -1,4 +1,4 @@
-import { KybStatus, KycStatus } from "@prisma/client";
+import { KybStatus, KycStatus, UserStatus } from "@prisma/client";
 import { IsEnum, IsNotEmpty, IsOptional, IsString } from "class-validator";
 
 export class KycDto {
@@ -29,4 +29,9 @@ export class KybDto {
     message: "value must be APPROVED or REJECTED",
   })
   value: KybStatus;
+}
+
+
+export class ToggleUserStatusDto {
+  status: UserStatus
 }
