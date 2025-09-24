@@ -6,7 +6,11 @@ import { ConfigService } from "@nestjs/config";
 import { AppModule } from "./app.module";
 import { writeFileSync } from "fs";
 import * as YAML from "yamljs";
+
+import { ResponseInterceptor } from "./modules/common/interceptors/response.interceptop";
+
 import helmet from "helmet";
+
 ``;
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -20,6 +24,9 @@ async function bootstrap() {
 
   // Global prefix
   app.setGlobalPrefix(`${apiPrefix}/${apiVersion}`);
+
+  // Intercepteur global de reponse
+  // app.useGlobalInterceptors(new ResponseInterceptor());
 
   // Global validation pipe
   app.useGlobalPipes(

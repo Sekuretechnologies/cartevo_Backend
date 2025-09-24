@@ -1,47 +1,42 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Put,
-  Delete,
-  Body,
-  Param,
-  Query,
-  UseGuards,
-} from "@nestjs/common";
-import { IWalletCreate, WalletService } from "./wallet.service";
 import { IWalletFunding } from "@/services/wallet/walletFunding.service";
+import { WalletInternalTransferService } from "@/services/wallet/walletInternalTransfer.service";
+import { WalletTransferBetweenService } from "@/services/wallet/walletTransferBetween.service";
 import {
-  IWalletWithdrawal,
-  withdrawFromWallet,
+  WithdrawalRequest as IWalletWithdrawal,
+  WalletWithdrawalService,
 } from "@/services/wallet/walletWithdrawal.service";
 import {
-  ApiBearerAuth,
-  ApiTags,
-  ApiProperty,
-  ApiOperation,
-  ApiResponse,
-} from "@nestjs/swagger";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  UseGuards,
+} from "@nestjs/common";
 import {
-  CurrentBusiness,
-  CurrentBusinessData,
-} from "../common/decorators/current-business.decorator";
+  ApiBearerAuth,
+  ApiOperation,
+  ApiProperty,
+  ApiResponse,
+  ApiTags,
+} from "@nestjs/swagger";
+import { Type } from "class-transformer";
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  Min,
+  ValidateNested,
+} from "class-validator";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import {
   CurrentUser,
   CurrentUserData,
 } from "../common/decorators/current-user.decorator";
-import {
-  IsString,
-  IsNotEmpty,
-  IsNumber,
-  IsObject,
-  ValidateNested,
-  Min,
-  IsBoolean,
-} from "class-validator";
-import { Type } from "class-transformer";
 import { WalletTestService } from "./wallet-test.service";
+import { IWalletCreate, WalletService } from "./wallet.service";
 
 export interface DepositToWalletSubmitProps {
   sourceWallet: {
@@ -276,7 +271,20 @@ export class WalletController {
     @CurrentUser() user: CurrentUserData,
     @Body() data: IWalletWithdrawal
   ) {
-    return withdrawFromWallet(user.companyId, data);
+    // Expecting data to include walletId, amount, phone_number, operator, reason
+    const { walletId, amount, phone_number, operator, reason } =
+      (data as any) || {};
+    if (!walletId) {
+      throw new Error("walletId is required in request body");
+    }
+    const reqData: IWalletWithdrawal = {
+      amount,
+      phone_number,
+      operator,
+      reason,
+      user_id: (user.userId || user.companyId) as string,
+    };
+    return WalletWithdrawalService.processWithdrawal(walletId, reqData);
   }
 
   @Post("deposit")
@@ -285,6 +293,101 @@ export class WalletController {
     @Body() data: DepositToWalletDto
   ) {
     return this.walletService.depositToWallet(user.companyId, data);
+  }
+
+  @Post(":id/transfer-internal")
+  async transferInternal(
+    @CurrentUser() user: CurrentUserData,
+    @Param("id") walletId: string,
+    @Body()
+    body: {
+      amount: number;
+      direction: "PAYIN_TO_PAYOUT" | "PAYOUT_TO_PAYIN";
+      reason?: string;
+    }
+  ) {
+    return WalletInternalTransferService.transferInternal(walletId, {
+      amount: body.amount,
+      direction: body.direction,
+      reason: body.reason,
+      user_id: (user.userId || user.companyId) as string,
+    });
+  }
+
+  @Post(":id/transfer-internal-advanced")
+  async transferInternalAdvanced(
+    @CurrentUser() user: CurrentUserData,
+    @Param("id") walletId: string,
+    @Body()
+    body: {
+      amount: number;
+      from_type: 'MAIN' | 'PAYIN' | 'PAYOUT';
+      to_type: 'MAIN' | 'PAYIN' | 'PAYOUT' | 'WITHDRAW';
+      reason?: string;
+      phone_number?: string; // required if to_type = WITHDRAW
+      operator?: string; // required if to_type = WITHDRAW
+    }
+  ) {
+    return WalletInternalTransferService.transferInternalAdvanced(walletId, {
+      amount: body.amount,
+      from_type: body.from_type,
+      to_type: body.to_type,
+      reason: body.reason,
+      user_id: (user.userId || user.companyId) as string,
+      phone_number: body.phone_number,
+      operator: body.operator,
+    });
+  }
+
+  @Post("transfer-between")
+  async transferBetween(
+    @CurrentUser() user: CurrentUserData,
+    @Body()
+    body: {
+      from_wallet_id: string;
+      to_wallet_id: string;
+      amount: number;
+      reason?: string;
+    }
+  ) {
+    return WalletTransferBetweenService.transferBetween({
+      from_wallet_id: body.from_wallet_id,
+      to_wallet_id: body.to_wallet_id,
+      amount: body.amount,
+      reason: body.reason,
+      user_id: (user.userId || user.companyId) as string,
+    });
+  }
+
+  @Get(":id/available-for-transfer")
+  async getAvailableWallets(
+    @CurrentUser() user: CurrentUserData,
+    @Param("id") sourceWalletId: string
+  ) {
+    return WalletTransferBetweenService.getAvailableWallets(
+      sourceWalletId,
+      user.companyId as string
+    );
+  }
+
+  @Post("calculate-transfer-fees")
+  async calculateTransferFees(
+    @CurrentUser() user: CurrentUserData,
+    @Body()
+    body: {
+      from_currency: string;
+      to_currency: string;
+      amount: number;
+      country_iso_code?: string;
+    }
+  ) {
+    return WalletTransferBetweenService.calculateTransferFees(
+      user.companyId as string,
+      body.from_currency,
+      body.to_currency,
+      body.amount,
+      body.country_iso_code
+    );
   }
 
   @Get("balance/:walletId")

@@ -1500,7 +1500,6 @@ export class CardIssuanceService {
       country_iso_code: customer.country_iso_code,
       is_active: true,
       is_virtual: true,
-      provider_card_metadata: finalCard,
     });
 
     if (newCardResult.error) {

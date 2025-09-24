@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { JwtStrategy } from "./strategies/jwt.strategy";
+import { OmniGuard } from "./guards/omni.guard";
 import { UserModule } from "../user/user.module";
 import { EmailService } from "@/services/email.service";
 
@@ -25,7 +26,7 @@ import { EmailService } from "@/services/email.service";
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, EmailService],
-  exports: [AuthService],
+  providers: [AuthService, JwtStrategy, OmniGuard, EmailService],
+  exports: [AuthService, OmniGuard],
 })
 export class AuthModule {}

@@ -21,6 +21,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "ts-node prisma/seed.ts",
+    "fees:xaf-xof": "ts-node prisma/scripts/add-xaf-xof-fees.ts",
     "test:api": "node test-api.js"
   },
   "_moduleAliases": {
@@ -33,6 +34,7 @@
     "@nestjs/jwt": "^10.1.0",
     "@nestjs/passport": "^10.0.0",
     "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/schedule": "^4.1.0",
     "@nestjs/swagger": "^7.1.8",
     "@nestjs/throttler": "^4.2.1",
     "@prisma/client": "^6.11.1",
