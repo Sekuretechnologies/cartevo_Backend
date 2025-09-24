@@ -264,6 +264,7 @@ export class LoginSuccessResponseDto {
     name: string;
     country: string;
     onboarding_is_completed: boolean;
+    clearance?: string;
   };
 
   @ApiProperty({

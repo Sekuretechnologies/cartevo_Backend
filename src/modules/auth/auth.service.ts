@@ -332,6 +332,10 @@ export class AuthService {
           name: userCompany.company.name,
           country: userCompany.company.country,
           onboarding_is_completed: completedCount === totalCount,
+          clearance:
+            userCompany.company.access_level === "omniscient"
+              ? "admin"
+              : "default",
         },
         redirect_to: redirectTo,
       };
@@ -853,6 +857,10 @@ export class AuthService {
           name: selectedCompanyRole.company.name,
           country: selectedCompanyRole.company.country,
           onboarding_is_completed: completedCount === totalCount,
+          clearance:
+            selectedCompanyRole.company.access_level === "omniscient"
+              ? "admin"
+              : "default",
         },
         redirect_to: redirectTo,
       };
