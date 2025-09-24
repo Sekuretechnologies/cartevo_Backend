@@ -4,6 +4,8 @@ import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CompanyModel, UserModel } from "@/models";
+import env from "@/env";
+import * as jwt from "jsonwebtoken";
 
 export interface JwtPayload {
   sub: string;
@@ -17,6 +19,8 @@ export interface JwtPayload {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
+  private secrets: string[];
+
   constructor(
     private configService: ConfigService,
     private prisma: PrismaService
@@ -24,8 +28,37 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET,
+      secretOrKeyProvider: (request, rawJwtToken, done) => {
+        // Try to verify with each secret
+        let payload: JwtPayload | null = null;
+        let error: any = null;
+
+        for (const secret of this.getSecrets()) {
+          try {
+            payload = jwt.verify(rawJwtToken, secret) as JwtPayload;
+            break;
+          } catch (err) {
+            error = err;
+          }
+        }
+
+        if (payload) {
+          done(null, payload);
+        } else {
+          done(error, null);
+        }
+      },
     });
+
+    this.secrets = this.getSecrets();
+  }
+
+  private getSecrets(): string[] {
+    const secrets = [env.JWT_SECRET];
+    if (env.CROSS_ENV_JWT_SECRET) {
+      secrets.push(env.CROSS_ENV_JWT_SECRET);
+    }
+    return secrets;
   }
 
   async validate(payload: JwtPayload) {

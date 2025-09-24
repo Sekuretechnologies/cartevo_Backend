@@ -332,6 +332,10 @@ export class AuthService {
           name: userCompany.company.name,
           country: userCompany.company.country,
           onboarding_is_completed: completedCount === totalCount,
+          clearance:
+            userCompany.company.access_level === "omniscient"
+              ? "admin"
+              : "default",
         },
         redirect_to: redirectTo,
       };
@@ -497,9 +501,26 @@ export class AuthService {
     try {
       let decoded: { email: string };
       try {
-        decoded = this.jwtService.verify(token, {
-          secret: process.env.JWT_SECRET,
-        }) as any;
+        // Try to verify with multiple secrets
+        const secrets = [process.env.JWT_SECRET];
+        if (process.env.CROSS_ENV_JWT_SECRET) {
+          secrets.push(process.env.CROSS_ENV_JWT_SECRET);
+        }
+
+        let verified = false;
+        for (const secret of secrets) {
+          try {
+            decoded = this.jwtService.verify(token, { secret }) as any;
+            verified = true;
+            break;
+          } catch (verifyErr) {
+            // Try next secret
+          }
+        }
+
+        if (!verified) {
+          throw new Error("Invalid token");
+        }
       } catch (err) {
         if (err.name === "TokenExpiredError") {
           throw new UnauthorizedException("Token has expired");
@@ -758,9 +779,30 @@ export class AuthService {
       // Verify the temporary token
       let decoded: { sub: string; email: string; temp: boolean };
       try {
-        decoded = this.jwtService.verify(selectCompanyDto.temp_token) as any;
-        if (!decoded.temp) {
-          throw new UnauthorizedException("Invalid token type");
+        // Try to verify with multiple secrets
+        const secrets = [process.env.JWT_SECRET];
+        if (process.env.CROSS_ENV_JWT_SECRET) {
+          secrets.push(process.env.CROSS_ENV_JWT_SECRET);
+        }
+
+        let verified = false;
+        for (const secret of secrets) {
+          try {
+            decoded = this.jwtService.verify(selectCompanyDto.temp_token, {
+              secret,
+            }) as any;
+            if (!decoded.temp) {
+              throw new UnauthorizedException("Invalid token type");
+            }
+            verified = true;
+            break;
+          } catch (verifyErr) {
+            // Try next secret
+          }
+        }
+
+        if (!verified) {
+          throw new Error("Invalid token");
         }
       } catch (err) {
         if (err.name === "TokenExpiredError") {
@@ -853,6 +895,10 @@ export class AuthService {
           name: selectedCompanyRole.company.name,
           country: selectedCompanyRole.company.country,
           onboarding_is_completed: completedCount === totalCount,
+          clearance:
+            selectedCompanyRole.company.access_level === "omniscient"
+              ? "admin"
+              : "default",
         },
         redirect_to: redirectTo,
       };
@@ -875,13 +921,33 @@ export class AuthService {
     dto: ValidateInvitationTokenDto
   ): Promise<ValidateInvitationResponseDto> {
     try {
-      // Verify JWT token
-      const decoded = this.jwtService.verify(dto.token) as {
+      // Verify JWT token with multiple secrets
+      let decoded: {
         invitation_id: string;
         email: string;
         company_id: string;
         role: string;
       };
+
+      const secrets = [process.env.JWT_SECRET];
+      if (process.env.CROSS_ENV_JWT_SECRET) {
+        secrets.push(process.env.CROSS_ENV_JWT_SECRET);
+      }
+
+      let verified = false;
+      for (const secret of secrets) {
+        try {
+          decoded = this.jwtService.verify(dto.token, { secret }) as any;
+          verified = true;
+          break;
+        } catch (verifyErr) {
+          // Try next secret
+        }
+      }
+
+      if (!verified) {
+        return { valid: false };
+      }
 
       // Check if invitation still exists and is pending
       const invitation = await UserModel.getOne({

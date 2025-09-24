@@ -57,12 +57,20 @@ export const signToken = (id: any) => {
 };
 
 export const decodeToken: any = (token: string) => {
-  try {
-    const decoded = jwtService.verify(token, { secret: env.JWT_SECRET }) as any;
-    return decoded;
-  } catch (err) {
-    throw new Error("Invalid token");
+  const secrets = [env.JWT_SECRET];
+  if (env.CROSS_ENV_JWT_SECRET) {
+    secrets.push(env.CROSS_ENV_JWT_SECRET);
   }
+
+  for (const secret of secrets) {
+    try {
+      const decoded = jwtService.verify(token, { secret }) as any;
+      return decoded;
+    } catch (err) {
+      // Try next secret
+    }
+  }
+  throw new Error("Invalid token");
 };
 
 /**
