@@ -61,10 +61,15 @@ class WalletPhoneNumberModel {
       });
       return fnOutput.success({ code: 201, output: walletPhoneNumber });
     } catch (error: any) {
+      // Map unique constraint violation to a clearer error
+      const message =
+        error?.code === "P2002"
+          ? "This phone number already exists for this wallet."
+          : "Error creating wallet phone number: " + error.message;
       return fnOutput.error({
-        message: "Error creating wallet phone number: " + error.message,
+        message,
         error: {
-          message: "Error creating wallet phone number: " + error.message,
+          message,
         },
       });
     }

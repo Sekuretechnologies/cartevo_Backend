@@ -12,6 +12,17 @@ export interface IWalletPhoneNumberData {
 
 class WalletPhoneNumberService {
   async create(data: IWalletPhoneNumberData) {
+    const existing = await WalletPhoneNumberModel.getOne({
+      wallet_id: data.wallet_id,
+      phone_number: data.phone_number,
+    });
+    if (existing && existing.status==="success" && existing.output) {
+      return fnOutput.error({
+        error: {
+          message: "This phone number already exists for this wallet.",
+        },
+      });
+    }
     try {
       const result = await WalletPhoneNumberModel.create(data);
       return result;
