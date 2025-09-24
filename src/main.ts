@@ -6,14 +6,18 @@ import { ConfigService } from "@nestjs/config";
 import { AppModule } from "./app.module";
 import { writeFileSync } from "fs";
 import * as YAML from "yamljs";
+
 import { ResponseInterceptor } from "./modules/common/interceptors/response.interceptop";
+
+import helmet from "helmet";
+
 ``;
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
   // const port = configService.get("PORT") || 3000;
-  const port = process.env.PORT || 3001;
+  const port = process.env.PORT || 3002;
   const host = process.env.HOST || "0.0.0.0";
   const apiPrefix = configService.get("API_PREFIX") || "api";
   const apiVersion = configService.get("API_VERSION") || "v1";
@@ -38,6 +42,25 @@ async function bootstrap() {
     origin: true,
     credentials: true,
   });
+
+  // Security headers with Helmet
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          imgSrc: ["'self'", "data:", "https:"],
+        },
+      },
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
+      },
+    })
+  );
 
   // Swagger documentation
   const config = new DocumentBuilder()

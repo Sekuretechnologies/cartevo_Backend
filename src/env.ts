@@ -23,6 +23,7 @@ const env = cleanEnv(process.env, {
   /** ------------------------*/
   JWT_SECRET: str(),
   JWT_EXPIRES_IN: str(),
+  CROSS_ENV_JWT_SECRET: str({ default: "" }),
   /** ------------------------*/
   EMAIL_HOST: str(),
   EMAIL_PORT: str(),

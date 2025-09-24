@@ -756,13 +756,33 @@ export class UserService {
     dto: ValidateInvitationTokenDto
   ): Promise<ValidateInvitationResponseDto> {
     try {
-      // Verify JWT token
-      const decoded = this.jwtService.verify(dto.token) as {
+      // Verify JWT token with multiple secrets
+      let decoded: {
         invitation_id: string;
         email: string;
         company_id: string;
         role: string;
       };
+
+      const secrets = [process.env.JWT_SECRET];
+      if (process.env.CROSS_ENV_JWT_SECRET) {
+        secrets.push(process.env.CROSS_ENV_JWT_SECRET);
+      }
+
+      let verified = false;
+      for (const secret of secrets) {
+        try {
+          decoded = this.jwtService.verify(dto.token, { secret }) as any;
+          verified = true;
+          break;
+        } catch (verifyErr) {
+          // Try next secret
+        }
+      }
+
+      if (!verified) {
+        return { valid: false };
+      }
 
       // Check if invitation still exists and is pending
       const invitation = await UserModel.getOne({
