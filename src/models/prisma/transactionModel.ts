@@ -63,12 +63,22 @@ class TransactionModel {
         ...include,
       };
 
-      const result = await this.prisma.transaction.findMany(
-        buildPrismaQuery({
-          filters,
-          include: defaultInclude,
-        })
-      );
+      // Extract pagination safely from filters and avoid leaking into `where`
+      const rawFilters: any = filters || {};
+      const { limit, offset, ...sanitizedFilters } = rawFilters;
+      const take = typeof limit === "string" ? parseInt(limit, 10) : limit;
+      const skip = typeof offset === "string" ? parseInt(offset, 10) : offset;
+
+      const baseQuery = buildPrismaQuery({
+        filters: sanitizedFilters,
+        include: defaultInclude,
+      });
+
+      const result = await this.prisma.transaction.findMany({
+        ...baseQuery,
+        ...(typeof take === "number" && !Number.isNaN(take) ? { take } : {}),
+        ...(typeof skip === "number" && !Number.isNaN(skip) ? { skip } : {}),
+      });
       return fnOutput.success({ output: result });
     } catch (error: any) {
       return fnOutput.error({

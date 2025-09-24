@@ -14,10 +14,18 @@ export class WebhookServiceAfribapay {
         body
       );
 
-      // Get transaction by order_id
-      const trxResult = await TransactionModel.getOne({
-        order_id: transaction_id,
+      // Prefer lookup by provider reference (provider transaction_id)
+      let trxResult = await TransactionModel.getOne({
+        reference: transaction_id,
       });
+
+      // Fallback to order_id if not found and payload carries an order id
+      if ((!trxResult || trxResult.error || !trxResult.output) && (body?.order_id || body?.orderId)) {
+        const incomingOrderId = String(body.order_id || body.orderId);
+        trxResult = await TransactionModel.getOne({
+          order_id: incomingOrderId,
+        });
+      }
 
       if (trxResult.error) {
         throw new HttpException("Transaction not found", HttpStatus.NOT_FOUND);
