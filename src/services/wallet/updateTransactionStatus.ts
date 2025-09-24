@@ -43,8 +43,10 @@ export const updateTransactionStatus = async (
   }
 
   let trxUpdates: any = { status: newStatus };
-  if (reference) trxUpdates.order_id = reference;
-  if (provider_id) trxUpdates.reference = provider_id;
+  // Correct mapping: `reference` stores provider transaction_id (PIM...)
+  if (reference) trxUpdates.reference = reference;
+  // Keep provider_id optional mapping if provided by caller
+  if (provider_id) trxUpdates.provider = provider_id as any;
   if (error) trxUpdates.reason = error;
 
   // Get the initial transaction
@@ -75,41 +77,49 @@ export const updateTransactionStatus = async (
     });
   }
 
-  // Get customer information
-  const customerResult = await CustomerModel.getOne({
-    id: transaction.customer_id,
-  });
-  if (customerResult.error) {
-    throw customerResult.error;
-  }
-  const customer = customerResult.output;
-
-  if (!customer) {
-    return fnOutput.error({
-      code: 404,
-      error: { message: "Customer not found" },
+  // Optionally load customer/company only if notifications are required and a customer_id exists
+  let customer: any = null;
+  let company: any = null;
+  if (!withoutNotifications && transaction.customer_id) {
+    const customerResult = await CustomerModel.getOne({
+      id: transaction.customer_id,
     });
-  }
+    if (customerResult.error) {
+      throw customerResult.error;
+    }
+    customer = customerResult.output;
 
-  // Get company information
-  const companyResult = await CompanyModel.getOne({
-    id: customer.company_id,
-  });
-  if (companyResult.error) {
-    throw companyResult.error;
-  }
-  const company = companyResult.output;
+    if (!customer) {
+      return fnOutput.error({
+        code: 404,
+        error: { message: "Customer not found" },
+      });
+    }
 
-  if (!company) {
-    return fnOutput.error({
-      code: 404,
-      error: { message: "Company not found" },
+    const companyResult = await CompanyModel.getOne({
+      id: customer.company_id,
     });
+    if (companyResult.error) {
+      throw companyResult.error;
+    }
+    company = companyResult.output;
+
+    if (!company) {
+      return fnOutput.error({
+        code: 404,
+        error: { message: "Company not found" },
+      });
+    }
   }
 
   // Handle wallet funding transactions
   if (type === "FUND" || type === "fund") {
-    if (newStatus === "SUCCESS" && initTrans.status !== "SUCCESS") {
+    const needsCatchUpBalanceUpdate =
+      String(transaction.status).toUpperCase() === "SUCCESS" &&
+      Number(transaction.wallet_balance_before ?? 0) ===
+        Number(transaction.wallet_balance_after ?? 0);
+
+    if ((newStatus === "SUCCESS" && initTrans.status !== "SUCCESS") || needsCatchUpBalanceUpdate) {
       // Get wallet information
       const walletResult = await WalletModel.getOne({
         id: transaction.wallet_id,
@@ -182,7 +192,7 @@ export const updateTransactionStatus = async (
       // }
     } else if (newStatus === "FAILED" || newStatus === "EXPIRED") {
       // Create failure notification
-      if (!withoutNotifications) {
+      if (!withoutNotifications && customer) {
         await NotificationModel.create({
           customer_id: customer.id,
           transaction_id: transaction.id,
@@ -232,7 +242,7 @@ export const updateTransactionStatus = async (
     if (newStatus === "SUCCESS" && initTrans.status !== "SUCCESS") {
       // For successful withdrawals, the balance was already decreased
       // Create success notification
-      if (!withoutNotifications) {
+      if (!withoutNotifications && customer) {
         await NotificationModel.create({
           customer_id: customer.id,
           transaction_id: transaction.id,
@@ -305,7 +315,7 @@ export const updateTransactionStatus = async (
       });
 
       // Create failure notification
-      if (!withoutNotifications) {
+      if (!withoutNotifications && customer) {
         await NotificationModel.create({
           customer_id: customer.id,
           transaction_id: transaction.id,

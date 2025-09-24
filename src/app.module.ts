@@ -6,11 +6,13 @@ import { PrismaModule } from "./modules/prisma/prisma.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { CompanyModule } from "./modules/company/company.module";
 import { CustomerModule } from "./modules/customer/customer.module";
+import { WebhookModule } from "./modules/webhook/webhook.module";
 
 import { UserModule } from "./modules/user/user.module";
 import { WalletModule } from "./modules/wallet/wallet.module";
 import { MapleradModule } from "./modules/maplerad/maplerad.module";
 import { AdminModule } from "./modules/admin/admin.module";
+import { WalletFundingPollerService } from "./services/scheduler/walletFundingPoller.service";
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { AdminModule } from "./modules/admin/admin.module";
     WalletModule,
     MapleradModule,
     AdminModule,
+    WebhookModule,
   ],
+  providers: [WalletFundingPollerService],
 })
 export class AppModule {}
