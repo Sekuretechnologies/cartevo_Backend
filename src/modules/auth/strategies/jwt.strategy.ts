@@ -29,23 +29,25 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKeyProvider: (request, rawJwtToken, done) => {
-        // Try to verify with each secret
-        let payload: JwtPayload | null = null;
-        let error: any = null;
+        // Try to find the correct secret for this token
+        const secrets = this.getSecrets();
 
-        for (const secret of this.getSecrets()) {
+        let validSecret: string | null = null;
+        for (let i = 0; i < secrets.length; i++) {
           try {
-            payload = jwt.verify(rawJwtToken, secret) as JwtPayload;
+            // Try to verify with this secret (without full decode, just check signature)
+            jwt.verify(rawJwtToken, secrets[i], { ignoreExpiration: true });
+            validSecret = secrets[i];
             break;
           } catch (err) {
-            error = err;
+            // Continue to next secret
           }
         }
 
-        if (payload) {
-          done(null, payload);
+        if (validSecret) {
+          done(null, validSecret);
         } else {
-          done(error, null);
+          done(new Error("Invalid token"), null);
         }
       },
     });
@@ -62,8 +64,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
+    console.log(
+      `JwtStrategy validate: Processing payload with keys: ${Object.keys(
+        payload
+      ).join(", ")}`
+    );
+
     // Check if this is a user token (has email)
     if (payload.email) {
+      console.log(
+        `JwtStrategy validate: Validating user token for user ${payload.sub}, email ${payload.email}, company ${payload.companyId}`
+      );
+
       const userResult = await UserModel.getOne(
         { id: payload.sub },
         {
@@ -80,10 +92,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       );
 
       if (userResult.error || !userResult.output) {
+        console.error(
+          `JwtStrategy validate: User lookup failed for ${payload.sub}: ${userResult.error?.message}`
+        );
         throw new UnauthorizedException("Invalid user token");
       }
 
       const user = userResult.output;
+      console.log(
+        `JwtStrategy validate: User found with ${
+          user.userCompanyRoles?.length || 0
+        } active company roles`
+      );
 
       let companyId: any = undefined;
       // Get user's companies and roles
@@ -98,8 +118,19 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         }) || [];
 
       if (!companyId) {
+        console.warn(
+          `JwtStrategy validate: User ${
+            payload.sub
+          } does not have access to company ${
+            payload.companyId
+          }. Active roles: ${JSON.stringify(userCompanies)}`
+        );
         throw new UnauthorizedException("Invalid company token");
       }
+
+      console.log(
+        `JwtStrategy validate: User token validated successfully for user ${user.id} in company ${companyId}`
+      );
 
       return {
         userId: user.id,
