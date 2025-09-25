@@ -8,6 +8,7 @@ import { writeFileSync } from "fs";
 import * as YAML from "yamljs";
 
 import { ResponseInterceptor } from "./modules/common/interceptors/response.interceptop";
+import { LoggingInterceptor } from "./modules/common/interceptors/logging.interceptor";
 
 import helmet from "helmet";
 
@@ -17,13 +18,16 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
   // const port = configService.get("PORT") || 3000;
-  const port = process.env.PORT || 3002;
+  const port = process.env.PORT || 3001;
   const host = process.env.HOST || "0.0.0.0";
   const apiPrefix = configService.get("API_PREFIX") || "api";
   const apiVersion = configService.get("API_VERSION") || "v1";
 
   // Global prefix
   app.setGlobalPrefix(`${apiPrefix}/${apiVersion}`);
+
+  // Global logging interceptor
+  app.useGlobalInterceptors(new LoggingInterceptor());
 
   // Intercepteur global de reponse
   // app.useGlobalInterceptors(new ResponseInterceptor());
