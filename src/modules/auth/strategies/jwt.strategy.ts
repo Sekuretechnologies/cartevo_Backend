@@ -33,57 +33,40 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         this.logger.debug(
           `JwtStrategy: Request details - URL: ${request.url}, Method: ${
             request.method
-          }, Token: ${rawJwtToken}, Query: ${JSON.stringify(
+          }, Token: ${rawJwtToken.substring(0, 20)}..., Query: ${JSON.stringify(
             request.query
           )}, Body: ${JSON.stringify(request.body)}`
         );
-        this.logger.debug(`JwtStrategy: Attempting to verify token: `, {
-          rawJwtToken,
-        });
 
-        // Try to verify with each secret
-        let payload: JwtPayload | null = null;
-        let error: any = null;
+        // Try to find the correct secret for this token
         const secrets = this.getSecrets();
 
         this.logger.debug(
           `JwtStrategy: Trying verification with ${secrets.length} secrets`
         );
 
+        let validSecret: string | null = null;
         for (let i = 0; i < secrets.length; i++) {
           try {
-            // this.logger.debug(
-            //   `JwtStrategy: Attempting verification with secret ${i + 1}`
-            // );
-            payload = jwt.verify(rawJwtToken, secrets[i]) as JwtPayload;
+            // Try to verify with this secret (without full decode, just check signature)
+            jwt.verify(rawJwtToken, secrets[i], { ignoreExpiration: true });
+            validSecret = secrets[i];
             this.logger.debug(
-              `JwtStrategy: Token verified successfully with secret ${i + 1}`,
-              secrets[i]
+              `JwtStrategy: Token can be verified with secret ${i + 1}`
             );
             break;
           } catch (err) {
-            this.logger.debug(
-              `JwtStrategy: Verification failed with secret ${i + 1}: ${
-                err.message
-              }`
-            );
-            error = err;
+            // Continue to next secret
           }
         }
 
-        if (payload) {
-          this.logger.debug(
-            `JwtStrategy: Token verification successful, payload: ${JSON.stringify(
-              payload
-            )}`,
-            payload
-          );
-          done(null, payload);
+        if (validSecret) {
+          done(null, validSecret);
         } else {
           this.logger.warn(
-            `JwtStrategy: All token verification attempts failed: ${error?.message}`
+            `JwtStrategy: Token cannot be verified with any available secret`
           );
-          done(error, null);
+          done(new Error("Invalid token"), null);
         }
       },
     });
