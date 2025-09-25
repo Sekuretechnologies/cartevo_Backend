@@ -12,7 +12,6 @@ import { UserModule } from "./modules/user/user.module";
 import { WalletModule } from "./modules/wallet/wallet.module";
 import { MapleradModule } from "./modules/maplerad/maplerad.module";
 import { AdminModule } from "./modules/admin/admin.module";
-import { WalletFundingPollerService } from "./services/scheduler/walletFundingPoller.service";
 
 @Module({
   imports: [
@@ -34,6 +33,5 @@ import { WalletFundingPollerService } from "./services/scheduler/walletFundingPo
     AdminModule,
     WebhookModule,
   ],
-  providers: [WalletFundingPollerService],
 })
 export class AppModule {}

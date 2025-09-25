@@ -271,10 +271,17 @@ export class WalletController {
     @CurrentUser() user: CurrentUserData,
     @Body() data: IWalletWithdrawal
   ) {
+    console.log('[WITHDRAW][NEST CONTROLLER] Incoming request', {
+      path: '/wallets/withdraw',
+      userId: user?.userId,
+      companyId: user?.companyId,
+      body: data,
+    });
     // Expecting data to include walletId, amount, phone_number, operator, reason
     const { walletId, amount, phone_number, operator, reason } =
       (data as any) || {};
     if (!walletId) {
+      console.log('[WITHDRAW][NEST CONTROLLER] Validation failed: walletId missing');
       throw new Error("walletId is required in request body");
     }
     const reqData: IWalletWithdrawal = {
@@ -284,7 +291,17 @@ export class WalletController {
       reason,
       user_id: (user.userId || user.companyId) as string,
     };
-    return WalletWithdrawalService.processWithdrawal(walletId, reqData);
+    console.log('[WITHDRAW][NEST CONTROLLER] Calling service.processWithdrawal', {
+      walletId,
+      amount,
+      phone_number,
+      operator,
+      reason,
+      user_id: reqData.user_id,
+    });
+    const result = await WalletWithdrawalService.processWithdrawal(walletId, reqData);
+    console.log('[WITHDRAW][NEST CONTROLLER] Service response', result);
+    return result;
   }
 
   @Post("deposit")
