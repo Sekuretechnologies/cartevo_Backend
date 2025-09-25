@@ -155,7 +155,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
       if (!companyId) {
         this.logger.warn(
-          `JwtStrategy validate: User ${payload.sub} does not have access to company ${payload.companyId}`
+          `JwtStrategy validate: User ${
+            payload.sub
+          } does not have access to company ${
+            payload.companyId
+          }. Active roles: ${JSON.stringify(userCompanies)}`
         );
         throw new UnauthorizedException("Invalid company token");
       }
