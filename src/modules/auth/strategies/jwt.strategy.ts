@@ -31,11 +31,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       ignoreExpiration: false,
       secretOrKeyProvider: (request, rawJwtToken, done) => {
         this.logger.debug(
-          `JwtStrategy: Attempting to verify token: ${rawJwtToken.substring(
-            0,
-            20
-          )}...`
+          `JwtStrategy: Request details - URL: ${request.url}, Method: ${
+            request.method
+          }, Token: ${rawJwtToken}, Query: ${JSON.stringify(
+            request.query
+          )}, Body: ${JSON.stringify(request.body)}`
         );
+        this.logger.debug(`JwtStrategy: Attempting to verify token: `, {
+          rawJwtToken,
+        });
 
         // Try to verify with each secret
         let payload: JwtPayload | null = null;
@@ -48,12 +52,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
         for (let i = 0; i < secrets.length; i++) {
           try {
-            this.logger.debug(
-              `JwtStrategy: Attempting verification with secret ${i + 1}`
-            );
+            // this.logger.debug(
+            //   `JwtStrategy: Attempting verification with secret ${i + 1}`
+            // );
             payload = jwt.verify(rawJwtToken, secrets[i]) as JwtPayload;
             this.logger.debug(
-              `JwtStrategy: Token verified successfully with secret ${i + 1}`
+              `JwtStrategy: Token verified successfully with secret ${i + 1}`,
+              secrets[i]
             );
             break;
           } catch (err) {
@@ -68,9 +73,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
         if (payload) {
           this.logger.debug(
-            `JwtStrategy: Token verification successful, payload keys: ${Object.keys(
+            `JwtStrategy: Token verification successful, payload: ${JSON.stringify(
               payload
-            ).join(", ")}`
+            )}`,
+            payload
           );
           done(null, payload);
         } else {
