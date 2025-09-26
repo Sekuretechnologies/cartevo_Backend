@@ -248,6 +248,32 @@ class CompanyModel {
       return fnOutput.error({ message: error.message, error });
     }
   }
+
+  static async getUsersByCompany(companyId: string) {
+    try {
+      // On récupère tous les userCompanyRoles actifs pour cette company
+      const userCompanyRoles = await this.prisma.userCompanyRole.findMany({
+        where: {
+          company_id: companyId,
+          is_active: true,
+        },
+        include: {
+          user: true, // récupère toutes les infos user
+          role: true, // récupère aussi le rôle
+        },
+      });
+
+      // juste la liste des users
+      const users = userCompanyRoles.map((ucr) => ({
+        ...ucr.user,
+        role: ucr.role,
+      }));
+
+      return fnOutput.success({ output: users });
+    } catch (error: any) {
+      return fnOutput.error({ message: error.message, error });
+    }
+  }
 }
 
 export default CompanyModel;

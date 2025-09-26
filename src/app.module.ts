@@ -13,6 +13,7 @@ import { WalletModule } from "./modules/wallet/wallet.module";
 import { MapleradModule } from "./modules/maplerad/maplerad.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { WalletFundingPollerService } from "./services/scheduler/walletFundingPoller.service";
+import { CompaniesAdminModule } from "./modules/admin/companies-admin/companies-admin.module";
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { WalletFundingPollerService } from "./services/scheduler/walletFundingPo
     MapleradModule,
     AdminModule,
     WebhookModule,
+    CompaniesAdminModule,
   ],
   providers: [WalletFundingPollerService],
 })

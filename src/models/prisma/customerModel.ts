@@ -216,6 +216,25 @@ class CustomerModel {
       throw new Error(`Operation failed: ${error.message}`);
     }
   }
+
+  static async getCustomersByCompany(companyId: string) {
+    try {
+      const companyWithCustomers = await this.prisma.company.findUnique({
+        where: { id: companyId },
+        include: { customers: true },
+      });
+
+      if (!companyWithCustomers) {
+        return fnOutput.error({ message: "Company not found" });
+      }
+
+      return fnOutput.success({ output: companyWithCustomers });
+    } catch (error: any) {
+      return fnOutput.error({
+        message: "Error fetching customer: " + error.message,
+      });
+    }
+  }
 }
 
 export default CustomerModel;

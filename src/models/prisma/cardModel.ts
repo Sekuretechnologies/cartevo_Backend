@@ -152,6 +152,30 @@ class CardModel {
       throw new Error(`Operation failed: ${error.message}`);
     }
   }
+
+  static async getCardsByCompany(companyId: string) {
+    try {
+      const companyWithCards = await prisma.company.findUnique({
+        where: { id: companyId },
+        include: {
+          cards: true,
+        },
+      });
+
+      if (!companyWithCards) {
+        return fnOutput.error({
+          message: "Company not found",
+        });
+      }
+
+      return fnOutput.success({ output: companyWithCards.cards });
+    } catch (error: any) {
+      return fnOutput.error({
+        message: "Error fetching cards: " + error.message,
+        error,
+      });
+    }
+  }
 }
 
 export default CardModel;
