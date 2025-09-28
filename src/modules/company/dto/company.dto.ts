@@ -133,6 +133,52 @@ export class CompanyUserDto {
   confirm_password: string;
 }
 
+export class UpdateCompanyDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  country?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  business_name?: string;
+
+  @IsOptional()
+  @IsString()
+  business_type?: string;
+
+  @IsOptional()
+  @IsString()
+  business_description?: string;
+
+  @IsOptional()
+  @IsString()
+  source_of_funds?: string;
+
+  @IsOptional()
+  @IsString()
+  business_phone_number?: string;
+
+  @IsOptional()
+  @IsString()
+  business_address?: string;
+
+  @IsOptional()
+  @IsString()
+  business_website?: string;
+
+  @IsOptional()
+  @IsString()
+  tax_id_number?: string;
+}
+
 // Step 1: Personal Information DTO
 export class PersonalInfoDto {
   @ApiProperty({

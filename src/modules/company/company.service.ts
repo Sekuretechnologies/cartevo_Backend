@@ -53,6 +53,7 @@ import {
   UpdateWebhookUrlDto,
   UpdateWebhookUrlResponseDto,
   RegenerateClientKeyResponseDto,
+  UpdateCompanyDto,
 } from "./dto/company.dto";
 import CardModel from "@/models/prisma/cardModel";
 import CompanyModel from "@/models/prisma/companyModel";
@@ -302,6 +303,19 @@ export class CompanyService {
         error: error.message,
       });
     }
+  }
+
+  /**mise a jour d'une company */
+  async updateCompany(id: string, data: UpdateCompanyDto) {
+    const companyResult = await CompanyModel.getOne({ id });
+
+    if (companyResult.error || !companyResult.output) {
+      throw new NotFoundException("Company not found");
+    }
+
+    const updatedCompany = await CompanyModel.update(id, data);
+
+    return updatedCompany;
   }
 
   async registerPersonalInfo(
