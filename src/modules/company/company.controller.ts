@@ -74,6 +74,7 @@ import {
   UpdateWebhookUrlDto,
   UpdateWebhookUrlResponseDto,
   RegenerateClientKeyResponseDto,
+  UpdateCompanyDto,
 } from "./dto/company.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { OmniGuard } from "../auth/guards/omni.guard";
@@ -200,6 +201,32 @@ export class CompanyController {
     @Body() createDto: CompanyUserDto
   ): Promise<BusinessInfoResponseDto> {
     return this.companyService.createCompanyUser(createDto);
+  }
+
+  @Put("update/:id")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Update company",
+    description: "Update the details of a specific company by ID",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Company updated successfully",
+  })
+  @ApiResponse({
+    status: 404,
+    description: "Company not found",
+  })
+  async updateCompany(
+    @Param("id") id: string,
+    @Body() updateCompanyDto: UpdateCompanyDto
+  ) {
+    const updatedCompany = await this.companyService.updateCompany(
+      id,
+      updateCompanyDto
+    );
+    return { message: "Company updated successfully", company: updatedCompany };
   }
 
   @Get("wallets")

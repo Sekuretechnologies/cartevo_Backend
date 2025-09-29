@@ -7,6 +7,8 @@ import { AdminController } from "./admin.controller";
 import { AdminService } from "./admin.service";
 import { WithdrawalQueueController } from "./withdrawalQueue.controller";
 
+import { CompaniesAdminModule } from "./companies-admin/companies-admin.module";
+
 @Module({
   controllers: [WithdrawalQueueController, AdminController],
   providers: [
@@ -17,5 +19,6 @@ import { WithdrawalQueueController } from "./withdrawalQueue.controller";
     TokenBlacklistService,
   ],
   exports: [WithdrawalProcessorService],
+  imports: [CompaniesAdminModule],
 })
 export class AdminModule {}

@@ -55,9 +55,17 @@ export class AdminController {
     description: "Access denied: admin access required",
   })
   async getAllCompanies(
-    @Query("status") status?: "pending" | "approved" | "none"
+    @Query("status") status?: "pending" | "approved" | "none",
+    @Query("country") country?: string,
+    @Query("business_type") business_type?: string,
+    @Query("is_active") is_active?: boolean
   ) {
-    return this.adminService.getAllCompanies(status);
+    const filters: any = {};
+    if (country) filters.country = country;
+    if (business_type) filters.business_type = business_type;
+    if (typeof is_active === "boolean") filters.is_active = is_active;
+
+    return this.adminService.getAllCompanies(filters, status);
   }
 
   /**
