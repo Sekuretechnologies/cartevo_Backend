@@ -248,6 +248,50 @@ class CompanyModel {
       return fnOutput.error({ message: error.message, error });
     }
   }
+
+  static async getUsersByCompany(companyId: string) {
+    try {
+      // On récupère tous les userCompanyRoles actifs pour cette company
+      const userCompanyRoles = await this.prisma.userCompanyRole.findMany({
+        where: {
+          company_id: companyId,
+          is_active: true,
+        },
+        include: {
+          user: true, // récupère toutes les infos user
+          role: true, // récupère aussi le rôle
+        },
+      });
+
+      // juste la liste des users
+      const users = userCompanyRoles.map((ucr) => ({
+        ...ucr.user,
+        role: ucr.role,
+      }));
+
+      return fnOutput.success({ output: users });
+    } catch (error: any) {
+      return fnOutput.error({ message: error.message, error });
+    }
+  }
+
+  static async getCompanyCountry() {
+    try {
+      const countries = await this.prisma.company.findMany({
+        select: {
+          country: true,
+        },
+        distinct: ["country"],
+        orderBy: { country: "asc" },
+      });
+
+      const uniqueCountries = countries.map((c) => c.country);
+
+      return fnOutput.success({ output: uniqueCountries });
+    } catch (error) {
+      return fnOutput.error({ message: error.message, error });
+    }
+  }
 }
 
 export default CompanyModel;

@@ -164,6 +164,23 @@ class TransactionModel {
       throw new Error(`Operation failed: ${error.message}`);
     }
   }
+
+  static async getTransactionsByCompany(companyId: string) {
+    try {
+      const companyWithTransactions = await this.prisma.company.findUnique({
+        where: { id: companyId },
+        include: {
+          transactions: true,
+        },
+      });
+
+      return fnOutput.success({ output: companyWithTransactions });
+    } catch (error: any) {
+      return fnOutput.error({
+        message: "Error fetching transactions: " + error.message,
+      });
+    }
+  }
 }
 
 export default TransactionModel;

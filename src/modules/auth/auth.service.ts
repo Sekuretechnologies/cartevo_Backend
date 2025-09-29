@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from "@nestjs/common";
@@ -42,9 +43,12 @@ import {
 import { OnboardingStepModel } from "@/models/prisma";
 import { EmailService } from "@/services/email.service";
 import { TokenBlacklistService } from "@/services/token-blacklist.service";
+import env from "@/env";
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
@@ -82,7 +86,11 @@ export class AuthService {
     };
 
     const expiresIn = this.configService.get<string>("JWT_EXPIRES_IN") || "24h";
-    const accessToken = this.jwtService.sign(payload, { expiresIn });
+
+    const accessToken = this.jwtService.sign(payload, {
+      secret: env.JWT_SECRET,
+      expiresIn,
+    });
 
     return {
       access_token: accessToken,
@@ -210,8 +218,11 @@ export class AuthService {
   async verifyOtp(
     verifyOtpDto: VerifyOtpDto
   ): Promise<LoginSuccessResponseDto | VerifyOtpMultiCompanyResponseDto> {
+    this.logger.log(
+      `Starting OTP verification for email: ${verifyOtpDto.email}`
+    );
+
     // Find user with valid OTP
-    console.log("verifyOtpDto :: ", verifyOtpDto);
     const userResult = await UserModel.getOne(
       {
         email: verifyOtpDto.email,
@@ -230,33 +241,54 @@ export class AuthService {
         },
       }
     );
+
     if (userResult.error) {
+      this.logger.error(
+        `Failed to find user with OTP: ${userResult.error.message}`
+      );
       throw new UnauthorizedException(userResult.error.message);
     }
+
     const user: any = userResult.output;
-    console.log("user.otpExpires :: ", user.otp_expires);
-    console.log("new Date() :: ", new Date());
-    console.log(
-      "user.otpExpires < new Date() :: ",
-      user.otp_expires < new Date()
+    this.logger.log(
+      `User found: ${user ? user.id : "null"}, OTP expires: ${
+        user?.otp_expires
+      }`
     );
-    console.log("user :: ", user);
 
     if (!user || !user.otp_expires || user.otp_expires < new Date()) {
+      this.logger.warn(
+        `Invalid or expired OTP for user: ${user?.id || "unknown"}`
+      );
       throw new UnauthorizedException("Invalid or expired OTP");
     }
 
     // Check if user belongs to multiple companies
     const userCompanies = user.userCompanyRoles || [];
     const hasMultipleCompanies = userCompanies.length > 1;
+    this.logger.log(
+      `User has ${userCompanies.length} active company roles, multiple companies: ${hasMultipleCompanies}`
+    );
 
     // Clear OTP
-    await UserModel.update(user.id, {
+    const clearOtpResult = await UserModel.update(user.id, {
       otp: null,
       otp_expires: null,
     });
 
+    if (clearOtpResult.error) {
+      this.logger.error(
+        `Failed to clear OTP for user ${user.id}: ${clearOtpResult.error.message}`
+      );
+    } else {
+      this.logger.log(`OTP cleared successfully for user: ${user.id}`);
+    }
+
     if (hasMultipleCompanies) {
+      this.logger.log(
+        `Generating temporary token for multi-company user: ${user.id}`
+      );
+
       // Generate temporary token with userId and email only
       const tempPayload = {
         sub: user.id,
@@ -264,9 +296,20 @@ export class AuthService {
         temp: true, // Mark as temporary token
       };
 
+      this.logger.debug(
+        `Signing temporary token with payload: ${JSON.stringify(
+          tempPayload
+        )} using primary JWT secret`
+      );
+
       const tempToken = this.jwtService.sign(tempPayload, {
+        secret: env.JWT_SECRET,
         expiresIn: "15m", // Shorter expiry for temp token
       });
+
+      this.logger.debug(
+        `Temporary token generated: ${tempToken.substring(0, 20)}...`
+      );
 
       // Get list of companies for user to choose from
       const companies = userCompanies.map((ucr: any) => ({
@@ -274,6 +317,10 @@ export class AuthService {
         name: ucr.company.name,
         country: ucr.company.country,
       }));
+
+      this.logger.log(
+        `Temporary token generated for user ${user.id}, companies available: ${companies.length}`
+      );
 
       return {
         success: true,
@@ -286,8 +333,13 @@ export class AuthService {
       // Single company - proceed with full token
       const userCompany = userCompanies[0];
       if (!userCompany) {
+        this.logger.error(`User ${user.id} does not belong to any company`);
         throw new UnauthorizedException("User does not belong to any company");
       }
+
+      this.logger.log(
+        `Generating full JWT token for user ${user.id} in company ${userCompany.company.id}`
+      );
 
       // Generate JWT token with expiry
       const payload = {
@@ -296,31 +348,47 @@ export class AuthService {
         companyId: userCompany.company.id,
       };
 
-      // Set token expiry to 24 hours (86400 seconds)
+      this.logger.debug(
+        `Signing full JWT token with payload: ${JSON.stringify(
+          payload
+        )} using primary JWT secret`
+      );
+
       const accessToken = this.jwtService.sign(payload, {
-        expiresIn: "1h", // You can also use '1d', '7d', '30d', or specific seconds like '86400'
+        secret: env.JWT_SECRET,
+        expiresIn: "1h",
       });
 
-      console.log("payload :: ", payload);
-      console.log("accessToken :: ", accessToken);
+      this.logger.debug(
+        `Full JWT token generated: ${accessToken.substring(0, 20)}...`
+      );
+
+      this.logger.log(
+        `Full JWT token generated for user ${user.id}, payload: sub=${payload.sub}, companyId=${payload.companyId}`
+      );
+
       // Determine redirect based on user and company completion status
       let redirectTo = "dashboard";
       let redirectMessage = "Login successful";
 
-      // -------------------------------------------------
       const result = await OnboardingStepModel.get({
         company_id: userCompany.company.id,
       });
       if (result.error) {
+        this.logger.error(
+          `Failed to get onboarding steps for company ${userCompany.company.id}: ${result.error.message}`
+        );
         throw new BadRequestException(result.error.message);
       }
       const steps = result.output;
       const totalCount: number = steps.length;
-      // Count by status
       const completedCount: number = steps.filter(
         (step: any) => step.status === "COMPLETED"
       ).length;
-      // -------------------------------------------------
+
+      this.logger.log(
+        `Login successful for user ${user.id} in company ${userCompany.company.name}, onboarding completed: ${completedCount}/${totalCount}`
+      );
 
       return {
         success: true,
@@ -456,7 +524,7 @@ export class AuthService {
 
       // set expiration time to 15 minutes
       const token = this.jwtService.sign(payload, {
-        secret: process.env.JWT_SECRET,
+        secret: env.JWT_SECRET,
         expiresIn: "15m",
       });
 
@@ -776,6 +844,10 @@ export class AuthService {
     selectCompanyDto: SelectCompanyRequestDto
   ): Promise<SelectCompanyResponseDto> {
     try {
+      this.logger.log(
+        `Starting company selection for company: ${selectCompanyDto.company_id}`
+      );
+
       // Verify the temporary token
       let decoded: { sub: string; email: string; temp: boolean };
       try {
@@ -785,6 +857,10 @@ export class AuthService {
           secrets.push(process.env.CROSS_ENV_JWT_SECRET);
         }
 
+        this.logger.log(
+          `Attempting to verify temporary token with ${secrets.length} secrets`
+        );
+
         let verified = false;
         for (const secret of secrets) {
           try {
@@ -792,27 +868,41 @@ export class AuthService {
               secret,
             }) as any;
             if (!decoded.temp) {
+              this.logger.warn(
+                `Token verified but not marked as temporary for user: ${decoded.sub}`
+              );
               throw new UnauthorizedException("Invalid token type");
             }
             verified = true;
+            this.logger.log(
+              `Temporary token verified successfully for user: ${decoded.sub}`
+            );
             break;
           } catch (verifyErr) {
-            // Try next secret
+            this.logger.debug(
+              `Token verification failed with one secret, trying next`
+            );
           }
         }
 
         if (!verified) {
+          this.logger.warn(`All token verification attempts failed`);
           throw new Error("Invalid token");
         }
       } catch (err) {
         if (err.name === "TokenExpiredError") {
+          this.logger.warn(`Temporary token has expired`);
           throw new UnauthorizedException("Temporary token has expired");
         }
+        this.logger.error(`Invalid temporary token: ${err.message}`);
         throw new UnauthorizedException("Invalid temporary token");
       }
 
       const userId = decoded.sub;
       const email = decoded.email;
+      this.logger.log(
+        `Token decoded successfully: userId=${userId}, email=${email}, selecting company=${selectCompanyDto.company_id}`
+      );
 
       // Check if user belongs to the specified company
       const userCompanyRoleResult = await UserCompanyRoleModel.getOne({
@@ -822,8 +912,17 @@ export class AuthService {
       });
 
       if (userCompanyRoleResult.error || !userCompanyRoleResult.output) {
+        this.logger.warn(
+          `User ${userId} not found in company ${
+            selectCompanyDto.company_id
+          }: ${userCompanyRoleResult.error?.message || "No role found"}`
+        );
         throw new BadRequestException("User not found in specified company");
       }
+
+      this.logger.log(
+        `User ${userId} confirmed to belong to company ${selectCompanyDto.company_id}`
+      );
 
       // Get user with company and role information
       const userResult = await UserModel.getOne(
@@ -844,6 +943,9 @@ export class AuthService {
         }
       );
       if (userResult.error) {
+        this.logger.error(
+          `Failed to get user details for ${userId}: ${userResult.error.message}`
+        );
         throw new BadRequestException("User not found");
       }
       const user: any = userResult.output;
@@ -854,8 +956,15 @@ export class AuthService {
       );
 
       if (!selectedCompanyRole) {
+        this.logger.error(
+          `User ${userId} has no active role in company ${selectCompanyDto.company_id}`
+        );
         throw new BadRequestException("User not found in specified company");
       }
+
+      this.logger.log(
+        `Generating full JWT token for user ${userId} in company ${selectedCompanyRole.company.name} (${selectedCompanyRole.company.id})`
+      );
 
       // Generate full JWT token with company information
       const payload = {
@@ -864,9 +973,24 @@ export class AuthService {
         companyId: selectedCompanyRole.company.id,
       };
 
+      this.logger.debug(
+        `Signing full JWT token with payload: ${JSON.stringify(
+          payload
+        )} using primary JWT secret`
+      );
+
       const accessToken = this.jwtService.sign(payload, {
+        secret: env.JWT_SECRET,
         expiresIn: "1h",
       });
+
+      this.logger.debug(
+        `Full JWT token generated: ${accessToken.substring(0, 20)}...`
+      );
+
+      this.logger.log(
+        `Full JWT token generated for user ${user.id}, payload: sub=${payload.sub}, companyId=${payload.companyId}`
+      );
 
       // Determine redirect based on user and company completion status
       let redirectTo = "dashboard";
@@ -877,6 +1001,9 @@ export class AuthService {
         company_id: selectedCompanyRole.company.id,
       });
       if (result.error) {
+        this.logger.error(
+          `Failed to get onboarding steps for company ${selectedCompanyRole.company.id}: ${result.error.message}`
+        );
         throw new BadRequestException(result.error.message);
       }
       const steps = result.output;
@@ -884,6 +1011,10 @@ export class AuthService {
       const completedCount: number = steps.filter(
         (step: any) => step.status === "COMPLETED"
       ).length;
+
+      this.logger.log(
+        `Company selection successful for user ${user.id} in company ${selectedCompanyRole.company.name}, onboarding completed: ${completedCount}/${totalCount}`
+      );
 
       return {
         success: true,
@@ -909,6 +1040,10 @@ export class AuthService {
       ) {
         throw error;
       }
+      this.logger.error(
+        `Unexpected error during company selection: ${error.message}`,
+        error.stack
+      );
       throw new BadRequestException({
         success: false,
         message: "An error occurred during company selection",
@@ -1066,6 +1201,7 @@ export class AuthService {
       };
 
       const accessToken = this.jwtService.sign(payload, {
+        secret: env.JWT_SECRET,
         expiresIn: "1h",
       });
 
@@ -1132,6 +1268,7 @@ export class AuthService {
     };
 
     const accessToken = this.jwtService.sign(payload, {
+      secret: env.JWT_SECRET,
       expiresIn: "1h",
     });
 
