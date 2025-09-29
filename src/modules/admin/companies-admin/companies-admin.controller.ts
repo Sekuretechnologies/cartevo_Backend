@@ -66,4 +66,16 @@ export class CompaniesAdminController {
   async getCardsByCompany(@Param("id") id: string) {
     return this.companiesAdminService.getCardsByCompany(id);
   }
+
+  @Get("countries")
+  @UseGuards(OmniGuard)
+  @ApiOperation({ summary: "Get all unique countries of companies" })
+  @ApiResponse({
+    status: 200,
+    description: "Countries list retrieved successfully.",
+  })
+  @ApiResponse({ status: 401, description: "Unauthorized." })
+  async getCountries() {
+    return this.companiesAdminService.getCountries();
+  }
 }

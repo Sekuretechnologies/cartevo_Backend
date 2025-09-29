@@ -87,4 +87,14 @@ export class CompaniesAdminService {
       cards: cards.output,
     };
   }
+
+  async getCountries() {
+    const countries = await CompanyModel.getCompanyCountry();
+
+    return {
+      success: true,
+      message: "countries retrieved successfully",
+      countries: countries.output,
+    };
+  }
 }
