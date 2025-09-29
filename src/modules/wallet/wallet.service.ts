@@ -114,6 +114,84 @@ export class WalletService {
     }
   }
 
+  async getWalletsWithFilters(
+    user: any,
+    filters: {
+      company_id?: string;
+      currency?: string;
+      country?: string;
+      country_iso_code?: string;
+      page?: string;
+      limit?: string;
+      sort_by?: string;
+      order?: "asc" | "desc";
+      q?: string;
+    }
+  ) {
+    try {
+      const {
+        company_id,
+        currency,
+        country,
+        country_iso_code,
+        page,
+        limit,
+        sort_by,
+        order,
+      } = filters || {};
+
+      const pageNum = page ? parseInt(page, 10) : 1;
+      const limitNum = limit ? Math.min(parseInt(limit, 10), 100) : 20;
+      const skip = (pageNum - 1) * limitNum;
+
+      // Build where clause
+      const where: any = {};
+      // Scope: if user is not admin across companies, force their companyId
+      const scopedCompanyId = company_id || user?.companyId;
+      if (scopedCompanyId) where.company_id = scopedCompanyId;
+      if (currency) {
+        if (currency.includes(",")) {
+          where.currency = { in: currency.split(",").map((s) => s.trim()) };
+        } else {
+          where.currency = currency;
+        }
+      }
+      if (country_iso_code) where.country_iso_code = country_iso_code;
+      if (country) where.country = country;
+
+      // Sorting
+      const orderBy: any = sort_by
+        ? { [sort_by]: order === "asc" ? "asc" : "desc" }
+        : { created_at: "desc" };
+
+      const { PrismaClient } = require("@prisma/client");
+      const prisma = new PrismaClient();
+
+      const [items, total] = await Promise.all([
+        prisma.wallet.findMany({
+          where,
+          include: { phoneNumbers: true, company: true },
+          orderBy,
+          skip,
+          take: limitNum,
+        }),
+        prisma.wallet.count({ where }),
+      ]);
+
+      await prisma.$disconnect();
+
+      // Optionally attach operators info as in getAllWallets
+      return {
+        data: items,
+        total,
+        page: pageNum,
+        limit: limitNum,
+      };
+    } catch (error: any) {
+      throw new BadRequestException("Failed to get wallets: " + error.message);
+    }
+  }
+
   async getWalletById(companyId: string, id: string) {
     try {
       const wallet = await WalletModel.getOne({ id, company_id: companyId });
@@ -172,6 +250,22 @@ export class WalletService {
     } catch (error: any) {
       return fnOutput.error({
         error: { message: "Failed to update wallet: " + error.message },
+      });
+    }
+  }
+
+  async disableWallet(companyId: string, id: string, reason?: string) {
+    try {
+      // Setting active to false (is_active in model maps to active column)
+      const result = await WalletModel.update(
+        { id, company_id: companyId },
+        { is_active: false }
+      );
+      // Optionally: create an audit record using TransactionModel or a dedicated audit table
+      return result;
+    } catch (error: any) {
+      return fnOutput.error({
+        error: { message: "Failed to disable wallet: " + error.message },
       });
     }
   }
