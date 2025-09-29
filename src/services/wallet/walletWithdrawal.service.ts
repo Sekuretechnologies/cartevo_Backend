@@ -102,7 +102,6 @@ export class WalletWithdrawalService {
     request: WithdrawalRequest
   ): Promise<WithdrawalResponse> {
     try {
-      console.log('[WITHDRAW][SERVICE] Start', { walletId, request });
       const wallet = await prisma.wallet.findUnique({
         where: { id: walletId },
         select: {
@@ -116,17 +115,14 @@ export class WalletWithdrawalService {
       });
 
       if (!wallet) {
-        console.log('[WITHDRAW][SERVICE] Wallet not found', { walletId });
         return { success: false, message: "Wallet not found" };
       }
 
       if (!wallet.is_active) {
-        console.log('[WITHDRAW][SERVICE] Wallet not active', { walletId });
         return { success: false, message: "Wallet is not active" };
       }
 
       if (request.amount <= 0) {
-        console.log('[WITHDRAW][SERVICE] Invalid amount', { amount: request.amount });
         return { success: false, message: "Amount must be greater than 0" };
       }
 
@@ -164,44 +160,21 @@ export class WalletWithdrawalService {
       }
 
       // Check Afribapay payout balance (by country/currency)
-      console.log('[WITHDRAW][SERVICE] Checking Afribapay balance', {
-        country: wallet.country_iso_code,
-        currency: wallet.currency,
-        totalAmount,
-      });
       const afribapayBalance = await this.getAfribapayBalance(
         wallet.country_iso_code,
         wallet.currency
       );
-      console.log('[WITHDRAW][SERVICE] Afribapay balance', { afribapayBalance });
 
       if (afribapayBalance < totalAmount) {
-        console.log('[WITHDRAW][SERVICE] Insufficient provider balance, enqueueing', {
-          totalAmount,
-          afribapayBalance,
-        });
-        // Add to queue instead of failing
-        const queueResult = await PendingWithdrawalQueueService.addToQueue({
-          walletId,
-          amount: request.amount,
-          phone_number: request.phone_number,
-          operator: request.operator,
-          reason: request.reason,
-          company_id: wallet.company_id,
-          user_id: request.user_id,
-          currency: wallet.currency,
-        });
-
+        // Return error instead of queuing
+        console.log("❌ INSUFFICIENT AFRIBAPAY BALANCE - BLOCKING TRANSACTION");
         return {
-          success: true,
-          message: queueResult.message,
-          status: "QUEUED",
-          transaction_id: queueResult.queue_id,
+          success: false,
+          message: `Insufficient Afribapay balance. Required: ${totalAmount} ${wallet.currency}, Available: ${afribapayBalance} ${wallet.currency}. Please try again later.`,
         };
       }
 
       // Process withdrawal
-      console.log('[WITHDRAW][SERVICE] Debiting payout balance and creating transaction');
       const result = await prisma.$transaction(async (tx) => {
         const updatedWallet = await tx.wallet.update({
           where: { id: walletId },
@@ -237,15 +210,18 @@ export class WalletWithdrawalService {
 
         return { transaction, updatedWallet };
       });
-      console.log('[WITHDRAW][SERVICE] Transaction created, initiating provider payout', {
-        transactionId: result.transaction.id,
-      });
 
       // Initiate Afribapay payout (keep local transaction PENDING until webhook updates)
       try {
         const countryPhoneCode =
           wallet.country_iso_code === "CM" ? "237" : "237";
-        const normalizedOperator = String(request.operator);
+        const normalizedOperator = String(request.operator)
+          .toLowerCase()
+          .includes("mtn")
+          ? "mtn"
+          : String(request.operator).toLowerCase().includes("orange")
+          ? "orange"
+          : request.operator;
         await initiateAfribapayPayout({
           amount: request.amount,
           country: wallet.country_iso_code,
@@ -255,14 +231,10 @@ export class WalletWithdrawalService {
           operator: normalizedOperator,
           countryPhoneCode,
         });
-        console.log('[WITHDRAW][SERVICE] Provider payout initiated', {
-          transactionId: result.transaction.id,
-        });
       } catch (payoutError) {
         console.error("Afribapay payout initiation failed:", payoutError);
         // On failure, revert wallet deduction and mark transaction as FAILED
         try {
-          console.log('[WITHDRAW][SERVICE] Reverting wallet and transaction after provider failure', { walletId });
           await prisma.$transaction(async (tx) => {
             await tx.wallet.update({
               where: { id: walletId },
@@ -276,7 +248,6 @@ export class WalletWithdrawalService {
               data: { status: "FAILED" },
             });
           });
-          console.log('[WITHDRAW][SERVICE] Revert completed');
         } catch (revertError) {
           console.error(
             "Failed to revert wallet/transaction after payout error:",

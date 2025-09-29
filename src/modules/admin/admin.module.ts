@@ -1,6 +1,7 @@
 import { EmailService } from "@/services/email.service";
 import { TokenBlacklistService } from "@/services/token-blacklist.service";
 import { Module } from "@nestjs/common";
+import { WalletService } from "../wallet/wallet.service";
 import { WithdrawalProcessorService } from "../../services/scheduler/withdrawalProcessor.service";
 import { AdminController } from "./admin.controller";
 import { AdminService } from "./admin.service";
@@ -11,6 +12,7 @@ import { WithdrawalQueueController } from "./withdrawalQueue.controller";
   providers: [
     WithdrawalProcessorService,
     AdminService,
+    WalletService,
     EmailService,
     TokenBlacklistService,
   ],

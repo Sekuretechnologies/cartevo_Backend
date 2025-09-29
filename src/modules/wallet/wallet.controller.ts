@@ -13,6 +13,8 @@ import {
   Param,
   Post,
   Put,
+  Patch,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import {
@@ -234,12 +236,30 @@ export class WalletController {
     return this.walletService.updateWallet(user.companyId, id, data);
   }
 
+  @Patch(":id")
+  async patchWallet(
+    @CurrentUser() user: CurrentUserData,
+    @Param("id") id: string,
+    @Body() data: IWalletUpdate
+  ) {
+    return this.walletService.updateWallet(user.companyId, id, data);
+  }
+
   @Delete(":id")
   async deleteWallet(
     @CurrentUser() user: CurrentUserData,
     @Param("id") id: string
   ) {
     return this.walletService.deleteWallet(user.companyId, id);
+  }
+
+  @Post(":id/disable")
+  async disableWallet(
+    @CurrentUser() user: CurrentUserData,
+    @Param("id") id: string,
+    @Body() body: { reason?: string }
+  ) {
+    return this.walletService.disableWallet(user.companyId, id, body?.reason);
   }
 
   @Post("fund")
@@ -271,17 +291,10 @@ export class WalletController {
     @CurrentUser() user: CurrentUserData,
     @Body() data: IWalletWithdrawal
   ) {
-    console.log('[WITHDRAW][NEST CONTROLLER] Incoming request', {
-      path: '/wallets/withdraw',
-      userId: user?.userId,
-      companyId: user?.companyId,
-      body: data,
-    });
     // Expecting data to include walletId, amount, phone_number, operator, reason
     const { walletId, amount, phone_number, operator, reason } =
       (data as any) || {};
     if (!walletId) {
-      console.log('[WITHDRAW][NEST CONTROLLER] Validation failed: walletId missing');
       throw new Error("walletId is required in request body");
     }
     const reqData: IWalletWithdrawal = {
@@ -291,17 +304,7 @@ export class WalletController {
       reason,
       user_id: (user.userId || user.companyId) as string,
     };
-    console.log('[WITHDRAW][NEST CONTROLLER] Calling service.processWithdrawal', {
-      walletId,
-      amount,
-      phone_number,
-      operator,
-      reason,
-      user_id: reqData.user_id,
-    });
-    const result = await WalletWithdrawalService.processWithdrawal(walletId, reqData);
-    console.log('[WITHDRAW][NEST CONTROLLER] Service response', result);
-    return result;
+    return WalletWithdrawalService.processWithdrawal(walletId, reqData);
   }
 
   @Post("deposit")
