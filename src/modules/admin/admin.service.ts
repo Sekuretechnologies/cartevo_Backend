@@ -14,8 +14,18 @@ import fnOutput from "@/utils/shared/fnOutputHandler";
 export class AdminService {
   constructor(private emailService: EmailService) {}
 
-  async getAllCompanies(status?: "pending" | "approved" | "none") {
-    const result = await CompanyModel.getWithOwner({}, status);
+  // admin.service.ts
+  async getAllCompanies(
+    filters: {
+      country?: string;
+      business_type?: string;
+      is_active?: boolean;
+    } = {},
+    status?: "pending" | "approved" | "none"
+  ) {
+    // Passe les filtres directement à CompanyModel
+    const result = await CompanyModel.getWithOwner(filters, status);
+
     if (result.error) {
       throw new NotFoundException(result.error.message);
     }
