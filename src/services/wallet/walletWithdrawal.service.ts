@@ -166,23 +166,11 @@ export class WalletWithdrawalService {
       );
 
       if (afribapayBalance < totalAmount) {
-        // Add to queue instead of failing
-        const queueResult = await PendingWithdrawalQueueService.addToQueue({
-          walletId,
-          amount: request.amount,
-          phone_number: request.phone_number,
-          operator: request.operator,
-          reason: request.reason,
-          company_id: wallet.company_id,
-          user_id: request.user_id,
-          currency: wallet.currency,
-        });
-
+        // Return error instead of queuing
+        console.log("❌ INSUFFICIENT AFRIBAPAY BALANCE - BLOCKING TRANSACTION");
         return {
-          success: true,
-          message: queueResult.message,
-          status: "QUEUED",
-          transaction_id: queueResult.queue_id,
+          success: false,
+          message: `Insufficient Afribapay balance. Required: ${totalAmount} ${wallet.currency}, Available: ${afribapayBalance} ${wallet.currency}. Please try again later.`,
         };
       }
 

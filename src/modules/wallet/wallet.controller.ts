@@ -13,6 +13,8 @@ import {
   Param,
   Post,
   Put,
+  Patch,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import {
@@ -234,12 +236,30 @@ export class WalletController {
     return this.walletService.updateWallet(user.companyId, id, data);
   }
 
+  @Patch(":id")
+  async patchWallet(
+    @CurrentUser() user: CurrentUserData,
+    @Param("id") id: string,
+    @Body() data: IWalletUpdate
+  ) {
+    return this.walletService.updateWallet(user.companyId, id, data);
+  }
+
   @Delete(":id")
   async deleteWallet(
     @CurrentUser() user: CurrentUserData,
     @Param("id") id: string
   ) {
     return this.walletService.deleteWallet(user.companyId, id);
+  }
+
+  @Post(":id/disable")
+  async disableWallet(
+    @CurrentUser() user: CurrentUserData,
+    @Param("id") id: string,
+    @Body() body: { reason?: string }
+  ) {
+    return this.walletService.disableWallet(user.companyId, id, body?.reason);
   }
 
   @Post("fund")
