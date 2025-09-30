@@ -334,3 +334,10 @@ export class RegisterWithInvitationDto {
   )
   password: string;
 }
+
+export class ResendOtpDto {
+  @IsEmail()
+  @IsNotEmpty()
+  @IsString()
+  email: string;
+}

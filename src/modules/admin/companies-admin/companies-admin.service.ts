@@ -4,6 +4,7 @@ import {
   CustomerModel,
   TransactionModel,
   UserModel,
+  WalletModel,
 } from "@/models";
 import { Injectable, NotFoundException } from "@nestjs/common";
 
@@ -95,6 +96,22 @@ export class CompaniesAdminService {
       success: true,
       message: "countries retrieved successfully",
       countries: countries.output,
+    };
+  }
+
+  async getWalletByCompany(companyId: string) {
+    const company = await CompanyModel.getOne({ id: companyId });
+
+    if (company.error) {
+      throw new NotFoundException("Company not found");
+    }
+
+    const wallets = await WalletModel.getCompanyWallets(companyId);
+
+    return {
+      success: true,
+      message: "Wallets retrieved successfully",
+      wallets: wallets.output,
     };
   }
 }

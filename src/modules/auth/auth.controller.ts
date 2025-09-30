@@ -7,6 +7,7 @@ import {
   Headers,
   BadRequestException,
   UseGuards,
+  Put,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -29,6 +30,7 @@ import {
   AcceptInvitationDto,
   AcceptInvitationResponseDto,
   RegisterWithInvitationDto,
+  ResendOtpDto,
 } from "./dto/auth.dto";
 import {
   LoginDto,
@@ -39,6 +41,7 @@ import {
   VerifyOtpMultiCompanyResponseDto,
 } from "../user/dto/user.dto";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
+import { email } from "envalid";
 
 @ApiTags("Authentication")
 @Controller("auth")
@@ -104,6 +107,17 @@ export class AuthController {
     @Body() verifyOtpDto: VerifyOtpDto
   ): Promise<LoginSuccessResponseDto | VerifyOtpMultiCompanyResponseDto> {
     return this.authService.verifyOtp(verifyOtpDto);
+  }
+
+  // Resend otp
+  @Put("resend-otp")
+  @HttpCode(200)
+  @ApiOperation({
+    summary: "Resend OTP",
+    description: "Resend OTP to user's email",
+  })
+  async resendOtp(@Body() email: ResendOtpDto) {
+    return this.authService.resendOtp(email);
   }
 
   @Post("logout")

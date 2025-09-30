@@ -78,4 +78,24 @@ export class CompaniesAdminController {
   async getCountries() {
     return this.companiesAdminService.getCountries();
   }
+
+  @Get("get-wallets-by-company/:companyId")
+  @UseGuards(OmniGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get all wallets for a given company" })
+  @ApiParam({
+    name: "companyId",
+    required: true,
+    description: "The ID of the company",
+    type: String,
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Wallets retrieved successfully for this company.",
+  })
+  @ApiResponse({ status: 401, description: "Unauthorized." })
+  @ApiResponse({ status: 404, description: "Company or wallets not found." })
+  async getWalletsByCompany(@Param("companyId") companyId: string) {
+    return this.companiesAdminService.getWalletByCompany(companyId);
+  }
 }
