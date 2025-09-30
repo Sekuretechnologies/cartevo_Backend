@@ -25,6 +25,7 @@ import {
   AcceptInvitationDto,
   AcceptInvitationResponseDto,
   RegisterWithInvitationDto,
+  ResendOtpDto,
 } from "./dto/auth.dto";
 import {
   LoginDto,
@@ -44,6 +45,7 @@ import { OnboardingStepModel } from "@/models/prisma";
 import { EmailService } from "@/services/email.service";
 import { TokenBlacklistService } from "@/services/token-blacklist.service";
 import env from "@/env";
+import { email } from "envalid";
 
 @Injectable()
 export class AuthService {
@@ -211,6 +213,41 @@ export class AuthService {
     return {
       success: true,
       message: `OTP sent to ${user.email}. Please verify to complete login.`,
+      requires_otp: true,
+    };
+  }
+
+  async resendOtp(body: ResendOtpDto) {
+    // Récupérer tous les utilisateurs actifs avec cet email
+    const usersResult = await UserModel.getOne({
+      email: body.email,
+    });
+
+    if (usersResult.error) {
+      throw new UnauthorizedException(usersResult.error.message);
+    }
+
+    const user = usersResult.output;
+
+    // Générer et stocker un nouvel OTP
+    const otp = this.generateOTP();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+    const otpUpdateResult = await UserModel.update(user.id, {
+      otp,
+      otp_expires: otpExpires,
+    });
+
+    if (otpUpdateResult.error) {
+      throw new BadRequestException(otpUpdateResult.error.message);
+    }
+
+    // Envoyer OTP par email
+    await this.emailService.sendOtpEmail(user.email, otp, user.first_name);
+
+    return {
+      success: true,
+      message: `OTP resent to ${user.email}. Please verify to complete login.`,
       requires_otp: true,
     };
   }
