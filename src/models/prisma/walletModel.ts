@@ -127,6 +127,22 @@ class WalletModel {
       throw new Error(`Operation failed: ${error.message}`);
     }
   }
+
+  static async getCompanyWallets(companyId: string) {
+    try {
+      const wallets = await prisma.wallet.findMany({
+        where: {
+          company_id: companyId,
+        },
+      });
+
+      return fnOutput.success({ output: wallets });
+    } catch (error) {
+      return fnOutput.error({
+        error: { message: "Error fetching wallet: " + error.message },
+      });
+    }
+  }
 }
 
 export default WalletModel;
