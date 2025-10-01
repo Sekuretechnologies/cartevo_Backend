@@ -1,3 +1,4 @@
+import { ContactDto } from "@/modules/contact/dto/contact.dto";
 import { Injectable, BadRequestException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import * as nodemailer from "nodemailer";
@@ -985,6 +986,93 @@ export class EmailService {
         "Failed to send wallet withdrawal failure to company email"
       );
     }
+  }
+
+  async sendContactEmail(data: ContactDto): Promise<boolean> {
+    try {
+      const mailOptions = {
+        from: this.configService.get("FROM_EMAIL") || "contact@cartevo.co", // Expéditeur officiel
+        to: "contact@cartevo.com",
+        replyTo: data.email, // Réponse directe vers le client
+        subject:
+          data.subject ||
+          `New Contact Form Submission - ${data.entrepriseName}`,
+
+        html: this.getContactTemplate(data),
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log("Contact email sent successfully:", result.messageId);
+      return true;
+    } catch (error) {
+      console.error("Error sending contact email:", error);
+      throw new BadRequestException("Failed to send contact email");
+    }
+  }
+
+  private getContactTemplate(data: ContactDto): string {
+    return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 10px; overflow: hidden;">
+      
+      <div style="background-color: #007bff; padding: 20px; color: #ffffff; text-align: center;">
+        <h2 style="margin: 0; font-size: 24px;">New Contact Form Submission</h2>
+      </div>
+      
+      <div style="padding: 20px; color: #333333; line-height: 1.5;">
+        <p>You have received a new contact request via your website. Here are the details:</p>
+        
+        <div style="background-color: #f1f5f9; padding: 15px 20px; border-radius: 8px; margin: 15px 0;">
+          <h3 style="margin-top: 0; color: #007bff; font-size: 18px;">Contact Details</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px; font-weight: bold; width: 30%;">Name:</td>
+              <td style="padding: 8px;">${data.name}</td>
+            </tr>
+            <tr style="background-color: #e9f0ff;">
+              <td style="padding: 8px; font-weight: bold;">Company:</td>
+              <td style="padding: 8px;">${data.entrepriseName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; font-weight: bold;">Email:</td>
+              <td style="padding: 8px;">${data.email}</td>
+            </tr>
+            <tr style="background-color: #e9f0ff;">
+              <td style="padding: 8px; font-weight: bold;">WhatsApp:</td>
+              <td style="padding: 8px;">+${data.country_code} ${
+      data.whatsapp
+    }</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; font-weight: bold;">Activity:</td>
+              <td style="padding: 8px;">${data.activity}</td>
+            </tr>
+            <tr style="background-color: #e9f0ff;">
+              <td style="padding: 8px; font-weight: bold;">Service:</td>
+              <td style="padding: 8px;">${data.service}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; font-weight: bold;">Subject:</td>
+              <td style="padding: 8px;">${data.subject}</td>
+            </tr>
+            <tr style="background-color: #e9f0ff;">
+              <td style="padding: 8px; font-weight: bold;">Message:</td>
+              <td style="padding: 8px;">${data.message.replace(
+                /\n/g,
+                "<br>"
+              )}</td>
+            </tr>
+          </table>
+        </div>
+
+        <p style="margin-top: 20px;">Best regards,<br><strong>The Cartevo Team</strong></p>
+      </div>
+
+      <div style="background-color: #f1f5f9; text-align: center; padding: 10px; font-size: 12px; color: #666666;">
+        This email was sent from your website contact form.
+      </div>
+
+    </div>
+  `;
   }
 
   private getWalletFundingSuccessTemplate(

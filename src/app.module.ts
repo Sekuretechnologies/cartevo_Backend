@@ -13,6 +13,7 @@ import { CompaniesAdminModule } from "./modules/admin/companies-admin/companies-
 import { MapleradModule } from "./modules/maplerad/maplerad.module";
 import { UserModule } from "./modules/user/user.module";
 import { WalletModule } from "./modules/wallet/wallet.module";
+import { ContactModule } from './modules/contact/contact.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { WalletModule } from "./modules/wallet/wallet.module";
     AdminModule,
     WebhookModule,
     CompaniesAdminModule,
+    ContactModule,
   ],
 })
 export class AppModule {}
