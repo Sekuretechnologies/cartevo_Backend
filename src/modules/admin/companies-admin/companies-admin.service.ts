@@ -29,17 +29,25 @@ export class CompaniesAdminService {
     };
   }
 
-  async getTransactionsByCompany(company_id: string) {
+  async getTransactionsByCompany(
+    company_id: string,
+    filters?: {
+      status?: "SUCCESS" | "FAILED" | "PENDING" | "CANCELED";
+      operator?: "orange" | "mtn" | "OTHER";
+      order?: "RECENT" | "OLD";
+    }
+  ) {
+    // Vérifier que la société existe
     const company = await CompanyModel.getOne({ id: company_id });
-
     if (company.error) {
       throw new NotFoundException("Company not found");
     }
 
+    // Récupérer les transactions avec filtres
     const transactions = await TransactionModel.getTransactionsByCompany(
-      company_id
+      company_id,
+      filters
     );
-
     if (transactions.error) {
       throw new Error(transactions.message);
     }
@@ -71,20 +79,23 @@ export class CompaniesAdminService {
     };
   }
 
-  async getCardsByCompany(company_id: string) {
+  async getCardsByCompany(
+    company_id: string,
+    filters?: { status?: string; brand?: string }
+  ) {
     const company = await CompanyModel.getOne({ id: company_id });
     if (company.error) {
       throw new NotFoundException("Company not found");
     }
 
-    const cards = await CardModel.getCardsByCompany(company_id);
+    const cards = await CardModel.getCardsByCompany(company_id, filters);
     if (cards.error) {
       throw new Error(cards.message);
     }
 
     return {
       success: true,
-      message: "cards retrieved successfully",
+      message: "Cards retrieved successfully",
       cards: cards.output,
     };
   }

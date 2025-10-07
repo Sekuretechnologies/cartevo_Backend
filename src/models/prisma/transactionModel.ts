@@ -165,19 +165,39 @@ class TransactionModel {
     }
   }
 
-  static async getTransactionsByCompany(companyId: string) {
+  static async getTransactionsByCompany(
+    companyId: string,
+    filters?: {
+      status?: "SUCCESS" | "FAILED" | "PENDING" | "CANCELED";
+      operator?: "orange" | "mtn" | "OTHER";
+      order?: "RECENT" | "OLD";
+    }
+  ) {
     try {
       const companyWithTransactions = await this.prisma.company.findUnique({
         where: { id: companyId },
         include: {
-          transactions: true,
+          transactions: {
+            where: {
+              ...(filters?.status && { status: filters.status }),
+              ...(filters?.operator && { operator: filters.operator }),
+            },
+            orderBy: {
+              created_at: filters?.order === "OLD" ? "asc" : "desc",
+            },
+          },
         },
       });
 
-      return fnOutput.success({ output: companyWithTransactions });
+      if (!companyWithTransactions) {
+        return fnOutput.error({ message: "Company not found" });
+      }
+
+      return fnOutput.success({ output: companyWithTransactions.transactions });
     } catch (error: any) {
       return fnOutput.error({
         message: "Error fetching transactions: " + error.message,
+        error,
       });
     }
   }

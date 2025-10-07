@@ -437,6 +437,7 @@ export class AuthService {
           name: userCompany.company.name,
           country: userCompany.company.country,
           onboarding_is_completed: completedCount === totalCount,
+          kybStatus: userCompany.company.kyb_status,
           clearance:
             userCompany.company.access_level === "omniscient"
               ? "admin"
@@ -485,6 +486,7 @@ export class AuthService {
       email: user.email,
       company_id: user.userCompanyRoles?.[0]?.company?.id || null,
       status: user.status,
+      kycStatus: user.kyc_status,
       step: user.step,
       role: userRole,
       created_at: user.createdAt,
@@ -1063,6 +1065,7 @@ export class AuthService {
           name: selectedCompanyRole.company.name,
           country: selectedCompanyRole.company.country,
           onboarding_is_completed: completedCount === totalCount,
+          kybStatus: selectedCompanyRole.company.kyb_status,
           clearance:
             selectedCompanyRole.company.access_level === "omniscient"
               ? "admin"

@@ -153,26 +153,94 @@ class CardModel {
     }
   }
 
-  static async getCardsByCompany(companyId: string) {
+  static async getCardsByCompany(
+    companyId: string,
+    filters?: { status?: string; brand?: string }
+  ) {
     try {
+      const whereClause: any = {};
+
+      // Appliquer le filtre status si présent
+      if (filters?.status) {
+        whereClause.status = filters.status;
+      }
+
+      // Appliquer le filtre brand si présent
+      if (filters?.brand) {
+        whereClause.brand = filters.brand;
+      }
+
       const companyWithCards = await prisma.company.findUnique({
         where: { id: companyId },
         include: {
-          cards: true,
+          cards: {
+            where: whereClause,
+          },
         },
       });
-
-      if (!companyWithCards) {
-        return fnOutput.error({
-          message: "Company not found",
-        });
-      }
 
       return fnOutput.success({ output: companyWithCards.cards });
     } catch (error: any) {
       return fnOutput.error({
         message: "Error fetching cards: " + error.message,
         error,
+      });
+    }
+  }
+
+  static async getCards(
+    filters?: {
+      status?: string;
+      brand?: string;
+      created_at?: { gte?: string; lte?: string };
+    },
+    order?: {
+      [key: string]: "asc" | "desc";
+    }
+  ) {
+    try {
+      const query: any = {};
+
+      // --- Filtres ---
+      if (filters) {
+        query.where = {};
+
+        if (filters.status) {
+          query.where.status = filters.status;
+        }
+
+        if (filters.brand) {
+          query.where.brand = filters.brand;
+        }
+
+        if (filters.created_at) {
+          query.where.created_at = {};
+          if (filters.created_at.gte) {
+            query.where.created_at.gte = new Date(filters.created_at.gte);
+          }
+          if (filters.created_at.lte) {
+            query.where.created_at.lte = new Date(filters.created_at.lte);
+          }
+        }
+      }
+
+      if (order) {
+        query.orderBy = Object.entries(order).map(([field, direction]) => ({
+          [field]: direction,
+        }));
+      }
+
+      const result = await prisma.card.findMany(query);
+
+      const sanitized = result.map(({ number, cvv, ...rest }) => rest);
+
+      return fnOutput.success({
+        output: sanitized,
+      });
+    } catch (error: any) {
+      return fnOutput.error({
+        message: "Error fetching cards: " + error.message,
+        error: { message: error.message },
       });
     }
   }

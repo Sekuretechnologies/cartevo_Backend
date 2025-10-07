@@ -195,6 +195,7 @@ export class SelectCompanyResponseDto {
     country: string;
     onboarding_is_completed: boolean;
     clearance?: string;
+    kybStatus?: string;
   };
 
   @ApiProperty({

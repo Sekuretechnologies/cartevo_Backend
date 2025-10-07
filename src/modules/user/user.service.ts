@@ -746,6 +746,7 @@ export class UserService {
       company_id: user.company?.id,
       status: company_status || user.status,
       step: user.step,
+      kycStatus: user.kyc_status,
       role: userRole,
       created_at: user.createdAt,
       updated_at: user.updatedAt,
