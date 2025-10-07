@@ -204,11 +204,11 @@ export class AuthService {
     }
 
     // Send OTP email
-    await this.emailService.sendOtpEmail(
-      user.email,
-      otp,
-      user.first_name || user.full_name || "User"
-    );
+    // await this.emailService.sendOtpEmail(
+    //   user.email,
+    //   otp,
+    //   user.first_name || user.full_name || "User"
+    // );
 
     return {
       success: true,
@@ -378,11 +378,19 @@ export class AuthService {
         `Generating full JWT token for user ${user.id} in company ${userCompany.company.id}`
       );
 
+      // mode production ou preProd
+      const mode =
+        userCompany.company.kyb_status === "APPROVED" &&
+        user.kyc_status === "APPROVED"
+          ? "prod"
+          : "preprod";
+
       // Generate JWT token with expiry
       const payload = {
         sub: user.id,
         email: user.email,
         companyId: userCompany.company.id,
+        mode: mode,
       };
 
       this.logger.debug(
@@ -1005,11 +1013,19 @@ export class AuthService {
         `Generating full JWT token for user ${userId} in company ${selectedCompanyRole.company.name} (${selectedCompanyRole.company.id})`
       );
 
+      // mode prod ou preprod
+      const mode =
+        selectedCompanyRole.company.kyb_status === "APPROVED" &&
+        user.kyc_status === "APPROVED"
+          ? "prod"
+          : "preprod";
+
       // Generate full JWT token with company information
       const payload = {
         sub: user.id,
         email: user.email,
         companyId: selectedCompanyRole.company.id,
+        mode,
       };
 
       this.logger.debug(

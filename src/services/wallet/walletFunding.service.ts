@@ -279,7 +279,8 @@ const processAfribapayFunding = async (
 
 /** ================================================================ */
 export const fundWallet = async (
-  data: IWalletFunding
+  data: IWalletFunding,
+  userMode: "prod" | "preprod"
 ): Promise<OutputProps> => {
   try {
     // Validate input
@@ -314,7 +315,51 @@ export const fundWallet = async (
       });
     }
 
-    // Calculate transaction fee
+    /** ============================================================
+     *  Vérification des restrictions de solde en préproduction
+     * ============================================================ */
+    const mode = userMode;
+
+    const PREPROD_WALLET_LIMITS: Record<string, number> = {
+      USD: 90,
+      NGN: 130000,
+      GHS: 1000,
+      XAF: 50000,
+      XOF: 50000,
+      GNF: 750000,
+      HTG: 12000,
+    };
+
+    console.log("wallet", wallet);
+
+    if (mode === "preprod") {
+      const maxAllowed = PREPROD_WALLET_LIMITS[currency];
+      const futureBalance = Number(wallet.balance) + Number(amount);
+
+      if (maxAllowed === undefined) {
+        return fnOutput.error({
+          code: "FORBIDDEN",
+          error: {
+            message: `No wallet limit defined for currency '${currency}' in preproduction mode`,
+          },
+        });
+      }
+
+      if (Number(futureBalance) > Number(maxAllowed)) {
+        console.log("future balance", futureBalance);
+        console.log("max allowed balance", maxAllowed);
+        return fnOutput.error({
+          code: "FORBIDDEN",
+          error: {
+            message: `Wallet balance for ${currency} cannot exceed ${maxAllowed} in preproduction mode`,
+          },
+        });
+      }
+    }
+
+    /** ============================================================
+     * Calcul des frais de transaction
+     * ============================================================ */
     const feeResult = await calculateTransactionFee(
       companyId,
       amount,
@@ -333,7 +378,9 @@ export const fundWallet = async (
 
     console.log("feeInfo ----------------- :: ", feeInfo);
 
-    // Process payment based on provider first
+    /** ============================================================
+     *  Traitement du paiement
+     * ============================================================ */
     let paymentResult: any = {};
 
     switch (provider.toLowerCase()) {
@@ -354,7 +401,9 @@ export const fundWallet = async (
       throw paymentResult.error;
     }
 
-    // Only create transaction record if payment initiation was successful
+    /** ============================================================
+     *   Création de la transaction
+     * ============================================================ */
     const transactionResult = await createFundingTransaction(
       data,
       wallet,
@@ -381,10 +430,11 @@ export const fundWallet = async (
       status: "PENDING", // Keep as pending until webhook confirms
     });
 
-    // Save phone number for wallet if it doesn't exist already
+    /** ============================================================
+     *  Enregistrement du numéro de téléphone
+     * ============================================================ */
     if (data.phone) {
       try {
-        // Check if phone number already exists for this wallet
         const existingPhoneNumbers = await walletPhoneNumberService.getAll(
           data.walletId
         );
@@ -393,7 +443,6 @@ export const fundWallet = async (
         );
 
         if (!phoneExists && existingPhoneNumbers.output <= 3) {
-          // Create new wallet phone number record
           const phoneData = {
             wallet_id: data.walletId,
             country_iso_code: wallet.country_iso_code,
@@ -413,10 +462,12 @@ export const fundWallet = async (
           `Failed to save phone number for wallet ${data.walletId}:`,
           error.message
         );
-        // Don't fail the entire operation if phone number saving fails
       }
     }
 
+    /** ============================================================
+     *  Retour du résultat final
+     * ============================================================ */
     return fnOutput.success({
       output: {
         transaction: transaction,
