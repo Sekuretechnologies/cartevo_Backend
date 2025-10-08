@@ -743,7 +743,7 @@ export class CardManagementService {
         wallet_balance_after: tx.wallet_balance_after?.toNumber(),
         provider: decodeText(tx.provider),
         order_id: tx.order_id,
-        failure_reason: tx.failure_reason,
+        reason: tx.reason,
         card: tx.card,
         customer: tx.customer,
       }));

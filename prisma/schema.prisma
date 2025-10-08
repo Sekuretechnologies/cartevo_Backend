@@ -234,6 +234,7 @@ model Transaction {
   provider                  String?                    @map("provider")
   status                    String                     @default("PENDING") @map("status")
   updated_at                DateTime                   @updatedAt @map("updated_at")
+  completed_at              DateTime?                  @map("completed_at")
   type                      String                     @map("type")
   reason                    String?                    @map("reason")
   company_id                String                     @map("company_id")
@@ -472,6 +473,8 @@ enum CardStatus {
   ACTIVE
   FROZEN
   TERMINATED
+  PENDING      // Add for AlphaSpace
+  FAILED       // Add for AlphaSpace
 }
 
 enum TransactionType {

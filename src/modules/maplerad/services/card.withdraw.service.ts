@@ -682,7 +682,7 @@ export class CardWithdrawService {
     if (cardTransaction) {
       await TransactionModel.update(cardTransaction.id, {
         status: "FAILED",
-        failure_reason: error.message,
+        reason: error.message,
         completed_at: utcToLocalTime(new Date())?.toISOString(),
       });
     }

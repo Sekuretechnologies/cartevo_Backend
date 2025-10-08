@@ -477,7 +477,7 @@ if (card.status !== "ACTIVE") {
 if (!settlementResult.success) {
   await TransactionModel.update(auth.id, {
     status: "SETTLEMENT_FAILED",
-    failure_reason: settlementResult.error,
+    reason: settlementResult.error,
   });
 
   // Queue for retry

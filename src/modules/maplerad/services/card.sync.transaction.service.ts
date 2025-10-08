@@ -846,7 +846,7 @@ export class CardSyncTransactionService {
       // Additional fields
       mcc: mapleradTx.mcc,
       order_id: mapleradTx.orderId,
-      failure_reason: mapleradTx.failureReason,
+      reason: mapleradTx.failureReason,
     };
   }
 
