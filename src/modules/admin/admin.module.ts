@@ -8,6 +8,7 @@ import { AdminService } from "./admin.service";
 import { WithdrawalQueueController } from "./withdrawalQueue.controller";
 
 import { CompaniesAdminModule } from "./companies-admin/companies-admin.module";
+import { ModeRestrictionsService } from "@/services/mode-restriction.service";
 
 @Module({
   controllers: [WithdrawalQueueController, AdminController],
@@ -17,6 +18,7 @@ import { CompaniesAdminModule } from "./companies-admin/companies-admin.module";
     WalletService,
     EmailService,
     TokenBlacklistService,
+    ModeRestrictionsService,
   ],
   exports: [WithdrawalProcessorService],
   imports: [CompaniesAdminModule],

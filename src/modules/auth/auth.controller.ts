@@ -31,6 +31,7 @@ import {
   AcceptInvitationResponseDto,
   RegisterWithInvitationDto,
   ResendOtpDto,
+  SwitchCompanyRequestDto,
 } from "./dto/auth.dto";
 import {
   LoginDto,
@@ -42,6 +43,8 @@ import {
 } from "../user/dto/user.dto";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { email } from "envalid";
+import { AuthGuard } from "@nestjs/passport";
+import { CurrentUser } from "../common/decorators/current-user.decorator";
 
 @ApiTags("Authentication")
 @Controller("auth")
@@ -315,5 +318,21 @@ export class AuthController {
     @Body() dto: RegisterWithInvitationDto
   ): Promise<LoginSuccessResponseDto> {
     return this.authService.registerWithInvitation(dto);
+  }
+
+  @Post("switch-company")
+  @UseGuards(JwtAuthGuard)
+  async switchCompany(
+    @CurrentUser() user: any,
+    @Body() body: SwitchCompanyRequestDto
+  ) {
+    // console.log("user dans le switch", user);
+    // console.log("companyId", body.company_id);
+    // console.log("current companyId", user.companyId);
+    return this.authService.switchCompany(
+      user.userId,
+      user.companyId,
+      body
+    );
   }
 }
