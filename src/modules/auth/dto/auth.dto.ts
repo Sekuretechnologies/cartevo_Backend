@@ -342,3 +342,75 @@ export class ResendOtpDto {
   @IsString()
   email: string;
 }
+
+class SwitchCompanyUserDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  email: string;
+
+  @ApiProperty()
+  first_name: string;
+
+  @ApiProperty()
+  last_name: string;
+
+  @ApiProperty()
+  role: string;
+
+  @ApiProperty()
+  kycStatus: string;
+}
+
+class SwitchCompanyCompanyDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty()
+  country: string;
+
+  @ApiProperty()
+  onboarding_is_completed: boolean;
+
+  @ApiProperty()
+  kybStatus: string;
+
+  @ApiProperty()
+  clearance: string;
+}
+export class SwitchCompanyRequestDto {
+  @ApiProperty({
+    description: "ID of company to switch to",
+    example: "company-uuid-here",
+  })
+  @IsString()
+  @IsNotEmpty()
+  company_id: string;
+}
+
+export class SwitchCompanyResponseDto {
+  @ApiProperty()
+  success: boolean;
+
+  @ApiProperty()
+  message: string;
+
+  @ApiProperty()
+  mode: string;
+
+  @ApiProperty()
+  access_token: string;
+
+  @ApiProperty({ type: SwitchCompanyUserDto })
+  user: SwitchCompanyUserDto;
+
+  @ApiProperty({ type: SwitchCompanyCompanyDto })
+  company: SwitchCompanyCompanyDto;
+
+  @ApiProperty()
+  redirect_to: string;
+}

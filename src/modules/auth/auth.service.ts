@@ -26,6 +26,8 @@ import {
   AcceptInvitationResponseDto,
   RegisterWithInvitationDto,
   ResendOtpDto,
+  SwitchCompanyRequestDto,
+  SwitchCompanyResponseDto,
 } from "./dto/auth.dto";
 import {
   LoginDto,
@@ -204,11 +206,11 @@ export class AuthService {
     }
 
     // Send OTP email
-    await this.emailService.sendOtpEmail(
-      user.email,
-      otp,
-      user.first_name || user.full_name || "User"
-    );
+    // await this.emailService.sendOtpEmail(
+    //   user.email,
+    //   otp,
+    //   user.first_name || user.full_name || "User"
+    // );
 
     return {
       success: true,
@@ -1351,5 +1353,165 @@ export class AuthService {
       },
       redirect_to: "dashboard",
     };
+  }
+
+  async switchCompany(
+    currentUserId: string,
+    currentCompanyId: string,
+    switchCompanyDto: SwitchCompanyRequestDto
+  ): Promise<SwitchCompanyResponseDto> {
+    try {
+      this.logger.log(
+        `Starting company for user: ${currentUserId} from company:${currentCompanyId} to company: ${switchCompanyDto.company_id} `
+      );
+
+      console.log("current user id", currentUserId);
+      console.log("current company id", currentCompanyId);
+      console.log("dto", switchCompanyDto);
+
+      // Verifier que l'utilisateur ne sitch pas vers la meme company
+      if (currentCompanyId === switchCompanyDto.company_id) {
+        throw new BadRequestException("Already in this company");
+      }
+
+      // verifier que l'utilisateur appartient a la company ciblee
+      const userCompanyRoleResult = await UserCompanyRoleModel.getOne({
+        user_id: currentUserId,
+        company_id: switchCompanyDto.company_id,
+        is_active: true,
+      });
+
+      if (userCompanyRoleResult.error || !userCompanyRoleResult) {
+        throw new BadRequestException("User not found in specified company");
+      }
+
+      // recuperer les infos du users avec la nouvelle company
+      const userResult = await UserModel.getOne(
+        {
+          id: currentUserId,
+          status: UserStatus.ACTIVE,
+        },
+        {
+          userCompanyRoles: {
+            where: {
+              is_active: true,
+            },
+            include: {
+              role: true,
+              company: true,
+            },
+          },
+        }
+      );
+
+      if (userResult.error) {
+        throw new NotFoundException("User not found");
+      }
+
+      const user: any = userResult.output;
+      console.log("user companie role", user);
+
+      // chercher le role du user pour la company ciblee
+      const targetCompanyRole = user.userCompanyRoles.find(
+        (ucr: any) => ucr.company_id === switchCompanyDto.company_id
+      );
+
+      if (!targetCompanyRole) {
+        throw new BadRequestException(
+          "user role not found in specified company"
+        );
+      }
+
+      // det le mode (prod ou preprod) pour la nouvelle company
+      const mode =
+        targetCompanyRole.company.kyb_status === "APPROVED" &&
+        user.kyc_status === "APPROVED"
+          ? "prod"
+          : "preprod";
+
+      console.log("mode pour cette company", mode);
+      // Generer un nouveau JWT avec les infos de la nouvelle company
+      const payload = {
+        sub: user.id,
+        email: user.email,
+        companyId: targetCompanyRole.company.id,
+        mode,
+      };
+
+      this.logger.debug(
+        `Signing new JWT token with payload: ${JSON.stringify(
+          payload
+        )} using primary JWT secret`
+      );
+
+      const accessToken = this.jwtService.sign(payload, {
+        secret: env.JWT_SECRET,
+        expiresIn: "1h",
+      });
+
+      // recuperer les etapes d'onboarding pour la nouvelle company
+      const result = await OnboardingStepModel.get({
+        company_id: targetCompanyRole.company.id,
+      });
+
+      if (result.error) {
+        throw new BadRequestException(result.error.message);
+      }
+
+      const steps = result.output;
+      const totalCount: number = steps.length;
+      const completedCount: number = steps.filter(
+        (step: any) => step.status === "COMPLETED"
+      ).length;
+
+      let redirectTo = "dashboard";
+      let redirectMessage = "Company switch successful";
+
+      if (completedCount < totalCount) {
+        redirectTo = "onBoarding";
+      }
+      return {
+        success: true,
+        message: redirectMessage,
+        access_token: accessToken,
+        mode,
+        user: {
+          id: user.id,
+          email: user.email,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          role: targetCompanyRole.role.name,
+          kycStatus: user.kyc_status,
+        },
+        company: {
+          id: targetCompanyRole.company.id,
+          name: targetCompanyRole.company.name,
+          country: targetCompanyRole.company.country,
+          onboarding_is_completed: completedCount === totalCount,
+          kybStatus: targetCompanyRole.company.kyb_status,
+          clearance:
+            targetCompanyRole.company.access_level === "omniscient"
+              ? "admin"
+              : "default",
+        },
+        redirect_to: redirectTo,
+      };
+    } catch (error) {
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      this.logger.error(
+        `Unexpected error during company switch: ${error.message}`,
+        error.stack
+      );
+      throw new BadRequestException({
+        success: false,
+        message: "An error occurred during company switch",
+        error: error.message,
+      });
+    }
   }
 }
