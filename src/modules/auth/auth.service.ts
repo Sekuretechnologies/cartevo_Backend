@@ -206,11 +206,11 @@ export class AuthService {
     }
 
     // Send OTP email
-    // await this.emailService.sendOtpEmail(
-    //   user.email,
-    //   otp,
-    //   user.first_name || user.full_name || "User"
-    // );
+    await this.emailService.sendOtpEmail(
+      user.email,
+      otp,
+      user.first_name || user.full_name || "User"
+    );
 
     return {
       success: true,
