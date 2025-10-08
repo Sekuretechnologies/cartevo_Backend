@@ -14,6 +14,7 @@ import WalletModel from "@/models/prisma/walletModel";
 import WalletPhoneOperatorModel from "@/models/prisma/walletPhoneOperatorModel";
 import TransactionModel from "@/models/prisma/transactionModel";
 import fnOutput, { OutputProps } from "@/utils/shared/fnOutputHandler";
+import { ModeRestrictionsService } from "@/services/mode-restriction.service";
 
 export interface DepositToWalletSubmitProps {
   sourceWallet: {
@@ -52,6 +53,8 @@ export interface IWalletUpdate {
 
 @Injectable()
 export class WalletService {
+  constructor(private readonly modeRestrictions: ModeRestrictionsService) {}
+
   async createWallet(companyId: string, data: IWalletCreate) {
     try {
       const walletData = {
@@ -302,7 +305,7 @@ export class WalletService {
     try {
       const { PrismaClient } = require("@prisma/client");
       const prisma = new PrismaClient();
-      
+
       const company = await prisma.company.findUnique({
         where: { id: companyId },
         select: {
@@ -314,15 +317,15 @@ export class WalletService {
           is_active: true,
         },
       });
-      
+
       await prisma.$disconnect();
-      
+
       if (!company) {
         return fnOutput.error({
           error: { message: "Company not found" },
         });
       }
-      
+
       return fnOutput.success({ output: company });
     } catch (error: any) {
       return fnOutput.error({
@@ -335,7 +338,7 @@ export class WalletService {
     try {
       const { PrismaClient } = require("@prisma/client");
       const prisma = new PrismaClient();
-      
+
       // Get all successful transactions for this wallet
       const transactions = await prisma.transaction.findMany({
         where: {
@@ -348,26 +351,30 @@ export class WalletService {
           currency: true,
         },
       });
-      
+
       await prisma.$disconnect();
-      
+
       // Calculate pay-in (CREDIT, FUND, DEPOSIT) and pay-out (DEBIT, WITHDRAW)
       let payIn = 0;
       let payOut = 0;
-      
-      transactions.forEach(transaction => {
+
+      transactions.forEach((transaction) => {
         const amount = parseFloat(transaction.amount.toString());
-        
-        if (transaction.type === "CREDIT" || 
-            transaction.type === "FUND" || 
-            transaction.type === "DEPOSIT") {
+
+        if (
+          transaction.type === "CREDIT" ||
+          transaction.type === "FUND" ||
+          transaction.type === "DEPOSIT"
+        ) {
           payIn += amount;
-        } else if (transaction.type === "DEBIT" || 
-                   transaction.type === "WITHDRAW") {
+        } else if (
+          transaction.type === "DEBIT" ||
+          transaction.type === "WITHDRAW"
+        ) {
           payOut += amount;
         }
       });
-      
+
       return {
         payIn: payIn,
         payOut: payOut,
@@ -381,8 +388,8 @@ export class WalletService {
     }
   }
 
-  async fundWallet(data: IWalletFunding) {
-    const dataResult: OutputProps = await fundWallet(data);
+  async fundWallet(data: IWalletFunding, userMode: "prod" | "preprod") {
+    const dataResult: OutputProps = await fundWallet(data, userMode);
     if (dataResult?.error) {
       throw new HttpException(
         dataResult?.error?.message,
@@ -397,7 +404,11 @@ export class WalletService {
     return getWalletBalance(walletId);
   }
 
-  async depositToWallet(companyId: string, data: DepositToWalletSubmitProps) {
+  async depositToWallet(
+    userMode: "prod" | "preprod",
+    companyId: string,
+    data: DepositToWalletSubmitProps
+  ) {
     try {
       // Get source wallet
       const sourceWallet = await WalletModel.getOne({
@@ -421,6 +432,13 @@ export class WalletService {
       if (sourceWallet.output.balance < data.sourceWallet.totalAmount) {
         throw new BadRequestException("Insufficient balance in source wallet");
       }
+
+      // Vérifications de restrictions en préprod
+      this.modeRestrictions.checkWalletBalance(
+        userMode,
+        destinationWallet.output.currency,
+        destinationWallet.output.balance + data.destinationWallet.amount
+      );
 
       // Calculate converted amount
       const convertedAmount = data.destinationWallet.amount; // Assuming amount is already converted

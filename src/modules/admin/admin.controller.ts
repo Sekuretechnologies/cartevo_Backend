@@ -291,4 +291,25 @@ export class AdminController {
   ) {
     return this.adminService.toggleCompanySTatus(id, isActive);
   }
+
+  @Get("all")
+  @UseGuards(OmniGuard)
+  @ApiOperation({ summary: "Get all cards with optional filters and ordering" })
+  @ApiResponse({
+    status: 200,
+    description: "Cards retrieved successfully",
+  })
+  @ApiResponse({ status: 401, description: "Unauthorized" })
+  async getAllCards(
+    @Query("filters") filtersJson?: string,
+    @Query("order_by") order_by?: string,
+    @Query("order") order?: "asc" | "desc"
+  ) {
+    const filters: any = filtersJson ? JSON.parse(filtersJson) : {};
+
+    const orderObj: any = {};
+    if (order_by) orderObj[order_by] = order || "asc";
+
+    return await this.adminService.getAllCards(filters, orderObj);
+  }
 }

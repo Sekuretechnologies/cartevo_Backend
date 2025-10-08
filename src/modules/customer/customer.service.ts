@@ -18,6 +18,7 @@ import { EmailService } from "@/services/email.service";
 import { CardSyncService } from "@/modules/maplerad/services/card.sync.service";
 import { CardIssuanceService } from "@/modules/maplerad/services/card.issuance.service";
 import CustomerProviderMappingModel from "@/models/prisma/customerProviderMappingModel";
+import { ModeRestrictionsService } from "@/services/mode-restriction.service";
 
 @Injectable()
 export class CustomerService {
@@ -26,10 +27,12 @@ export class CustomerService {
   constructor(
     private firebaseService: FirebaseService,
     private cardSyncService: CardSyncService,
-    private cardIssuanceService: CardIssuanceService
+    private cardIssuanceService: CardIssuanceService,
+    private modeRestriction: ModeRestrictionsService
   ) {}
 
   async create(
+    companyMode: "prod" | "preprod",
     companyId: string,
     createCustomerDto: CreateCustomerDto,
     files?: {
@@ -53,6 +56,13 @@ export class CustomerService {
       throw new NotFoundException("Company not found");
     }
     const company = companyResult.output;
+
+    // recupere le nombre actuel de clients de l'entreprise
+    const customersCountResult = await CustomerModel.count({ companyId });
+    const currencustomerCount = customersCountResult.output ?? 0;
+
+    // Appel du service de checkMaxCustomers
+    this.modeRestriction.checkMaxCustomers(companyMode, currencustomerCount);
 
     const customerId = uuidv4();
 
