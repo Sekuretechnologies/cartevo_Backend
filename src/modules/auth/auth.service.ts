@@ -1,3 +1,13 @@
+import env from "@/env";
+import {
+  CompanyModel,
+  RoleModel,
+  UserCompanyRoleModel,
+  UserModel,
+} from "@/models";
+import { OnboardingStepModel } from "@/models/prisma";
+import { EmailService } from "@/services/email.service";
+import { TokenBlacklistService } from "@/services/token-blacklist.service";
 import {
   BadRequestException,
   Injectable,
@@ -5,47 +15,35 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
+import { JwtService } from "@nestjs/jwt";
+import { UserStatus } from "@prisma/client";
 import * as bcrypt from "bcrypt";
-import { v4 as uuidv4 } from "uuid";
-import { Prisma, UserStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import {
+  AuthResponseDto,
+  LoginDto,
+  LoginSuccessResponseDto,
+  UserResponseDto,
+  VerifyOtpDto,
+  VerifyOtpMultiCompanyResponseDto,
+} from "../user/dto/user.dto";
+import {
+  AcceptInvitationDto,
+  AcceptInvitationResponseDto,
   AuthTokenRequestDto,
   AuthTokenResponseDto,
   CheckEmailRequestDto,
   CheckEmailResponseDto,
   LoginWithCompanyRequestDto,
   LoginWithCompanyResponseDto,
-  SelectCompanyRequestDto,
-  SelectCompanyResponseDto,
-  ValidateInvitationTokenDto,
-  ValidateInvitationResponseDto,
-  AcceptInvitationDto,
-  AcceptInvitationResponseDto,
   RegisterWithInvitationDto,
   ResendOtpDto,
+  SelectCompanyRequestDto,
+  SelectCompanyResponseDto,
+  ValidateInvitationResponseDto,
+  ValidateInvitationTokenDto,
 } from "./dto/auth.dto";
-import {
-  LoginDto,
-  VerifyOtpDto,
-  UserResponseDto,
-  AuthResponseDto,
-  LoginSuccessResponseDto,
-  VerifyOtpMultiCompanyResponseDto,
-} from "../user/dto/user.dto";
-import {
-  UserModel,
-  RoleModel,
-  UserCompanyRoleModel,
-  CompanyModel,
-} from "@/models";
-import { OnboardingStepModel } from "@/models/prisma";
-import { EmailService } from "@/services/email.service";
-import { TokenBlacklistService } from "@/services/token-blacklist.service";
-import env from "@/env";
-import { email } from "envalid";
 
 @Injectable()
 export class AuthService {
@@ -204,11 +202,11 @@ export class AuthService {
     }
 
     // Send OTP email
-    await this.emailService.sendOtpEmail(
-      user.email,
-      otp,
-      user.first_name || user.full_name || "User"
-    );
+    // await this.emailService.sendOtpEmail(
+    //   user.email,
+    //   otp,
+    //   user.first_name || user.full_name || "User"
+    // );
 
     return {
       success: true,
