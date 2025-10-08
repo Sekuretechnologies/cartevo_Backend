@@ -65,6 +65,7 @@ export class CustomerController {
     @Query("enroll") enroll?: string
   ): Promise<CustomerResponseDto> {
     return this.customerService.create(
+      user.userMode,
       user.companyId,
       createCustomerDto,
       files,

@@ -170,6 +170,9 @@ export class UserResponseDto {
   first_name?: string;
 
   @ApiProperty()
+  kycStatus: string;
+
+  @ApiProperty()
   last_name?: string;
 
   @ApiProperty()
@@ -265,6 +268,7 @@ export class LoginSuccessResponseDto {
     country: string;
     onboarding_is_completed: boolean;
     clearance?: string;
+    kybStatus?: string;
   };
 
   @ApiProperty({

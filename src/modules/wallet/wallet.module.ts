@@ -6,9 +6,15 @@ import { WalletPhoneNumberController } from "./walletPhoneNumber.controller";
 import { WalletPhoneOperatorController } from "./walletPhoneOperator.controller";
 import { WalletTransactionsController } from "./walletTransactions.controller";
 import { WalletTransactionsService } from "./walletTransactions.service";
+import { ModeRestrictionsService } from "@/services/mode-restriction.service";
 
 @Module({
-  providers: [WalletService, WalletTestService, WalletTransactionsService],
+  providers: [
+    WalletService,
+    WalletTestService,
+    WalletTransactionsService,
+    ModeRestrictionsService,
+  ],
   controllers: [
     WalletController,
     WalletPhoneNumberController,

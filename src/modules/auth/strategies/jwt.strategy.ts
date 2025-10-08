@@ -15,6 +15,7 @@ export interface JwtPayload {
   roles?: string[]; // For user tokens
   iat?: number;
   exp?: number;
+  mode?: string;
 }
 
 @Injectable()
@@ -157,6 +158,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         companyId,
         companies: userCompanies,
         type: "user",
+        mode: payload.mode,
       };
     }
 

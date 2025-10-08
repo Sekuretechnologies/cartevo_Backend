@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from "@nestjs/common";
+import { Controller, Get, Param, Query, UseGuards } from "@nestjs/common";
 import { CompaniesAdminService } from "./companies-admin.service";
 import { OmniGuard } from "@/modules/auth/guards/omni.guard";
 import {
@@ -7,6 +7,7 @@ import {
   ApiParam,
   ApiBearerAuth,
   ApiResponse,
+  ApiQuery,
 } from "@nestjs/swagger";
 
 @ApiTags("Companies Admin")
@@ -45,13 +46,37 @@ export class CompaniesAdminController {
   @UseGuards(OmniGuard)
   @ApiOperation({ summary: "Get all transactions of a company" })
   @ApiParam({ name: "id", description: "Company ID" })
+  @ApiQuery({
+    name: "status",
+    required: false,
+    description: "Filter by status",
+  })
+  @ApiQuery({
+    name: "operator",
+    required: false,
+    description: "Filter by operator",
+  })
+  @ApiQuery({
+    name: "order",
+    required: false,
+    description: "Sort by recent or old",
+  })
   @ApiResponse({
     status: 200,
     description: "Transactions list retrieved successfully.",
   })
   @ApiResponse({ status: 401, description: "Unauthorized." })
-  async getTransactionsByCompany(@Param("id") id: string) {
-    return this.companiesAdminService.getTransactionsByCompany(id);
+  async getTransactionsByCompany(
+    @Param("id") id: string,
+    @Query("status") status?: "SUCCESS" | "FAILED" | "PENDING" | "CANCELED",
+    @Query("operator") operator?: "orange" | "mtn" | "OTHER",
+    @Query("order") order?: "RECENT" | "OLD"
+  ) {
+    return this.companiesAdminService.getTransactionsByCompany(id, {
+      status,
+      operator,
+      order,
+    });
   }
 
   @Get("cards-by-company/:id")
@@ -63,8 +88,11 @@ export class CompaniesAdminController {
     description: "Cards list retrieved successfully.",
   })
   @ApiResponse({ status: 401, description: "Unauthorized." })
-  async getCardsByCompany(@Param("id") id: string) {
-    return this.companiesAdminService.getCardsByCompany(id);
+  async getCardsByCompany(
+    @Param("id") id: string,
+    @Query() filters?: { status?: string; brand?: string }
+  ) {
+    return this.companiesAdminService.getCardsByCompany(id, filters);
   }
 
   @Get("countries")

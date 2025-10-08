@@ -235,6 +235,20 @@ class CustomerModel {
       });
     }
   }
+
+  static async count(where: { companyId: string }) {
+    try {
+      const total = await this.prisma.customer.count({
+        where: { company_id: where.companyId },
+      });
+
+      return fnOutput.success({ output: total });
+    } catch (error) {
+      fnOutput.error({
+        message: "error counting customers:" + error.message,
+      });
+    }
+  }
 }
 
 export default CustomerModel;

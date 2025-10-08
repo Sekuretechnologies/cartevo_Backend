@@ -13,12 +13,14 @@ export interface CurrentUserData {
   clientId?: string;
   companyName?: string;
   companyId?: string; // For backward compatibility with company tokens
+  userMode?: "prod" | "preprod";
 }
 
 export const CurrentUser = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): CurrentUserData => {
     const request = ctx.switchToHttp().getRequest();
     const user = request.user;
+    const userMode: "prod" | "preprod" = user.mode || "prod";
 
     if (user.type === "user") {
       console.log({
@@ -27,6 +29,7 @@ export const CurrentUser = createParamDecorator(
         companyId: user.companyId,
         companies: user.companies || [],
         type: "user",
+        userMode,
       });
 
       return {
@@ -35,6 +38,7 @@ export const CurrentUser = createParamDecorator(
         companyId: user.companyId,
         companies: user.companies || [],
         type: "user",
+        userMode,
       };
     } else if (user.type === "company") {
       console.log({
@@ -42,6 +46,7 @@ export const CurrentUser = createParamDecorator(
         clientId: user.clientId,
         companyName: user.companyName,
         type: "company",
+        userMode,
       });
 
       return {
@@ -49,6 +54,7 @@ export const CurrentUser = createParamDecorator(
         clientId: user.clientId,
         companyName: user.companyName,
         type: "company",
+        userMode,
       };
     }
 

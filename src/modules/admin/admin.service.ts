@@ -1,4 +1,4 @@
-import { CompanyModel, UserModel } from "@/models";
+import { CardModel, CompanyModel, UserModel } from "@/models";
 import {
   BadRequestException,
   Injectable,
@@ -196,6 +196,23 @@ export class AdminService {
     return {
       message: `user ${status ? "activated" : "deactivated"} successfully`,
       data: updatedUser,
+    };
+  }
+
+  async getAllCards(
+    filters?: {
+      status?: string;
+      brand?: string;
+      created_at?: { gte?: string; lte?: string };
+    },
+    order?: { [key: string]: "asc" | "desc" }
+  ) {
+    const cards = await CardModel.getCards(filters, order);
+
+    return {
+      success: true,
+      message: "Cards retrieved successfully",
+      cards: cards.output,
     };
   }
 }
