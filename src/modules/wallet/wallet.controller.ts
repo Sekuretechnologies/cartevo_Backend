@@ -39,6 +39,7 @@ import {
 } from "../common/decorators/current-user.decorator";
 import { WalletTestService } from "./wallet-test.service";
 import { IWalletCreate, WalletService } from "./wallet.service";
+import { ModeGuard } from "../auth/guards/mode.guard";
 
 export interface DepositToWalletSubmitProps {
   sourceWallet: {
@@ -205,6 +206,7 @@ export class WalletController {
   ) {}
 
   @Post()
+  @UseGuards(ModeGuard)
   async createWallet(
     @CurrentUser() user: CurrentUserData,
     @Body() data: IWalletCreate
@@ -267,9 +269,11 @@ export class WalletController {
     @CurrentUser() user: CurrentUserData,
     @Body() data: IWalletFunding
   ) {
+    console.log("user in token", user);
     console.log("Token type:", user.type);
     console.log("Current user:", data.userId);
     console.log("Current company/business ID:", user.companyId);
+    console.log("Mode du token:", user.userMode);
 
     const fundData: IWalletFunding = {
       walletId: data.walletId,
@@ -283,7 +287,7 @@ export class WalletController {
       // email: "",
       // orderId: "",
     };
-    return this.walletService.fundWallet(fundData);
+    return this.walletService.fundWallet(fundData, user.userMode);
   }
 
   @Post("withdraw")
@@ -312,7 +316,11 @@ export class WalletController {
     @CurrentUser() user: CurrentUserData,
     @Body() data: DepositToWalletDto
   ) {
-    return this.walletService.depositToWallet(user.companyId, data);
+    return this.walletService.depositToWallet(
+      user.userMode,
+      user.companyId,
+      data
+    );
   }
 
   @Post(":id/transfer-internal")
@@ -341,8 +349,8 @@ export class WalletController {
     @Body()
     body: {
       amount: number;
-      from_type: 'MAIN' | 'PAYIN' | 'PAYOUT';
-      to_type: 'MAIN' | 'PAYIN' | 'PAYOUT' | 'WITHDRAW';
+      from_type: "MAIN" | "PAYIN" | "PAYOUT";
+      to_type: "MAIN" | "PAYIN" | "PAYOUT" | "WITHDRAW";
       reason?: string;
       phone_number?: string; // required if to_type = WITHDRAW
       operator?: string; // required if to_type = WITHDRAW
