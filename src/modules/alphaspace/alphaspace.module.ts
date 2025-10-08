@@ -15,6 +15,7 @@ import { AlphaSpaceCardController } from "./controllers/card.controller";
 import { AlphaSpaceWebhookController } from "./controllers/webhook.controller";
 import { AlphaSpaceHealthController } from "./controllers/health.controller";
 import { AlphaSpaceConfigProvider } from "./alphaspace.providers";
+import { AlphaSpaceMaintenanceGuard } from "./guards/alphaspace-maintenance.guard";
 
 @Module({
   imports: [PrismaModule], // Database access
@@ -40,6 +41,9 @@ import { AlphaSpaceConfigProvider } from "./alphaspace.providers";
     // Advanced features (Phase 3)
     FeeManagementService,
     WebhookSecurityService,
+
+    // Guards (Phase 5: WAVLET Advantage)
+    AlphaSpaceMaintenanceGuard,
   ],
   exports: [
     // Core functionality

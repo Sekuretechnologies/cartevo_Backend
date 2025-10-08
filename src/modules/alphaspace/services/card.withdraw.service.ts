@@ -6,7 +6,7 @@ import { Injectable, Logger, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CurrentUserData } from "../../common/decorators/current-user.decorator";
 import { v4 as uuidv4 } from "uuid";
-import axios from "axios";
+import alphaSpaceCardUtils from "../../../utils/cards/alphaspace/card";
 import { AlphaSpaceAuthService } from "./alphaspace-auth.service";
 
 export interface WithdrawResult {
@@ -490,22 +490,19 @@ export class CardWithdrawService {
     amount: number
   ): Promise<void> {
     const token = await this.alphaSpaceAuthService.getValidAccessToken();
-    const baseUrl = "https://lion.alpha.africa";
 
     try {
-      const response = await axios.get(
-        `${baseUrl}/alpha/cards/details/${cardId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          timeout: 30000,
-        }
-      );
+      // Get card details including balance from AlphaSpace
+      const cardDetailsResult =
+        await alphaSpaceCardUtils.getCardDetailsFromAlphaSpace(cardId, token);
 
-      const alphaSpaceBalance = parseFloat(
-        (response.data as any)?.data?.card?.balance || "0"
-      );
+      if (cardDetailsResult.error) {
+        throw new Error(cardDetailsResult.error.message);
+      }
+
+      const cardData =
+        cardDetailsResult.output?.data || cardDetailsResult.output;
+      const alphaSpaceBalance = parseFloat(cardData?.balance || "0");
 
       if (alphaSpaceBalance < amount) {
         throw new BadRequestException(
@@ -513,10 +510,14 @@ export class CardWithdrawService {
         );
       }
     } catch (error: any) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
       this.logger.error("Failed to verify AlphaSpace balance", {
         cardId,
         amount,
-        error: error.response?.data || error.message,
+        error: error.message,
       });
       throw new BadRequestException(
         "Unable to verify card balance with payment provider"
@@ -557,44 +558,54 @@ export class CardWithdrawService {
   }
 
   /**
-   * Execute withdrawal via AlphaSpace API
+   * Execute withdrawal via AlphaSpace utils
    */
   private async withdrawViaAlphaSpace(
     cardId: string,
     amount: number
   ): Promise<any> {
     const token = await this.alphaSpaceAuthService.getValidAccessToken();
-    const baseUrl = "https://lion.alpha.africa";
 
     try {
-      this.logger.debug("Executing AlphaSpace withdrawal", {
+      this.logger.debug("Executing AlphaSpace withdrawal using utils", {
         cardId,
         amount,
       });
 
-      const response = await axios.post(
-        `${baseUrl}/alpha/cards/withdraw/${cardId}`,
-        { amount: amount.toString() },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          timeout: 30000,
-        }
+      // Prepare withdrawal data in AlphaSpace format
+      const withdrawData = {
+        amount: amount,
+        currency: "USD",
+        description: `Card withdrawal: ${amount} USD`,
+      };
+
+      // Use AlphaSpace utils to perform withdrawal
+      const result = await alphaSpaceCardUtils.withdrawFromCard(
+        cardId,
+        withdrawData,
+        token
       );
+
+      if (result.error) {
+        throw new Error(result.error.message || "AlphaSpace withdrawal failed");
+      }
+
+      // Extract result data
+      const responseData = result.output?.data || result.output;
+      const transactionId =
+        responseData?.transaction_id || responseData?.id || `txn_${Date.now()}`;
 
       return {
         reference: `withdraw_${cardId}_${Date.now()}`,
-        alphaSpace_reference: (response.data as any)?.reference,
-        transaction_id: (response.data as any)?.transaction_id,
+        alphaSpace_reference: responseData?.reference || transactionId,
+        transaction_id: transactionId,
         withdrawn_at: new Date().toISOString(),
       };
     } catch (error: any) {
-      this.logger.error("AlphaSpace withdrawal API call failed", {
+      this.logger.error("AlphaSpace withdrawal via utils failed", {
         cardId,
         amount,
-        error: error.response?.data || error.message,
+        error: error.message,
       });
 
       throw new BadRequestException("Withdrawal failed in payment provider");

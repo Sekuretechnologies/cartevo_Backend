@@ -72,6 +72,13 @@ const env = cleanEnv(process.env, {
   // MAPLERAD_CARD_FUNDING_FEE: num(),
   // MAPLERAD_CARD_WITHDRAWAL_FEE: num(),
   /** ------------------------*/
+  /** AlphaSpace Card Provider */
+  ALPHASPACE_ENVIRONMENT: str({ default: "sandbox" }),
+  ALPHASPACE_ACCESS_TOKEN: str({ default: "" }),
+  ALPHASPACE_API_KEY: str({ default: "" }),
+  ALPHASPACE_TIMEOUT: num({ default: 30000 }),
+  ALPHASPACE_MAINTENANCE_MODE: str({ default: "false" }),
+  /** ------------------------*/
   VAULT_URL: str(),
   VAULT_ID: str(),
   VGS_SCRIPT: str(),

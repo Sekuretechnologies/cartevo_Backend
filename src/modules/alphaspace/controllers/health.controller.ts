@@ -155,6 +155,11 @@ export class AlphaSpaceHealthController {
         ? "unhealthy"
         : "degraded";
 
+    // Alert on degraded or unhealthy status
+    if (results.status === "degraded" || results.status === "unhealthy") {
+      await this.sendHealthAlert(results, failingTests);
+    }
+
     return results;
   }
 
@@ -212,6 +217,57 @@ export class AlphaSpaceHealthController {
         message: error.message,
         timestamp: new Date().toISOString(),
       };
+    }
+  }
+
+  /**
+   * Send health alert for degraded or unhealthy status
+   */
+  private async sendHealthAlert(
+    results: any,
+    failingTests: any[]
+  ): Promise<void> {
+    try {
+      const alertData = {
+        service: "AlphaSpace",
+        status: results.status,
+        timestamp: results.timestamp,
+        failingTests: failingTests.map(
+          ([testName, testData]: [string, any]) => ({
+            test: testName,
+            status: testData.status,
+            message: testData.message,
+            error: testData.error,
+          })
+        ),
+        uptime: results.uptime,
+        performance: results.performance,
+      };
+
+      // Log the alert (would integrate with actual notification service)
+      console.error("🚨 CRITICAL: AlphaSpace Health Alert", alertData);
+
+      // TODO: Integrate with actual alert/notification system
+      // await this.alertService.sendHealthAlert({
+      //   severity: results.status === "unhealthy" ? "critical" : "warning",
+      //   component: "AlphaSpace Integration",
+      //   message: `AlphaSpace service is ${results.status}`,
+      //   details: alertData,
+      //   channels: ["slack", "email", "pagerduty"],
+      // });
+
+      // For now, provide console logging for development
+      const severity =
+        results.status === "unhealthy" ? "🔴 CRITICAL" : "🟡 WARNING";
+      console.log(`${severity} AlphaSpace health check failed`);
+      failingTests.forEach(([testName, testData]: [string, any]) => {
+        console.log(`  ❌ ${testName}: ${testData.message}`);
+        if (testData.error) {
+          console.log(`     Error: ${testData.error}`);
+        }
+      });
+    } catch (error: any) {
+      console.error("Failed to send health alert:", error.message);
     }
   }
 

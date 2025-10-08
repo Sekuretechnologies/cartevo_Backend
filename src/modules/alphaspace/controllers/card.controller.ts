@@ -11,6 +11,7 @@ import {
   Request,
 } from "@nestjs/common";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
+import { AlphaSpaceMaintenanceGuard } from "../guards/alphaspace-maintenance.guard";
 import { CardIssuanceService } from "../services/card.issuance.service";
 import { CardFundService } from "../services/card.fund.service";
 import { CardWithdrawService } from "../services/card.withdraw.service";
@@ -27,7 +28,7 @@ import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 @ApiTags("AlphaSpace Cards")
 @ApiBearerAuth()
 @Controller("alphaspace/cards")
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AlphaSpaceMaintenanceGuard)
 export class AlphaSpaceCardController {
   constructor(
     private readonly issuanceService: CardIssuanceService,

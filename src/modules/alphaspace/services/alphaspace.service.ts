@@ -4,7 +4,9 @@
 import { Injectable, Logger, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AlphaSpaceAuthService } from "./alphaspace-auth.service";
-import axios from "axios";
+import { Decimal } from "@prisma/client/runtime/library";
+import { v4 as uuidv4 } from "uuid";
+import alphaSpaceCardUtils from "../../../utils/cards/alphaspace/card";
 import {
   WAVLETCreateCardData,
   WAVLETCardResult,
@@ -252,7 +254,7 @@ export class AlphaSpaceService {
       }
 
       // 3. Check card balance
-      if (card.balance < amount) {
+      if (Number(card.balance) < amount) {
         throw new BadRequestException("Insufficient card balance");
       }
 
@@ -281,7 +283,7 @@ export class AlphaSpaceService {
         {
           cardId,
           amount,
-          newBalance: card.balance - amount,
+          newBalance: Number(card.balance) - amount,
           companyId,
         }
       );
@@ -290,7 +292,7 @@ export class AlphaSpaceService {
         success: true,
         card_id: cardId,
         amount: amount,
-        new_balance: card.balance - amount,
+        new_balance: Number(card.balance) - amount,
         wallet_id: walletId,
       };
     } catch (error: any) {
@@ -332,8 +334,8 @@ export class AlphaSpaceService {
       let realTimeBalance = card.balance;
       if (card.provider_card_id) {
         try {
-          realTimeBalance = await this.getAlphaSpaceCardBalance(
-            card.provider_card_id
+          realTimeBalance = new Decimal(
+            await this.getAlphaSpaceCardBalance(card.provider_card_id)
           );
         } catch (error) {
           this.logger.warn(
@@ -541,7 +543,7 @@ export class AlphaSpaceService {
       throw new BadRequestException("Company wallet not found");
     }
 
-    if (wallet.payin_balance < amount) {
+    if (wallet.payin_balance.lessThan(amount)) {
       throw new BadRequestException("Insufficient wallet balance");
     }
   }
@@ -552,91 +554,43 @@ export class AlphaSpaceService {
   private async createCardholder(
     customer: any
   ): Promise<{ id: string; purpose: string }> {
-    // Clean customer data for AlphaSpace
-    const cardholderData: AlphaSpaceCreateCardholderData = {
-      name: `${customer.first_name} ${customer.last_name}`.substring(0, 23),
-      first_name: customer.first_name.substring(0, 12),
-      last_name: customer.last_name.substring(0, 12),
-      gender: customer.gender === "male" ? 0 : 1,
-      date_of_birth: customer.date_of_birth.toISOString().split("T")[0], // YYYY-MM-DD
-      email_address: this.cleanEmail(customer.email),
-      purpose: "visacard-1", // Default to Visa, will be updated based on card creation
-    };
-
     const token = await this.alphaSpaceAuthService.getValidAccessToken();
-    const baseUrl = "https://lion.alpha.africa"; // Test environment
 
     try {
-      const response = await axios.post(
-        `${baseUrl}/alpha/cards/holder`,
-        cardholderData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          timeout: 30000,
-        }
+      // Use AlphaSpace utils to create cardholder
+      const cardholderResult = await alphaSpaceCardUtils.createCardholder(
+        customer,
+        token
       );
 
-      if (response.data.status === "submitted") {
-        // Wait for approval
-        await this.waitForCardholderApproval(response.data.id);
+      if (cardholderResult.error) {
+        throw new Error(cardholderResult.error.message);
+      }
+
+      const cardholderData = cardholderResult.output;
+
+      // Wait for approval if needed
+      if (cardholderData?.status === "submitted") {
+        await alphaSpaceCardUtils.waitForCardholderApproval(
+          cardholderData.id,
+          10,
+          token
+        );
       }
 
       return {
-        id: response.data.id,
-        purpose: cardholderData.purpose,
+        id: cardholderData?.id,
+        purpose: "visacard-1", // Default purpose
       };
     } catch (error: any) {
       this.logger.error("Failed to create AlphaSpace cardholder", {
         customerId: customer.id,
-        error: error.response?.data || error.message,
+        error: error.message,
       });
       throw new BadRequestException(
         "Failed to create cardholder in payment provider"
       );
     }
-  }
-
-  /**
-   * Wait for cardholder approval (polling)
-   */
-  private async waitForCardholderApproval(
-    cardholderId: string,
-    maxAttempts = 10
-  ): Promise<void> {
-    const token = await this.alphaSpaceAuthService.getValidAccessToken();
-    const baseUrl = "https://lion.alpha.africa";
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      try {
-        const response = await axios.get(`${baseUrl}/alpha/cards/holder`, {
-          params: { cardholder_id: cardholderId },
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          timeout: 10000,
-        });
-
-        if (response.data.status === "approved") {
-          return;
-        }
-
-        // Wait before next attempt
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-      } catch (error: any) {
-        this.logger.warn(
-          `Cardholder approval check failed (attempt ${attempt + 1})`,
-          {
-            cardholderId,
-            error: error.message,
-          }
-        );
-      }
-    }
-
-    throw new BadRequestException("Cardholder approval timeout");
   }
 
   /**
@@ -689,11 +643,6 @@ export class AlphaSpaceService {
         state: "ACTIVE",
         purpose:
           cardData.brand === "MASTERCARD" ? "mastercard-1" : "visacard-1",
-      },
-      details: {
-        card_exp_month: new Date().getMonth() + 2,
-        card_exp_year: new Date().getFullYear() + 3,
-        card_cvv: Math.floor(Math.random() * 900) + 100,
       },
     };
   }
@@ -814,34 +763,30 @@ export class AlphaSpaceService {
   ): Promise<any> {
     const cardPayload = {
       id: uuidv4(),
-      userId: wavletData.customer_id,
       company_id: wavletData.company_id,
       customer_id: wavletData.customer_id,
-      provider: "alphaspce",
+      provider: "alphaspace",
       provider_card_id: cardData.card.id,
-      status: "PENDING",
-      balance: wavletData.amount || 0,
+      status: "PENDING" as const,
+      balance: new Decimal(wavletData.amount || 0),
       currency: "USD",
       number: cardData.card.card_number || "",
       masked_number: `****-****-****-${
         cardData.card.card_number?.slice(-4) || "****"
       }`,
-      first_six: cardData.card.card_number?.substring(0, 6) || "",
-      last_four: cardData.card.card_number?.slice(-4) || "",
-      cvv: cardData.details?.card_cvv || "",
-      expiry_month: cardData.details?.card_exp_month || 0,
-      expiry_year: cardData.details?.card_exp_year || 0,
-      card_brand: cardData.card.brand?.toUpperCase() || "",
+      expiry_month: cardData.card.card_exp_month || new Date().getMonth() + 2,
+      expiry_year: cardData.card.card_exp_year || new Date().getFullYear() + 3,
+      cvv: `${Math.floor(Math.random() * 900) + 100}`,
+      brand: cardData.card.brand?.toUpperCase() || "VISA",
       is_virtual: true,
       is_physical: false,
-      provider_metadata: cardData,
-      fee_config: cardData.fees_meta,
+      provider_card_metadata: cardData,
       created_at: new Date(),
       updated_at: new Date(),
     };
 
     return await this.prisma.card.create({
-      data: cardPayload,
+      data: cardPayload as any,
     });
   }
 
@@ -874,7 +819,7 @@ export class AlphaSpaceService {
       masked_pan: card.masked_number,
       expiry_month: card.expiry_month,
       expiry_year: card.expiry_year,
-      brand: card.card_brand,
+      brand: card.brand,
       provider: card.provider,
       is_virtual: card.is_virtual,
       is_physical: card.is_physical,

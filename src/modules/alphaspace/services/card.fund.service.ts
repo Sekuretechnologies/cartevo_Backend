@@ -6,7 +6,7 @@ import { Injectable, Logger, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CurrentUserData } from "../../common/decorators/current-user.decorator";
 import { v4 as uuidv4 } from "uuid";
-import axios from "axios";
+import alphaSpaceCardUtils from "../../../utils/cards/alphaspace/card";
 import { AlphaSpaceAuthService } from "./alphaspace-auth.service";
 
 export interface FundCardResult {
@@ -515,44 +515,54 @@ export class CardFundService {
   }
 
   /**
-   * Fund card via AlphaSpace API
+   * Fund card via AlphaSpace utils
    */
   private async fundCardViaAlphaSpace(
     cardId: string,
     amount: number
   ): Promise<any> {
     const token = await this.alphaSpaceAuthService.getValidAccessToken();
-    const baseUrl = "https://lion.alpha.africa"; // Test environment
 
     try {
-      this.logger.debug("Calling AlphaSpace funding API", {
+      this.logger.debug("Funding AlphaSpace card using utils", {
         cardId,
         amount,
       });
 
-      const response = await axios.post(
-        `${baseUrl}/alpha/cards/fund/${cardId}`,
-        { amount: amount.toString() },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          timeout: 30000,
-        }
+      // Prepare funding data in AlphaSpace format
+      const fundData = {
+        amount: amount,
+        currency: "USD",
+        description: `Card funding: ${amount} USD`,
+      };
+
+      // Use AlphaSpace utils to fund the card
+      const result = await alphaSpaceCardUtils.fundCard(
+        cardId,
+        fundData,
+        token
       );
+
+      if (result.error) {
+        throw new Error(result.error.message || "AlphaSpace funding failed");
+      }
+
+      // Extract result data
+      const responseData = result.output?.data || result.output;
+      const transactionId =
+        responseData?.transaction_id || responseData?.id || `txn_${Date.now()}`;
 
       return {
         reference: `fund_${cardId}_${Date.now()}`,
-        provider_reference: (response.data as any)?.reference,
-        transaction_id: (response.data as any)?.transaction_id,
+        provider_reference: responseData?.reference || transactionId,
+        transaction_id: transactionId,
         funded_at: new Date().toISOString(),
       };
     } catch (error: any) {
-      this.logger.error("AlphaSpace funding API call failed", {
+      this.logger.error("AlphaSpace funding via utils failed", {
         cardId,
         amount,
-        error: error.response?.data || error.message,
+        error: error.message,
       });
 
       throw new BadRequestException("Funding failed in payment provider");

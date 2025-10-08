@@ -12,6 +12,8 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { CardStatus } from "@prisma/client";
 import { CurrentUserData } from "../../common/decorators/current-user.decorator";
 import { v4 as uuidv4 } from "uuid";
+import alphaSpaceCardUtils from "../../../utils/cards/alphaspace/card";
+import { AlphaSpaceAuthService } from "./alphaspace-auth.service";
 
 export interface CardManagementResult {
   success: boolean;
@@ -40,7 +42,10 @@ export interface CardStatistics {
 export class CardManagementService {
   private readonly logger = new Logger(CardManagementService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly alphaSpaceAuthService: AlphaSpaceAuthService
+  ) {}
 
   /**
    * Freeze an AlphaSpace card
@@ -623,60 +628,111 @@ export class CardManagementService {
   }
 
   /**
-   * Freeze card via AlphaSpace API (Mock implementation for Phase 2)
+   * Freeze card via AlphaSpace utils
    */
   private async freezeAlphaSpaceCard(providerCardId: string): Promise<any> {
-    // TODO: Replace with actual AlphaSpace API call
-    this.logger.log("🚧 ALPHASPACE FREEZE CARD - Mock implementation used", {
-      providerCardId,
-    });
+    const token = await this.alphaSpaceAuthService.getValidAccessToken();
 
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      this.logger.debug("Freezing AlphaSpace card using utils", {
+        providerCardId,
+      });
 
-    return {
-      reference: `freeze_${providerCardId}_${Date.now()}`,
-      status: "frozen",
-      timestamp: new Date().toISOString(),
-    };
+      // Use AlphaSpace utils to freeze the card
+      const result = await alphaSpaceCardUtils.freezeCard(
+        providerCardId,
+        token
+      );
+
+      if (result.error) {
+        throw new Error(result.error.message || "AlphaSpace freeze failed");
+      }
+
+      return {
+        reference: `freeze_${providerCardId}_${Date.now()}`,
+        status: "frozen",
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error: any) {
+      this.logger.error("AlphaSpace freeze via utils failed", {
+        providerCardId,
+        error: error.message,
+      });
+
+      throw new Error("Card freeze failed in payment provider");
+    }
   }
 
   /**
-   * Unfreeze card via AlphaSpace API (Mock implementation for Phase 2)
+   * Unfreeze card via AlphaSpace utils
    */
   private async unfreezeAlphaSpaceCard(providerCardId: string): Promise<any> {
-    // TODO: Replace with actual AlphaSpace API call
-    this.logger.log("🚧 ALPHASPACE UNFREEZE CARD - Mock implementation used", {
-      providerCardId,
-    });
+    const token = await this.alphaSpaceAuthService.getValidAccessToken();
 
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      this.logger.debug("Unfreezing AlphaSpace card using utils", {
+        providerCardId,
+      });
 
-    return {
-      reference: `unfreeze_${providerCardId}_${Date.now()}`,
-      status: "active",
-      timestamp: new Date().toISOString(),
-    };
+      // Use AlphaSpace utils to unfreeze the card
+      const result = await alphaSpaceCardUtils.unfreezeCard(
+        providerCardId,
+        token
+      );
+
+      if (result.error) {
+        throw new Error(result.error.message || "AlphaSpace unfreeze failed");
+      }
+
+      return {
+        reference: `unfreeze_${providerCardId}_${Date.now()}`,
+        status: "active",
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error: any) {
+      this.logger.error("AlphaSpace unfreeze via utils failed", {
+        providerCardId,
+        error: error.message,
+      });
+
+      throw new Error("Card unfreeze failed in payment provider");
+    }
   }
 
   /**
-   * Terminate card via AlphaSpace API (Mock implementation for Phase 2)
+   * Terminate card via AlphaSpace utils
    */
   private async terminateAlphaSpaceCard(providerCardId: string): Promise<any> {
-    // TODO: Replace with actual AlphaSpace API call
-    this.logger.log("🚧 ALPHASPACE TERMINATE CARD - Mock implementation used", {
-      providerCardId,
-    });
+    const token = await this.alphaSpaceAuthService.getValidAccessToken();
 
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    try {
+      this.logger.debug("Terminating AlphaSpace card using utils", {
+        providerCardId,
+      });
 
-    return {
-      reference: `terminate_${providerCardId}_${Date.now()}`,
-      status: "terminated",
-      timestamp: new Date().toISOString(),
-    };
+      // Use AlphaSpace utils to terminate the card
+      const result = await alphaSpaceCardUtils.terminateCard(
+        providerCardId,
+        token
+      );
+
+      if (result.error) {
+        throw new Error(result.error.message || "AlphaSpace terminate failed");
+      }
+
+      return {
+        reference: `terminate_${providerCardId}_${Date.now()}`,
+        status: "terminated",
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error: any) {
+      this.logger.error("AlphaSpace terminate via utils failed", {
+        providerCardId,
+        error: error.message,
+      });
+
+      throw new Error("Card termination failed in payment provider");
+    }
   }
 
   /**

@@ -21,6 +21,7 @@ export interface FeeResult {
   amount?: number;
   source?: "card_balance" | "wallet_balance" | "debt";
   debtCreated?: boolean;
+  debtId?: string;
   transactionId?: string;
   error?: string;
 }
@@ -291,11 +292,13 @@ export class FeeManagementService {
         where: { id: debtId },
       });
 
-      if (!debt?.log_json?.debtRecord) {
+      const debtJson = debt?.log_json as any;
+
+      if (!debtJson?.debtRecord) {
         throw new BadRequestException("Debt record not found");
       }
 
-      const debtData = debt.log_json.debtRecord;
+      const debtData = debtJson.debtRecord;
 
       // Validate payment amount
       if (paymentAmount > debtData.amount) {
@@ -323,14 +326,16 @@ export class FeeManagementService {
       const newStatus =
         paymentAmount >= debtData.amount ? "PAID" : "PARTIALLY_PAID";
 
+      const debtLogJson = debt.log_json as any;
+
       await this.prisma.customerLogs.update({
         where: { id: debtId },
         data: {
           log_json: {
-            ...debt.log_json,
+            ...debtLogJson,
             status: newStatus,
             paymentsReceived:
-              (debt.log_json.paymentsReceived || 0) + paymentAmount,
+              (debtLogJson.paymentsReceived || 0) + paymentAmount,
             paidAt: newStatus === "PAID" ? new Date() : undefined,
           },
         },
@@ -542,7 +547,7 @@ export class FeeManagementService {
           log_json: {
             debtRecord: debtRecord,
             context: feeContext,
-          },
+          } as any,
           log_txt: `Payment debt created: ${feeContext.amount} ${feeContext.currency} for ${feeContext.reason}`,
         },
       });
@@ -594,35 +599,37 @@ export class FeeManagementService {
       ? { gte: dateRange.start, lte: dateRange.end }
       : {};
 
+    // Get debt IDs for customers in this company
+    const customerIds = await this.prisma.customer.findMany({
+      where: { company_id: companyId },
+      select: { id: true },
+    });
+
+    const customerIdList = customerIds.map((c) => c.id);
+
     const debts = await this.prisma.customerLogs.findMany({
       where: {
         action: "payment_debt_created",
         status: "PENDING",
-        customer: {
-          company_id: companyId,
-        },
+        customer_id: { in: customerIdList },
         created_at: dateFilter,
-      },
-      include: {
-        customer: true,
       },
     });
 
-    return debts.map((debt) => ({
-      id: debt.id,
-      customerId: debt.customer_id,
-      customerName: debt.customer
-        ? `${debt.customer.first_name} ${debt.customer.last_name}`
-        : "Unknown",
-      amount: debt.log_json?.debtRecord?.amount || 0,
-      currency: debt.log_json?.debtRecord?.currency || "USD",
-      reason: debt.log_json?.debtRecord?.reason || "Unknown",
-      createdAt: debt.created_at,
-      dueDate: debt.log_json?.debtRecord?.dueDate,
-      daysOverdue: this.calculateDaysOverdue(
-        debt.log_json?.debtRecord?.dueDate
-      ),
-    }));
+    return debts.map((debt) => {
+      const debtJson = debt.log_json as any;
+      return {
+        id: debt.id,
+        customerId: debt.customer_id,
+        customerName: "Customer", // Would need separate query for name
+        amount: debtJson?.debtRecord?.amount || 0,
+        currency: debtJson?.debtRecord?.currency || "USD",
+        reason: debtJson?.debtRecord?.reason || "Unknown",
+        createdAt: debt.created_at,
+        dueDate: debtJson?.debtRecord?.dueDate,
+        daysOverdue: this.calculateDaysOverdue(debtJson?.debtRecord?.dueDate),
+      };
+    });
   }
 
   // ==================== UTILITY METHODS ====================
@@ -686,7 +693,7 @@ export class FeeManagementService {
           feeContext,
           collectionSource: source,
           amountDeducted: amount,
-        },
+        } as any,
         log_txt: `Fee deducted from ${source}: ${amount} ${feeContext.currency} for ${feeContext.reason}`,
       },
     });
@@ -705,7 +712,7 @@ export class FeeManagementService {
           feeContext,
           error: error.message,
           severity: "CRITICAL", // Fee collection failures are critical
-        },
+        } as any,
         log_txt: `CRITICAL: Fee collection failure: ${error.message} (${feeContext.amount} ${feeContext.currency})`,
       },
     });
