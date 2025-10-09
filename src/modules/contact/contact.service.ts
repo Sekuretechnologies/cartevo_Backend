@@ -47,7 +47,7 @@ export class ContactService {
       originalMessage.name,
       originalMessage.subject,
       response, // The admin's response
-      originalMessage.message, // The user's original message
+      originalMessage.message // The user's original message
     );
 
     return updateResult;
