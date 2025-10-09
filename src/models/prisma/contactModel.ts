@@ -1,11 +1,15 @@
-// src/models/prisma/contactModel.ts
-import { FilterObject, IncludeObject } from "@/types";
-import { setMethodFilter } from "@/utils/shared/common";
 import fnOutput from "@/utils/shared/fnOutputHandler";
 import { Prisma, PrismaClient } from "@prisma/client";
+// src/models/prisma/contactModel.ts
+import { FilterObject, IncludeObject } from "@/types";
+
+import { setMethodFilter } from "@/utils/shared/common";
 import { buildPrismaQuery } from "prisma/functions";
 
-const prisma = new PrismaClient();
+interface FilterObjectCt {
+  status?: "PENDING" | "RESOLVED";
+  state?: "ACTIVE" | "INACTIVE";
+}
 
 export interface HelpRequestModelInterface {
   getOne(filters: FilterObject): Promise<any>;
@@ -14,7 +18,31 @@ export interface HelpRequestModelInterface {
   delete(identifier: string | any): Promise<any>;
 }
 
-class contactModel {
+const prisma = new PrismaClient();
+
+class ContactModel {
+  static async getMyMessage(email: string, filters?: FilterObjectCt) {
+    try {
+      const result = await prisma.helpRequest.findMany({
+        where: {
+          email, // email obligatoire
+          ...(filters?.status && { status: filters.status }),
+          ...(filters?.state && { state: filters.state }),
+        },
+        orderBy: {
+          createAt: "desc",
+        },
+      });
+
+      return fnOutput.success({ output: result });
+    } catch (err: any) {
+      return fnOutput.error({
+        message: "Error fetching help request: " + err.message,
+        error: { message: "Error fetching help request: " + err.message },
+      });
+    }
+  }
+
   static async getOne(filters: FilterObject, include: IncludeObject = {}) {
     try {
       const { where, include: includeObj } = buildPrismaQuery({
@@ -88,6 +116,26 @@ class contactModel {
     }
   }
 
+  static async createMessage(
+    inputHelpRequest: Prisma.helpRequestUncheckedCreateInput
+  ) {
+    try {
+      const helpRequest = await prisma.helpRequest.create({
+        data: { ...inputHelpRequest },
+      });
+
+      return fnOutput.success({
+        code: 201,
+        output: helpRequest,
+      });
+    } catch (error: any) {
+      return fnOutput.error({
+        message: "Error creating help request: " + error.message,
+        error: { message: "Error creating help request: " + error.message },
+      });
+    }
+  }
+
   static async update(identifier: string | any, helpRequestData: any) {
     try {
       const { key, value } = setMethodFilter(identifier);
@@ -157,4 +205,4 @@ class contactModel {
   }
 }
 
-export default contactModel;
+export default ContactModel;

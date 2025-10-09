@@ -29,21 +29,21 @@ import {
   VerifyOtpMultiCompanyResponseDto,
 } from "../user/dto/user.dto";
 import {
-  AcceptInvitationDto,
-  AcceptInvitationResponseDto,
   AuthTokenRequestDto,
   AuthTokenResponseDto,
   CheckEmailRequestDto,
   CheckEmailResponseDto,
   LoginWithCompanyRequestDto,
   LoginWithCompanyResponseDto,
+  ValidateInvitationResponseDto,
+  AcceptInvitationDto,
+  AcceptInvitationResponseDto,
   RegisterWithInvitationDto,
   ResendOtpDto,
-  SelectCompanyRequestDto,
-  SelectCompanyResponseDto,
   SwitchCompanyRequestDto,
   SwitchCompanyResponseDto,
-  ValidateInvitationResponseDto,
+  SelectCompanyRequestDto,
+  SelectCompanyResponseDto,
   ValidateInvitationTokenDto,
 } from "./dto/auth.dto";
 

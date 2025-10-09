@@ -7,10 +7,13 @@ import {
   Query,
   UseGuards,
 } from "@nestjs/common";
+import { ContactDto, SendAuth } from "./dto/contact.dto";
 import { helpRequestState, helpRequestStatus } from "@prisma/client";
 import { OmniGuard } from "../auth/guards/omni.guard";
 import { ContactService } from "./contact.service";
-import { ContactDto } from "./dto/contact.dto";
+import { AuthGuard } from "@nestjs/passport";
+import { CurrentUser } from "../common/decorators/current-user.decorator";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 
 @Controller("contact")
 export class ContactController {
@@ -19,6 +22,32 @@ export class ContactController {
   @Post("send")
   async sendContactMessage(@Body() data: ContactDto) {
     return this.contactService.sendContactMessage(data);
+  }
+
+  @Post("send-auth")
+  @UseGuards(JwtAuthGuard)
+  async sendAuthMessage(@CurrentUser() user: any, @Body() body: SendAuth) {
+    console.log("body", body);
+    console.log("CurrentUser", user);
+  }
+
+  @Get("get-my-messages")
+  @UseGuards(JwtAuthGuard)
+  async getMyMessage(
+    @CurrentUser() user: any,
+    @Query("status") status?: "PENDING" | "RESOLVED",
+    @Query("state") state?: "ACTIVE" | "INACTIVE"
+  ) {
+    // Préparer les filtres si fournis
+    const filters = {
+      ...(status && { status }),
+      ...(state && { state }),
+    };
+
+    return this.contactService.getMyMessage({
+      email: user.email,
+      filters,
+    });
   }
 
   @Get("get-all-messages")
