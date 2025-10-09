@@ -10,4 +10,11 @@ export class ContactService {
     await this.emailService.sendContactEmail(data);
     return { message: "Message sent successfully" };
   }
+
+  // admin endpoint
+  getAllMessages() {
+    throw new Error("Method not implemented.");
+  }
+
+  // repondre a un message
 }

@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from "@nestjs/common";
+import { Body, Controller, Get, Post } from "@nestjs/common";
 import { ContactDto } from "./dto/contact.dto";
 import { ContactService } from "./contact.service";
 
@@ -9,5 +9,10 @@ export class ContactController {
   @Post("send")
   async sendContactMessage(@Body() data: ContactDto) {
     return this.contactService.sendContactMessage(data);
+  }
+
+  @Get("get-all-messages")
+  async getAllMessages() {
+    return this.contactService.getAllMessages();
   }
 }

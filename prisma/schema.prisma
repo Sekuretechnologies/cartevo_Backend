@@ -570,6 +570,7 @@ model helpRequest {
   subject     String
   message     String
   userId      String?
+  response    String?
   user        User?             @relation(fields: [userId], references: [id])
   createAt    DateTime          @default(now())
   updateAt    DateTime          @updatedAt
