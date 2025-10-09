@@ -83,6 +83,7 @@ model User {
   kyc_status           KycStatus         @default(NONE) @map("kyc_status")
   transactions         Transaction[]
   userCompanyRoles     UserCompanyRole[]
+  helpRequest          helpRequest[]
 
   @@map("users")
 }
@@ -120,7 +121,7 @@ model Wallet {
   payout_balance       Decimal             @default(0) @map("payout_balance") @db.Decimal(15, 2)
   payin_amount         Decimal             @default(0) @map("payin_amount") @db.Decimal(15, 2)
   payout_amount        Decimal             @default(0) @map("payout_amount") @db.Decimal(15, 2)
-  is_active               Boolean          @default(true) @map("active")
+  is_active            Boolean             @default(true) @map("active")
   currency             String
   country              String
   country_iso_code     String              @map("country_iso_code")
@@ -172,39 +173,39 @@ model Customer {
 }
 
 model Card {
-  id               String     @id @default(uuid())
-  company_id       String     @map("company_id")
-  customer_id      String     @map("customer_id")
-  status           CardStatus @default(ACTIVE)
-  balance          Decimal    @default(0) @db.Decimal(15, 2)
-  number           String     @unique // Card number
-  cvv              String // Card verification value
-  expiry_month     Int        @map("expiry_month") // Expiry month (1-12)
-  expiry_year      Int        @map("expiry_year") // Expiry year (4 digits)
-  currency         String // Currency of the card
-  country          String // Country of issuance
-  country_iso_code String     @map("country_iso_code") // ISO code of the country
-  provider_card_id String     @map("provider_card_id") // ID from the card provider
-  provider_card_metadata Json?    @map("provider_card_metadata") // Metadata from the card provider
+  id                     String     @id @default(uuid())
+  company_id             String     @map("company_id")
+  customer_id            String     @map("customer_id")
+  status                 CardStatus @default(ACTIVE)
+  balance                Decimal    @default(0) @db.Decimal(15, 2)
+  number                 String     @unique // Card number
+  cvv                    String // Card verification value
+  expiry_month           Int        @map("expiry_month") // Expiry month (1-12)
+  expiry_year            Int        @map("expiry_year") // Expiry year (4 digits)
+  currency               String // Currency of the card
+  country                String // Country of issuance
+  country_iso_code       String     @map("country_iso_code") // ISO code of the country
+  provider_card_id       String     @map("provider_card_id") // ID from the card provider
+  provider_card_metadata Json?      @map("provider_card_metadata") // Metadata from the card provider
   // provider_card_account_number String? @map("provider_card_account_number") // Account number from the card provider
-  masked_number    String?    @map("masked_number") // Masked card number
-  name             String? // Name on the card
-  city             String? // City of issuance
-  state_code       String?    @map("state_code") // State code of issuance
-  postal_code      String?    @map("postal_code") // Postal code of issuance
-  street           String? // Street address of issuance
-  provider         String? // Card provider (e.g., "stripe", "flutterwave", etc.)
-  brand            String?    @map("brand") // Type of card (e.g., "visa", "mastercard", etc.)
-  bin              String?    @map("bin") // BIN of the card (Bank Identification Number)
-  last4            String?    @map("last4") // Last 4 digits of the card number from the provider
-  description      String? // Description of the card
-  event            String?    @map("event_id") // Event from the card provider
-  reference        String?    @map("reference") // Reference ID from the card provider
-  is_active        Boolean    @default(true) @map("is_active") // Indicates if the card is active
-  is_virtual       Boolean    @default(false) @map("is_virtual") // Indicates if the card is virtual
-  is_physical      Boolean    @default(false) @map("is_physical") // Indicates if the card is physical  
-  created_at       DateTime   @default(now()) @map("created_at")
-  updated_at       DateTime   @updatedAt @map("updated_at")
+  masked_number          String?    @map("masked_number") // Masked card number
+  name                   String? // Name on the card
+  city                   String? // City of issuance
+  state_code             String?    @map("state_code") // State code of issuance
+  postal_code            String?    @map("postal_code") // Postal code of issuance
+  street                 String? // Street address of issuance
+  provider               String? // Card provider (e.g., "stripe", "flutterwave", etc.)
+  brand                  String?    @map("brand") // Type of card (e.g., "visa", "mastercard", etc.)
+  bin                    String?    @map("bin") // BIN of the card (Bank Identification Number)
+  last4                  String?    @map("last4") // Last 4 digits of the card number from the provider
+  description            String? // Description of the card
+  event                  String?    @map("event_id") // Event from the card provider
+  reference              String?    @map("reference") // Reference ID from the card provider
+  is_active              Boolean    @default(true) @map("is_active") // Indicates if the card is active
+  is_virtual             Boolean    @default(false) @map("is_virtual") // Indicates if the card is virtual
+  is_physical            Boolean    @default(false) @map("is_physical") // Indicates if the card is physical  
+  created_at             DateTime   @default(now()) @map("created_at")
+  updated_at             DateTime   @updatedAt @map("updated_at")
 
   company      Company       @relation(fields: [company_id], references: [id])
   customer     Customer      @relation(fields: [customer_id], references: [id])
@@ -343,7 +344,7 @@ model TransactionFee {
   fee_fixed            Decimal? @map("fee_fixed") @db.Decimal(15, 2)
   type                 FeeType
   value                Decimal  @db.Decimal(15, 2)
-  is_active               Boolean  @default(true) @map("active")
+  is_active            Boolean  @default(true) @map("active")
   description          String?
   created_at           DateTime @default(now()) @map("created_at")
   updated_at           DateTime @updatedAt @map("updated_at")
@@ -543,4 +544,33 @@ model PendingWithdrawal {
   company Company @relation(fields: [company_id], references: [id], onDelete: Cascade)
 
   @@map("pending_withdrawals")
+}
+
+enum helpRequestStatus {
+  PENDING
+  RESOLVED
+}
+
+enum helpRequestState {
+  ACTIVE
+  INACTIVE
+}
+
+model helpRequest {
+  id          String            @id @default(uuid())
+  name        String
+  email       String
+  companyName String?
+  status      helpRequestStatus @default(PENDING)
+  state       helpRequestState  @default(ACTIVE)
+  phone       String?
+  countryCode String?
+  activity    String?
+  service     String?
+  subject     String
+  message     String
+  userId      String?
+  user        User?             @relation(fields: [userId], references: [id])
+  createAt    DateTime          @default(now())
+  updateAt    DateTime          @updatedAt
 }
