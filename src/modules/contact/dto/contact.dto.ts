@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString } from "class-validator";
+import { IsEmail, IsNotEmpty, IsString, MinLength } from "class-validator";
 
 export class ContactDto {
   @IsNotEmpty({ message: "Name is required" })
@@ -36,4 +36,24 @@ export class ContactDto {
   @IsNotEmpty({ message: "Email is required" })
   @IsEmail({}, { message: "Invalid email address" })
   email: string;
+}
+
+export class SendAuth {
+  @IsNotEmpty({ message: "Subject is required" })
+  @IsString()
+  @MinLength(3, { message: "The subject must contain at least 3 characters" })
+  subject: string;
+
+  @IsNotEmpty({ message: "Message is required" })
+  @IsString()
+  @MinLength(5, { message: "The message must contain at least 5 characters" })
+  message: string;
+
+  @IsNotEmpty({ message: "Activity is required" })
+  @IsString()
+  activity: string;
+
+  @IsNotEmpty({ message: "Service is required" })
+  @IsString()
+  service: string;
 }
