@@ -14,7 +14,7 @@ export interface HelpRequestModelInterface {
   delete(identifier: string | any): Promise<any>;
 }
 
-class HelpRequestModel {
+class contactModel {
   static async getOne(filters: FilterObject, include: IncludeObject = {}) {
     try {
       const { where, include: includeObj } = buildPrismaQuery({
@@ -127,4 +127,4 @@ class HelpRequestModel {
   }
 }
 
-export default HelpRequestModel;
+export default contactModel;

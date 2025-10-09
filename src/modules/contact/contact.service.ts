@@ -1,6 +1,7 @@
 import { EmailService } from "@/services/email.service";
 import { Injectable } from "@nestjs/common";
 import { ContactDto } from "./dto/contact.dto";
+import contactModel from "@/models/prisma/contactModel";
 
 @Injectable()
 export class ContactService {
@@ -12,9 +13,15 @@ export class ContactService {
   }
 
   // admin endpoint
-  getAllMessages() {
-    throw new Error("Method not implemented.");
+  async getAllMessages() {
+    return await contactModel.getAllMessages({ state: "ACTIVE" });
   }
 
-  // repondre a un message
+  // repondre a un message en tant qu'admin mettre le message dans response de helpRequest de mon schema prisma. Par la meme occasion, le status de helpRequest passe a RESOLVED
+  async replyToMessage(id: string, response: string) {
+    return await contactModel.update(id, {
+      response,
+      status: "RESOLVED",
+    });
+  }
 }
