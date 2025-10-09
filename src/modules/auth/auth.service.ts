@@ -29,16 +29,12 @@ import {
   VerifyOtpMultiCompanyResponseDto,
 } from "../user/dto/user.dto";
 import {
-  AcceptInvitationDto,
-  AcceptInvitationResponseDto,
   AuthTokenRequestDto,
   AuthTokenResponseDto,
   CheckEmailRequestDto,
   CheckEmailResponseDto,
   LoginWithCompanyRequestDto,
   LoginWithCompanyResponseDto,
-  RegisterWithInvitationDto,
-  ResendOtpDto,
   SelectCompanyRequestDto,
   SelectCompanyResponseDto,
   ValidateInvitationResponseDto,
@@ -48,6 +44,7 @@ import {
   ResendOtpDto,
   SwitchCompanyRequestDto,
   SwitchCompanyResponseDto,
+  ValidateInvitationTokenDto,
 } from "./dto/auth.dto";
 
 @Injectable()
