@@ -1010,6 +1010,88 @@ export class EmailService {
     }
   }
 
+  async sendHelpReplyEmail(
+    to: string,
+    userName: string,
+    subject: string,
+    adminResponse: string,
+    originalMessage: string,
+  ): Promise<boolean> {
+    try {
+      const mailOptions = {
+        from: this.configService.get("FROM_EMAIL") || "support@cartevo.co",
+        to: to,
+        subject: `Re: Your Support Request - "${subject}"`,
+        html: this.getHelpReplyEmailTemplate(
+          userName,
+          subject,
+          adminResponse,
+          originalMessage,
+        ),
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log("Help reply email sent successfully:", result.messageId);
+      return true;
+    } catch (error) {
+      console.error("Error sending help reply email:", error);
+      throw new BadRequestException("Failed to send help reply email");
+    }
+  }
+
+  private getHelpReplyEmailTemplate(
+    userName: string,
+    subject: string,
+    adminResponse: string,
+    originalMessage: string,
+  ): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Response to your support request</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #007bff; color: white; padding: 20px; text-align: center; }
+          .content { padding: 30px; background-color: #f9f9f9; }
+          .response-box { padding: 20px; background-color: white; border-left: 4px solid #007bff; margin: 20px 0; }
+          .original-message { padding: 15px; background-color: #f0f0f0; border-left: 4px solid #ccc; margin: 20px 0; font-style: italic; color: #555; }
+          .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>CARTEVO</h1>
+          </div>
+          <div class="content">
+            <p>Hello ${userName},</p>
+            <p>A member of our team has responded to your support request regarding: "<strong>${subject}</strong>".</p>
+            
+            <div class="response-box">
+              <p style="margin-top:0;"><strong>Our Response:</strong></p>
+              <p style="margin-bottom:0;">${adminResponse}</p>
+            </div>
+
+            <p>For your reference, your original message was:</p>
+            <div class="original-message">
+              <p style="margin:0;">${originalMessage}</p>
+            </div>
+
+            <p>If you have any further questions, please feel free to contact us again.</p>
+          </div>
+          <div class="footer">
+            <p>© 2025 CARTEVO. Tous droits réservés.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
   private getContactTemplate(data: ContactDto): string {
     return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 10px; overflow: hidden;">
