@@ -25,7 +25,7 @@ class ContactModel {
     try {
       const result = await prisma.helpRequest.findMany({
         where: {
-          email, // email obligatoire
+          email,
           ...(filters?.status && { status: filters.status }),
           ...(filters?.state && { state: filters.state }),
         },

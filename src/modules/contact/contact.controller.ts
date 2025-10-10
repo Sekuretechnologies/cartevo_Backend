@@ -4,6 +4,7 @@ import { ContactService } from "./contact.service";
 import { AuthGuard } from "@nestjs/passport";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { use } from "passport";
 
 @Controller("contact")
 export class ContactController {
@@ -17,8 +18,11 @@ export class ContactController {
   @Post("send-auth")
   @UseGuards(JwtAuthGuard)
   async sendAuthMessage(@CurrentUser() user: any, @Body() body: SendAuth) {
-    console.log("body", body);
-    console.log("CurrentUser", user);
+    return this.contactService.sendAuthMessage({
+      data: body,
+      userId: user.userId,
+      companyId: user.companyId,
+    });
   }
 
   @Get("get-my-messages")
