@@ -1,16 +1,12 @@
-import contactModel from "@/models/prisma/contactModel";
-import { EmailService } from "@/services/email.service";
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from "@nestjs/common";
-import { ContactDto } from "./dto/contact.dto";
-import ContactModel from "@/models/prisma/contactModel";
-import { response } from "express";
-import { FilterObject } from "@/types";
 import { UserModel } from "@/models";
-import { email } from "envalid";
+import {
+  default as contactModel,
+  default as ContactModel,
+} from "@/models/prisma/contactModel";
+import { EmailService } from "@/services/email.service";
+import { FilterObject } from "@/types";
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { ContactDto } from "./dto/contact.dto";
 
 @Injectable()
 export class ContactService {

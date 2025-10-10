@@ -1,50 +1,47 @@
 import {
-  Controller,
-  Post,
-  Body,
-  HttpCode,
-  Param,
-  Headers,
   BadRequestException,
-  UseGuards,
+  Body,
+  Controller,
+  Headers,
+  HttpCode,
+  Post,
   Put,
+  UseGuards,
 } from "@nestjs/common";
 import {
-  ApiTags,
+  ApiBearerAuth,
   ApiOperation,
   ApiResponse,
-  ApiBearerAuth,
+  ApiTags,
 } from "@nestjs/swagger";
+import { CurrentUser } from "../common/decorators/current-user.decorator";
+import {
+  AuthResponseDto,
+  LoginDto,
+  LoginSuccessResponseDto,
+  LogoutResponseDto,
+  VerifyOtpDto,
+  VerifyOtpMultiCompanyResponseDto,
+} from "../user/dto/user.dto";
 import { AuthService } from "./auth.service";
 import {
+  AcceptInvitationDto,
+  AcceptInvitationResponseDto,
   AuthTokenRequestDto,
   AuthTokenResponseDto,
   CheckEmailRequestDto,
   CheckEmailResponseDto,
   LoginWithCompanyRequestDto,
   LoginWithCompanyResponseDto,
-  SelectCompanyRequestDto,
-  SelectCompanyResponseDto,
-  ValidateInvitationTokenDto,
-  ValidateInvitationResponseDto,
-  AcceptInvitationDto,
-  AcceptInvitationResponseDto,
   RegisterWithInvitationDto,
   ResendOtpDto,
+  SelectCompanyRequestDto,
+  SelectCompanyResponseDto,
   SwitchCompanyRequestDto,
+  ValidateInvitationResponseDto,
+  ValidateInvitationTokenDto,
 } from "./dto/auth.dto";
-import {
-  LoginDto,
-  VerifyOtpDto,
-  AuthResponseDto,
-  LoginSuccessResponseDto,
-  LogoutResponseDto,
-  VerifyOtpMultiCompanyResponseDto,
-} from "../user/dto/user.dto";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
-import { email } from "envalid";
-import { AuthGuard } from "@nestjs/passport";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
 
 @ApiTags("Authentication")
 @Controller("auth")
@@ -329,10 +326,6 @@ export class AuthController {
     // console.log("user dans le switch", user);
     // console.log("companyId", body.company_id);
     // console.log("current companyId", user.companyId);
-    return this.authService.switchCompany(
-      user.userId,
-      user.companyId,
-      body
-    );
+    return this.authService.switchCompany(user.userId, user.companyId, body);
   }
 }

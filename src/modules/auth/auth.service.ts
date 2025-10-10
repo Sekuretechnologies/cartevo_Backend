@@ -29,21 +29,21 @@ import {
   VerifyOtpMultiCompanyResponseDto,
 } from "../user/dto/user.dto";
 import {
+  AcceptInvitationDto,
+  AcceptInvitationResponseDto,
   AuthTokenRequestDto,
   AuthTokenResponseDto,
   CheckEmailRequestDto,
   CheckEmailResponseDto,
   LoginWithCompanyRequestDto,
   LoginWithCompanyResponseDto,
-  ValidateInvitationResponseDto,
-  AcceptInvitationDto,
-  AcceptInvitationResponseDto,
   RegisterWithInvitationDto,
   ResendOtpDto,
-  SwitchCompanyRequestDto,
-  SwitchCompanyResponseDto,
   SelectCompanyRequestDto,
   SelectCompanyResponseDto,
+  SwitchCompanyRequestDto,
+  SwitchCompanyResponseDto,
+  ValidateInvitationResponseDto,
   ValidateInvitationTokenDto,
 } from "./dto/auth.dto";
 
@@ -204,11 +204,11 @@ export class AuthService {
     }
 
     // Send OTP email
-    // await this.emailService.sendOtpEmail(
-    //   user.email,
-    //   otp,
-    //   user.first_name || user.full_name || "User"
-    // );
+    await this.emailService.sendOtpEmail(
+      user.email,
+      otp,
+      user.first_name || user.full_name || "User"
+    );
 
     return {
       success: true,
