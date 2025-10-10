@@ -1,10 +1,10 @@
 import fnOutput from "@/utils/shared/fnOutputHandler";
-import { helpRequestStatus, Prisma, PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 // src/models/prisma/contactModel.ts
 import { FilterObject, IncludeObject } from "@/types";
 
-import { buildPrismaQuery } from "prisma/functions";
 import { setMethodFilter } from "@/utils/shared/common";
+import { buildPrismaQuery } from "prisma/functions";
 
 interface FilterObjectCt {
   status?: "PENDING" | "RESOLVED";
@@ -70,13 +70,43 @@ class ContactModel {
     }
   }
 
-  static async getAllMessages(filters?: FilterObject) {
+  static async getAllMessages(options: {
+    filters?: FilterObject;
+    page?: number;
+    limit?: number;
+  }) {
     try {
-      const result = await prisma.helpRequest.findMany(
-        buildPrismaQuery({ filters })
-      );
+      const { filters = {}, page = 1, limit = 10 } = options;
+      const take = limit;
+      const skip = (page - 1) * limit;
+
+      // Ensure default state filter is applied if not provided
+      const where: Prisma.helpRequestWhereInput = {
+        ...filters,
+      };
+
+      const [records, total] = await prisma.$transaction([
+        prisma.helpRequest.findMany({
+          where,
+          take,
+          skip,
+          orderBy: {
+            createAt: "desc",
+          },
+        }),
+        prisma.helpRequest.count({ where }),
+      ]);
+
       return fnOutput.success({
-        output: result,
+        output: {
+          data: records,
+          meta: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+          },
+        },
       });
     } catch (error: any) {
       return fnOutput.error({
